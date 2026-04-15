@@ -101,9 +101,9 @@ export default function Appointments() {
           {step === 1 && (
             <section aria-labelledby="service-heading">
               <h2 id="service-heading" style={stepHeading}>Select a Service Type</h2>
-              <ul style={{ listStyle: 'none', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }} role="radiogroup" aria-label="Service type">
+              <div style={{ listStyle: 'none', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }} role="radiogroup" aria-label="Service type">
                 {services.map(svc => (
-                  <li key={svc}>
+                  <div key={svc} role="none">
                     <label style={{ ...serviceOption, ...(serviceType === svc ? serviceOptionActive : {}) }}>
                       <input type="radio" name="service" value={svc}
                         checked={serviceType === svc} onChange={() => setServiceType(svc)}
@@ -111,9 +111,9 @@ export default function Appointments() {
                         aria-label={svc} />
                       {svc}
                     </label>
-                  </li>
+                  </div>
                 ))}
-              </ul>
+              </div>
               <button className="btn btn-primary" style={{ marginTop: '28px' }}
                 onClick={() => setStep(2)} disabled={!serviceType}>
                 Continue →

@@ -17,15 +17,15 @@
   --color-primary:      #1D3557;
   --color-primary-dark: #152844;
   --color-secondary:    #457B9D;
-  --color-accent:       #E63946;
-  --color-accent-dark:  #C62333;
+  --color-accent:       #C42230;
+  --color-accent-dark:  #A31B27;
   --color-bg:           #F4F6FA;
   --color-surface:      #FFFFFF;
   --color-surface-alt:  #EDF2F7;
   --color-text:         #1A2332;
   --color-text-muted:   #5A6478;
   --color-border:       #D0D8E8;
-  --color-success:      #2A9D8F;
+  --color-success:      #197A6F;
   --color-warning:      #E9C46A;
   --color-warning-bg:   #FFF8E8;
   --color-info-bg:      #EBF4FF;
@@ -169,13 +169,13 @@ a:hover { color: var(--color-primary); }
 }
 .btn-ghost {
   background: transparent;
-  color: var(--color-secondary);
+  color: var(--color-primary);
   border-color: transparent;
   padding-left: 0;
   padding-right: 0;
 }
 .btn-ghost:hover {
-  color: var(--color-primary);
+  color: var(--color-secondary);
 }
 
 /* ---- Form elements ---- */
@@ -271,6 +271,13 @@ textarea:focus {
 .breadcrumb a { color: var(--color-secondary); }
 .breadcrumb a:hover { color: var(--color-primary); }
 .breadcrumb-sep { color: var(--color-border); }
+
+/* Breadcrumb on dark backgrounds */
+.page-header .breadcrumb { color: rgba(255,255,255,0.75); }
+.page-header .breadcrumb a { color: rgba(255,255,255,0.9); text-decoration: underline; }
+.page-header .breadcrumb a:hover { color: #fff; }
+.page-header .breadcrumb .breadcrumb-sep { color: rgba(255,255,255,0.35); }
+.page-header .breadcrumb [aria-current="page"] { color: rgba(255,255,255,0.75); }
 
 /* ---- Page header ---- */
 .page-header {

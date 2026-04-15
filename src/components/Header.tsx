@@ -81,7 +81,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   topBar: {
     background: '#152844',
-    color: 'rgba(255,255,255,0.65)',
+    color: 'rgba(255,255,255,0.85)',
     fontSize: '11px',
     fontFamily: 'var(--font-body)',
     letterSpacing: '0.04em',

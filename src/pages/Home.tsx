@@ -92,7 +92,7 @@ export default function Home() {
       <div style={styles.statusBar} aria-label="Service status">
         <div className="container" style={styles.statusBarInner}>
           {[
-            { label: 'Online Services', status: 'All Operational', color: '#2A9D8F' },
+            { label: 'Online Services', status: 'All Operational', color: '#197A6F' },
             { label: 'Processing Time', status: '2–3 Business Days', color: 'var(--color-secondary)' },
             { label: 'Wait Time (In-Person)', status: 'Approx. 45 min', color: 'var(--color-text-muted)' },
           ].map(item => (
@@ -133,8 +133,8 @@ export default function Home() {
       <section style={styles.howSection} aria-labelledby="how-heading">
         <div className="container">
           <div className="section-header">
-            <h2 id="how-heading">How It Works</h2>
-            <p>Most DMV transactions can be completed in three simple steps.</p>
+            <h2 id="how-heading" style={{ color: '#fff' }}>How It Works</h2>
+            <p style={{ color: 'rgba(255,255,255,0.8)' }}>Most DMV transactions can be completed in three simple steps.</p>
           </div>
           <ol style={styles.stepsGrid} role="list">
             {[
@@ -143,7 +143,7 @@ export default function Home() {
               { step: '03', title: 'Submit & Confirm', desc: 'Review and submit your request. You\'ll receive a confirmation email with your reference number and next steps.' },
             ].map(step => (
               <li key={step.step} className="animate-in" style={styles.step}>
-                <span style={styles.stepNumber}>{step.step}</span>
+                <span style={styles.stepNumber} aria-hidden="true">{step.step}</span>
                 <h3 style={styles.stepTitle}>{step.title}</h3>
                 <p style={styles.stepDesc}>{step.desc}</p>
               </li>
@@ -158,7 +158,7 @@ export default function Home() {
           <h2 id="notices-heading" style={{ marginBottom: '24px' }}>Important Notices</h2>
           <div style={styles.noticesGrid}>
             <div style={styles.noticeCard} role="article">
-              <span style={styles.noticeBadge('var(--color-warning)', '#7A5200')}>Update</span>
+              <span style={styles.noticeBadge('var(--color-warning)', '#4D3200')}>Update</span>
               <h4 style={styles.noticeTitle}>REAL ID Compliance Deadline</h4>
               <p style={styles.noticeDesc}>
                 Beginning May 7, 2025, a REAL ID-compliant card will be required to board domestic flights
@@ -166,7 +166,7 @@ export default function Home() {
               </p>
             </div>
             <div style={styles.noticeCard} role="article">
-              <span style={styles.noticeBadge('var(--color-info-bg)', 'var(--color-secondary)')}>Info</span>
+              <span style={styles.noticeBadge('var(--color-info-bg)', 'var(--color-primary)')}>Info</span>
               <h4 style={styles.noticeTitle}>Extended Online Services</h4>
               <p style={styles.noticeDesc}>
                 You can now complete vehicle title transfers and duplicate license requests entirely online.
@@ -174,7 +174,7 @@ export default function Home() {
               </p>
             </div>
             <div style={styles.noticeCard} role="article">
-              <span style={styles.noticeBadge('#E8F5E9', '#1B5E20')}>New</span>
+              <span style={styles.noticeBadge('#E8F5E9', '#14491E')}>New</span>
               <h4 style={styles.noticeTitle}>Digital Driver's License Pilot</h4>
               <p style={styles.noticeDesc}>
                 Contoso County is piloting a mobile digital driver's license. Eligible residents can apply
@@ -365,7 +365,7 @@ const styles: Record<string, StyleValue | ((...args: string[]) => StyleValue)> =
     fontFamily: 'var(--font-mono)',
     fontSize: '48px',
     fontWeight: 400,
-    color: 'rgba(255,255,255,0.12)',
+    color: 'rgba(255,255,255,0.42)',
     lineHeight: 1,
     marginBottom: '12px',
     letterSpacing: '-0.02em',
@@ -402,7 +402,7 @@ const styles: Record<string, StyleValue | ((...args: string[]) => StyleValue)> =
     background: bg,
     color,
     fontSize: '11px',
-    fontWeight: 600,
+    fontWeight: 700,
     letterSpacing: '0.06em',
     textTransform: 'uppercase',
     padding: '3px 10px',
@@ -422,3 +422,4 @@ const styles: Record<string, StyleValue | ((...args: string[]) => StyleValue)> =
     lineHeight: 1.6,
   },
 }
+

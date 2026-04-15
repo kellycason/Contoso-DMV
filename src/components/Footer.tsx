@@ -53,9 +53,9 @@ export default function Footer() {
           <span>© {new Date().getFullYear()} Contoso Department of Motor Vehicles. All rights reserved.</span>
           <span style={styles.disclaimer}>
             An official government website.{' '}
-            <Link to="/faq" style={{ color: 'rgba(255,255,255,0.5)', textDecoration: 'underline' }}>Privacy Policy</Link>
+            <Link to="/faq" style={{ color: 'rgba(255,255,255,0.75)', textDecoration: 'underline' }}>Privacy Policy</Link>
             {' · '}
-            <Link to="/faq" style={{ color: 'rgba(255,255,255,0.5)', textDecoration: 'underline' }}>Accessibility</Link>
+            <Link to="/faq" style={{ color: 'rgba(255,255,255,0.75)', textDecoration: 'underline' }}>Accessibility</Link>
           </span>
         </div>
       </div>
@@ -95,11 +95,12 @@ const styles: Record<string, React.CSSProperties> = {
   },
   adaNotice: {
     fontSize: '12px',
-    color: 'rgba(255,255,255,0.45)',
+    color: 'rgba(255,255,255,0.65)',
     lineHeight: 1.5,
   },
   phoneLink: {
-    color: 'rgba(255,255,255,0.65)',
+    color: 'rgba(255,255,255,0.85)',
+    textDecoration: 'underline',
   },
   linksCol: {},
   colHeading: {
@@ -108,7 +109,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: '11px',
     letterSpacing: '0.1em',
     textTransform: 'uppercase',
-    color: 'rgba(255,255,255,0.4)',
+    color: 'rgba(255,255,255,0.75)',
     marginBottom: '16px',
   },
   linkList: {
@@ -128,7 +129,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 600,
     letterSpacing: '0.06em',
     textTransform: 'uppercase',
-    color: 'rgba(255,255,255,0.4)',
+    color: 'rgba(255,255,255,0.75)',
     fontFamily: 'var(--font-body)',
   },
   link: {
@@ -146,12 +147,12 @@ const styles: Record<string, React.CSSProperties> = {
     justifyContent: 'space-between',
     alignItems: 'center',
     fontSize: '12px',
-    color: 'rgba(255,255,255,0.35)',
+    color: 'rgba(255,255,255,0.65)',
     gap: '16px',
     flexWrap: 'wrap',
   },
   disclaimer: {
-    color: 'rgba(255,255,255,0.35)',
+    color: 'rgba(255,255,255,0.65)',
     fontSize: '12px',
   },
 }
