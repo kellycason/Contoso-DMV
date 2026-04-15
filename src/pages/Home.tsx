@@ -3,6 +3,13 @@ import { Link } from 'react-router-dom'
 
 const services = [
   {
+    icon: '🏠',
+    title: 'MyDMV Dashboard',
+    desc: 'Access your personalized dashboard to manage licenses, vehicles, and transactions in one place.',
+    to: '/my-dmv',
+    cta: 'Go to MyDMV',
+  },
+  {
     icon: '🪪',
     title: 'License Renewal',
     desc: 'Renew your driver\'s license online in minutes. No office visit required for most renewals.',
@@ -15,6 +22,13 @@ const services = [
     desc: 'Register a new vehicle or renew your existing registration quickly and securely.',
     to: '/vehicle-registration',
     cta: 'Register Vehicle',
+  },
+  {
+    icon: '🛡️',
+    title: 'REAL ID Readiness',
+    desc: 'Check your eligibility, prepare documents, and schedule your REAL ID appointment.',
+    to: '/real-id',
+    cta: 'Check Readiness',
   },
   {
     icon: '📅',
@@ -31,18 +45,18 @@ const services = [
     cta: 'Upload Now',
   },
   {
+    icon: '🏢',
+    title: 'Dealer Portal',
+    desc: 'Dealers: manage registrations, titles, liens, temp tags, and compliance from one portal.',
+    to: '/dealer',
+    cta: 'Dealer Login',
+  },
+  {
     icon: '❓',
     title: 'Frequently Asked Questions',
     desc: 'Find answers to the most common questions about licenses, registrations, and DMV services.',
     to: '/faq',
     cta: 'Browse FAQ',
-  },
-  {
-    icon: '📋',
-    title: 'Check Application Status',
-    desc: 'Track the status of your pending license application, title transfer, or registration.',
-    to: '/faq',
-    cta: 'Check Status',
   },
 ]
 

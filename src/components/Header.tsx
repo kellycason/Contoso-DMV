@@ -2,10 +2,13 @@ import { useState } from 'react'
 import { NavLink, Link } from 'react-router-dom'
 
 const navLinks = [
+  { to: '/my-dmv',                label: 'MyDMV' },
   { to: '/license-renewal',       label: 'License Renewal' },
   { to: '/vehicle-registration',  label: 'Vehicle Registration' },
+  { to: '/real-id',               label: 'REAL ID' },
   { to: '/appointments',          label: 'Appointments' },
   { to: '/documents',             label: 'Documents' },
+  { to: '/dealer',                label: 'Dealer Portal' },
   { to: '/faq',                   label: 'FAQ' },
 ]
 
@@ -99,7 +102,7 @@ const styles: Record<string, React.CSSProperties> = {
   navInner: {
     display: 'flex',
     alignItems: 'center',
-    gap: '24px',
+    gap: '16px',
     height: '68px',
   },
   brand: {
@@ -137,21 +140,22 @@ const styles: Record<string, React.CSSProperties> = {
   navList: {
     display: 'flex',
     alignItems: 'center',
-    gap: '2px',
+    gap: '0px',
     listStyle: 'none',
     margin: '0 auto',
     padding: 0,
-    flexWrap: 'wrap' as const,
+    flexWrap: 'nowrap' as const,
+    whiteSpace: 'nowrap' as const,
   },
   navListOpen: {},
   navLink: {
     display: 'block',
-    padding: '8px 12px',
+    padding: '8px 10px',
     color: 'rgba(255,255,255,0.75)',
     fontFamily: 'var(--font-body)',
-    fontSize: '13px',
+    fontSize: '12.5px',
     fontWeight: 400,
-    letterSpacing: '0.02em',
+    letterSpacing: '0.01em',
     borderRadius: '4px',
     textDecoration: 'none',
     transition: 'color 0.15s, background 0.15s',

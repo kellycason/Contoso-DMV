@@ -1,0 +1,363 @@
+# Contoso DMV – Dataverse Data Model Configuration
+# Use this file as a reference when creating tables via Power Apps / pac CLI.
+# Run: pac modelbuilder build --schema dataverse-schema.yml (or create manually in make.powerapps.com)
+#
+# Each table below maps to a Dataverse table with the listed columns.
+# Prefix: contoso_   (publisher prefix for Contoso DMV solution)
+
+tables:
+
+  # ─── Citizen / Contact ────────────────────────────────────────
+  - name: contoso_citizen
+    displayName: Citizen
+    description: Extends the Contact table for DMV citizen profiles
+    primaryColumn: contoso_fullname
+    columns:
+      - name: contoso_fullname
+        type: Text
+        maxLength: 200
+        required: true
+      - name: contoso_dateofbirth
+        type: DateOnly
+        required: true
+      - name: contoso_ssn_last4
+        type: Text
+        maxLength: 4
+        description: Last 4 digits of SSN (masked)
+      - name: contoso_email
+        type: Text
+        format: Email
+        maxLength: 200
+      - name: contoso_phone
+        type: Text
+        format: Phone
+        maxLength: 20
+      - name: contoso_address_street
+        type: Text
+        maxLength: 300
+      - name: contoso_address_city
+        type: Text
+        maxLength: 100
+      - name: contoso_address_state
+        type: Text
+        maxLength: 2
+      - name: contoso_address_zip
+        type: Text
+        maxLength: 10
+      - name: contoso_realid_eligible
+        type: TwoOption
+        default: false
+      - name: contoso_portal_userid
+        type: Text
+        maxLength: 100
+        description: Power Pages portal user identity
+
+  # ─── Driver License ───────────────────────────────────────────
+  - name: contoso_driverlicense
+    displayName: Driver License
+    description: Driver license and ID card records
+    primaryColumn: contoso_licensenumber
+    columns:
+      - name: contoso_licensenumber
+        type: Text
+        maxLength: 20
+        required: true
+      - name: contoso_citizenid
+        type: Lookup
+        target: contoso_citizen
+        required: true
+      - name: contoso_type
+        type: Choice
+        options: [Standard, REAL ID, Commercial (CDL), Learner Permit, Motorcycle]
+      - name: contoso_class
+        type: Text
+        maxLength: 10
+        description: "License class (A, B, C, M, etc.)"
+      - name: contoso_status
+        type: Choice
+        options: [Active, Expired, Suspended, Revoked, Pending]
+      - name: contoso_issuedate
+        type: DateOnly
+      - name: contoso_expirationdate
+        type: DateOnly
+        required: true
+      - name: contoso_restrictions
+        type: Text
+        maxLength: 500
+      - name: contoso_endorsements
+        type: Text
+        maxLength: 500
+
+  # ─── Vehicle ──────────────────────────────────────────────────
+  - name: contoso_vehicle
+    displayName: Vehicle
+    description: Vehicle master record
+    primaryColumn: contoso_vin
+    columns:
+      - name: contoso_vin
+        type: Text
+        maxLength: 17
+        required: true
+        description: 17-character Vehicle Identification Number
+      - name: contoso_make
+        type: Text
+        maxLength: 50
+        required: true
+      - name: contoso_model
+        type: Text
+        maxLength: 50
+        required: true
+      - name: contoso_year
+        type: WholeNumber
+        min: 1900
+        max: 2100
+        required: true
+      - name: contoso_color
+        type: Text
+        maxLength: 30
+      - name: contoso_bodytype
+        type: Choice
+        options: [Sedan, SUV, Truck, Van, Motorcycle, Trailer, Other]
+      - name: contoso_fueltype
+        type: Choice
+        options: [Gasoline, Diesel, Electric, Hybrid, Other]
+      - name: contoso_odometer
+        type: WholeNumber
+      - name: contoso_weight
+        type: WholeNumber
+        description: Gross vehicle weight (lbs)
+
+  # ─── Registration ─────────────────────────────────────────────
+  - name: contoso_registration
+    displayName: Vehicle Registration
+    description: Vehicle registration records linking citizen, vehicle, and plates
+    primaryColumn: contoso_registrationnumber
+    columns:
+      - name: contoso_registrationnumber
+        type: Text
+        maxLength: 20
+        required: true
+      - name: contoso_citizenid
+        type: Lookup
+        target: contoso_citizen
+        required: true
+      - name: contoso_vehicleid
+        type: Lookup
+        target: contoso_vehicle
+        required: true
+      - name: contoso_platenumber
+        type: Text
+        maxLength: 10
+      - name: contoso_status
+        type: Choice
+        options: [Active, Expired, Suspended, Pending, Transferred]
+      - name: contoso_type
+        type: Choice
+        options: [New, Renewal, Transfer, Duplicate]
+      - name: contoso_effectivedate
+        type: DateOnly
+      - name: contoso_expirationdate
+        type: DateOnly
+      - name: contoso_county
+        type: Text
+        maxLength: 50
+      - name: contoso_insurance_provider
+        type: Text
+        maxLength: 200
+      - name: contoso_insurance_policynumber
+        type: Text
+        maxLength: 50
+      - name: contoso_insurance_expiration
+        type: DateOnly
+      - name: contoso_fee
+        type: Currency
+
+  # ─── Dealer ───────────────────────────────────────────────────
+  - name: contoso_dealer
+    displayName: Dealer
+    description: Licensed vehicle dealers and partners
+    primaryColumn: contoso_dealername
+    columns:
+      - name: contoso_dealername
+        type: Text
+        maxLength: 200
+        required: true
+      - name: contoso_dealernumber
+        type: Text
+        maxLength: 20
+        required: true
+        description: "e.g. DLR-2024-0156"
+      - name: contoso_type
+        type: Choice
+        options: [New Vehicle, Used Vehicle, Wholesale, Fleet, Motorcycle]
+      - name: contoso_licensestatus
+        type: Choice
+        options: [Active, Suspended, Expired, Revoked]
+      - name: contoso_licenseexpiration
+        type: DateOnly
+      - name: contoso_compliancescore
+        type: Decimal
+        min: 0
+        max: 100
+        description: Compliance percentage 0-100
+      - name: contoso_contactemail
+        type: Text
+        format: Email
+        maxLength: 200
+      - name: contoso_contactphone
+        type: Text
+        format: Phone
+        maxLength: 20
+      - name: contoso_address_street
+        type: Text
+        maxLength: 300
+      - name: contoso_address_city
+        type: Text
+        maxLength: 100
+      - name: contoso_address_state
+        type: Text
+        maxLength: 2
+      - name: contoso_address_zip
+        type: Text
+        maxLength: 10
+      - name: contoso_portal_userid
+        type: Text
+        maxLength: 100
+        description: Power Pages portal user identity for dealer
+
+  # ─── Title ────────────────────────────────────────────────────
+  - name: contoso_title
+    displayName: Vehicle Title
+    description: Vehicle title / certificate of ownership records
+    primaryColumn: contoso_titlenumber
+    columns:
+      - name: contoso_titlenumber
+        type: Text
+        maxLength: 20
+        required: true
+      - name: contoso_vehicleid
+        type: Lookup
+        target: contoso_vehicle
+        required: true
+      - name: contoso_ownerid
+        type: Lookup
+        target: contoso_citizen
+        required: true
+        description: Current titled owner
+      - name: contoso_status
+        type: Choice
+        options: [Clean, Salvage, Rebuilt, Flood, Lemon, Bonded]
+      - name: contoso_issuedate
+        type: DateOnly
+      - name: contoso_previousownerid
+        type: Lookup
+        target: contoso_citizen
+        description: Previous owner (for transfers)
+      - name: contoso_transferdate
+        type: DateOnly
+      - name: contoso_saleprice
+        type: Currency
+        description: Sale price for title transfer tax calculation
+
+  # ─── Lien ─────────────────────────────────────────────────────
+  - name: contoso_lien
+    displayName: Lien
+    description: Vehicle lien records for electronic lien & title (ELT)
+    primaryColumn: contoso_liennumber
+    columns:
+      - name: contoso_liennumber
+        type: Text
+        maxLength: 20
+        required: true
+      - name: contoso_titleid
+        type: Lookup
+        target: contoso_title
+        required: true
+      - name: contoso_lienholder
+        type: Text
+        maxLength: 200
+        required: true
+        description: Financial institution name
+      - name: contoso_status
+        type: Choice
+        options: [Active, Released, Pending]
+      - name: contoso_amount
+        type: Currency
+      - name: contoso_fileddate
+        type: DateOnly
+      - name: contoso_releasedate
+        type: DateOnly
+      - name: contoso_dealerid
+        type: Lookup
+        target: contoso_dealer
+        description: Dealer that originated the lien
+
+  # ─── Transaction ──────────────────────────────────────────────
+  - name: contoso_transaction
+    displayName: Transaction
+    description: Financial transactions for fees, renewals, and payments
+    primaryColumn: contoso_transactionnumber
+    columns:
+      - name: contoso_transactionnumber
+        type: Text
+        maxLength: 20
+        required: true
+      - name: contoso_citizenid
+        type: Lookup
+        target: contoso_citizen
+      - name: contoso_dealerid
+        type: Lookup
+        target: contoso_dealer
+      - name: contoso_type
+        type: Choice
+        options: [Registration Fee, Renewal Fee, Title Fee, Lien Filing, License Fee, Late Fee, Refund]
+      - name: contoso_amount
+        type: Currency
+        required: true
+      - name: contoso_status
+        type: Choice
+        options: [Pending, Completed, Failed, Refunded]
+      - name: contoso_paymentmethod
+        type: Choice
+        options: [Credit Card, Debit Card, ACH, Check, Cash]
+      - name: contoso_transactiondate
+        type: DateAndTime
+      - name: contoso_referenceid
+        type: Text
+        maxLength: 50
+        description: Related record ID (registration, title, etc.)
+
+  # ─── Document ─────────────────────────────────────────────────
+  - name: contoso_document
+    displayName: Document
+    description: Uploaded documents and attachments
+    primaryColumn: contoso_name
+    columns:
+      - name: contoso_name
+        type: Text
+        maxLength: 200
+        required: true
+      - name: contoso_citizenid
+        type: Lookup
+        target: contoso_citizen
+      - name: contoso_dealerid
+        type: Lookup
+        target: contoso_dealer
+      - name: contoso_type
+        type: Choice
+        options: [Identity Document, Proof of Residency, Insurance Card, Bill of Sale, Lien Release, Emissions Report, VIN Verification, Other]
+      - name: contoso_status
+        type: Choice
+        options: [Uploaded, Verified, Rejected, Expired]
+      - name: contoso_uploaddate
+        type: DateAndTime
+      - name: contoso_filesize
+        type: WholeNumber
+        description: File size in bytes
+      - name: contoso_mimetype
+        type: Text
+        maxLength: 100
+      - name: contoso_bloburl
+        type: Text
+        maxLength: 500
+        description: Azure Blob Storage URL reference
