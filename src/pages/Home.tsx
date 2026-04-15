@@ -1,333 +1,424 @@
 import { useEffect } from 'react'
+import { Link } from 'react-router-dom'
 
-const loadingCSS = `
-:root {
-  --pp-violet: #7B5EA7;
-  --pp-purple: #8B6FC0;
-  --pp-lavender: #A78BDB;
-  --pp-periwinkle: #8088D9;
-  --pp-sky: #5A9BD5;
-  --pp-deep-violet: #5C3D8F;
-  --pp-bg: #F7F5FA;
-  --pp-surface: #FFFFFF;
-  --pp-text: #2D1B4E;
-  --pp-text-secondary: #6B5A82;
-  --pp-text-muted: #9B8FB5;
-  --pp-border: rgba(139, 111, 192, 0.12);
-  --pp-glow: rgba(139, 111, 192, 0.2);
-}
-html, body { overflow: hidden; background: var(--pp-bg); color: var(--pp-text); }
-.loading-wrapper { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: var(--pp-bg); }
-.ambient { position: fixed; inset: 0; z-index: 0; overflow: hidden; }
-.ambient::before {
-  content: ''; position: absolute; width: 160%; height: 160%; top: -30%; left: -30%;
-  background:
-    radial-gradient(ellipse 600px 600px at 25% 30%, rgba(167, 139, 219, 0.12) 0%, transparent 70%),
-    radial-gradient(ellipse 500px 500px at 75% 70%, rgba(90, 155, 213, 0.08) 0%, transparent 70%),
-    radial-gradient(ellipse 800px 400px at 50% 50%, rgba(139, 111, 192, 0.06) 0%, transparent 60%);
-  animation: ambientDrift 25s ease-in-out infinite alternate;
-}
-@keyframes ambientDrift {
-  0% { transform: translate(0, 0) scale(1); }
-  50% { transform: translate(-3%, 2%) scale(1.04); }
-  100% { transform: translate(2%, -1%) scale(0.98); }
-}
-.particles { position: fixed; inset: 0; z-index: 1; pointer-events: none; }
-.particle { position: absolute; border-radius: 50%; opacity: 0; animation: particleFloat linear infinite; }
-@keyframes particleFloat {
-  0% { transform: translateY(100vh) scale(0); opacity: 0; }
-  10% { opacity: 0.6; }
-  90% { opacity: 0.6; }
-  100% { transform: translateY(-10vh) scale(1); opacity: 0; }
-}
-.grid-overlay {
-  position: fixed; inset: 0; z-index: 1;
-  background-image: linear-gradient(rgba(139, 111, 192, 0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(139, 111, 192, 0.04) 1px, transparent 1px);
-  background-size: 60px 60px; animation: gridPulse 8s ease-in-out infinite alternate;
-}
-@keyframes gridPulse { 0% { opacity: 0.3; } 100% { opacity: 0.7; } }
-.center-stage { position: relative; z-index: 10; display: flex; flex-direction: column; align-items: center; gap: 36px; padding: 40px 40px 48px; max-height: 100vh; overflow-y: auto; overflow-x: hidden; scrollbar-width: none; }
-.center-stage::-webkit-scrollbar { display: none; }
-.orbit-system { position: relative; width: 220px; height: 220px; display: flex; align-items: center; justify-content: center; }
-.core-shape { position: absolute; width: 72px; height: 72px; z-index: 5; }
-.core-shape .slab { position: absolute; width: 72px; height: 48px; border-radius: 14px; left: 50%; top: 50%; transform-origin: center center; box-shadow: 0 4px 20px rgba(139, 111, 192, 0.2); }
-.core-shape .slab:nth-child(1) { background: linear-gradient(135deg, var(--pp-lavender), var(--pp-periwinkle)); animation: slabTop 4s ease-in-out infinite; z-index: 3; }
-.core-shape .slab:nth-child(2) { background: linear-gradient(135deg, var(--pp-purple), var(--pp-sky)); animation: slabMid 4s ease-in-out infinite; z-index: 2; }
-.core-shape .slab:nth-child(3) { background: linear-gradient(135deg, var(--pp-violet), var(--pp-purple)); animation: slabBot 4s ease-in-out infinite; z-index: 1; }
-@keyframes slabTop {
-  0%, 100% { transform: translate(-50%, -80%) rotate(-15deg) scale(1); opacity: 0.95; }
-  25% { transform: translate(-50%, -80%) rotate(-20deg) scale(1.05); }
-  50% { transform: translate(-50%, -75%) rotate(-10deg) scale(0.95); opacity: 1; }
-  75% { transform: translate(-50%, -85%) rotate(-18deg) scale(1.02); }
-}
-@keyframes slabMid {
-  0%, 100% { transform: translate(-50%, -50%) rotate(-5deg) scale(1); opacity: 0.85; }
-  25% { transform: translate(-50%, -48%) rotate(-8deg) scale(1.03); }
-  50% { transform: translate(-50%, -52%) rotate(0deg) scale(0.97); opacity: 0.9; }
-  75% { transform: translate(-50%, -50%) rotate(-3deg) scale(1.01); }
-}
-@keyframes slabBot {
-  0%, 100% { transform: translate(-50%, -20%) rotate(5deg) scale(1); opacity: 0.75; }
-  25% { transform: translate(-50%, -18%) rotate(8deg) scale(0.97); }
-  50% { transform: translate(-50%, -22%) rotate(2deg) scale(1.04); opacity: 0.8; }
-  75% { transform: translate(-50%, -16%) rotate(6deg) scale(0.99); }
-}
-.core-glow { position: absolute; width: 130px; height: 130px; border-radius: 50%; background: radial-gradient(circle, rgba(167, 139, 219, 0.18) 0%, transparent 70%); z-index: 3; animation: coreGlow 3s ease-in-out infinite alternate; filter: blur(25px); }
-@keyframes coreGlow { 0% { transform: scale(1); opacity: 0.5; } 100% { transform: scale(1.5); opacity: 0.9; } }
-.orbit-ring { position: absolute; border: 1px solid rgba(139, 111, 192, 0.15); border-radius: 50%; animation: ringRotate linear infinite; }
-.orbit-ring:nth-child(1) { width: 160px; height: 160px; animation-duration: 12s; }
-.orbit-ring:nth-child(2) { width: 200px; height: 200px; animation-duration: 18s; animation-direction: reverse; border-color: rgba(90, 155, 213, 0.12); }
-.orbit-ring:nth-child(3) { width: 240px; height: 240px; animation-duration: 25s; border-style: dashed; border-color: rgba(139, 111, 192, 0.08); }
-@keyframes ringRotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-.orbit-dot { position: absolute; width: 8px; height: 8px; border-radius: 50%; z-index: 6; }
-.orbit-dot::after { content: ''; position: absolute; inset: -4px; border-radius: 50%; filter: blur(6px); }
-.orbit-dot:nth-child(4) { background: var(--pp-lavender); box-shadow: 0 0 10px rgba(167, 139, 219, 0.5); animation: orbitA 12s linear infinite; }
-.orbit-dot:nth-child(4)::after { background: rgba(167, 139, 219, 0.4); }
-.orbit-dot:nth-child(5) { background: var(--pp-sky); box-shadow: 0 0 10px rgba(90, 155, 213, 0.5); width: 6px; height: 6px; animation: orbitB 18s linear infinite reverse; }
-.orbit-dot:nth-child(5)::after { background: rgba(90, 155, 213, 0.4); }
-.orbit-dot:nth-child(6) { background: var(--pp-periwinkle); box-shadow: 0 0 8px rgba(128, 136, 217, 0.5); width: 5px; height: 5px; animation: orbitC 25s linear infinite; }
-.orbit-dot:nth-child(6)::after { background: rgba(128, 136, 217, 0.4); }
-@keyframes orbitA { from { transform: rotate(0deg) translateX(80px) rotate(0deg); } to { transform: rotate(360deg) translateX(80px) rotate(-360deg); } }
-@keyframes orbitB { from { transform: rotate(0deg) translateX(100px) rotate(0deg); } to { transform: rotate(360deg) translateX(100px) rotate(-360deg); } }
-@keyframes orbitC { from { transform: rotate(0deg) translateX(120px) rotate(0deg); } to { transform: rotate(360deg) translateX(120px) rotate(-360deg); } }
-.text-content { text-align: center; display: flex; flex-direction: column; align-items: center; gap: 20px; }
-.brand-title { font-family: 'Outfit', sans-serif; font-weight: 300; font-size: 14px; letter-spacing: 4px; text-transform: uppercase; color: var(--pp-violet); opacity: 0; animation: fadeSlideUp 1s ease-out 0.5s forwards; }
-.main-heading { font-family: 'Outfit', sans-serif; font-weight: 600; font-size: 32px; line-height: 1.3; background: linear-gradient(135deg, var(--pp-deep-violet) 0%, var(--pp-violet) 40%, var(--pp-sky) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; opacity: 0; animation: fadeSlideUp 1s ease-out 0.8s forwards; }
-.status-area { height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; overflow: hidden; opacity: 0; animation: fadeSlideUp 1s ease-out 1.2s forwards; }
-.status-message { position: absolute; white-space: nowrap; font-size: 15px; font-weight: 400; color: var(--pp-text-secondary); display: flex; align-items: center; gap: 10px; opacity: 0; transform: translateY(20px); transition: all 0.7s cubic-bezier(0.22, 1, 0.36, 1); }
-.status-message.active { opacity: 1; transform: translateY(0); }
-.status-message.exiting { opacity: 0; transform: translateY(-20px); }
-.status-icon { width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-.status-icon.working { border: 2px solid rgba(139, 111, 192, 0.2); border-top-color: var(--pp-violet); animation: spin 1s linear infinite; }
-.status-icon.done { background: rgba(34, 158, 92, 0.1); border: none; }
-.status-icon.done::after { content: '\\2713'; font-size: 11px; color: #229E5C; font-weight: 600; }
-@keyframes spin { to { transform: rotate(360deg); } }
-.progress-container { width: 320px; opacity: 0; animation: fadeSlideUp 1s ease-out 1.5s forwards; display: flex; flex-direction: column; align-items: center; gap: 14px; }
-.progress-track { width: 100%; height: 3px; background: rgba(139, 111, 192, 0.1); border-radius: 4px; overflow: hidden; position: relative; }
-.progress-fill { height: 100%; width: 40%; border-radius: 4px; background: linear-gradient(90deg, transparent, var(--pp-violet), var(--pp-lavender), var(--pp-sky), transparent); position: absolute; top: 0; left: -40%; animation: infiniteSlide 2s cubic-bezier(0.4, 0, 0.2, 1) infinite; }
-.progress-fill::after { content: ''; position: absolute; right: 10%; top: -3px; width: 8px; height: 8px; border-radius: 50%; background: var(--pp-sky); box-shadow: 0 0 8px rgba(90, 155, 213, 0.5), 0 0 16px rgba(90, 155, 213, 0.2); opacity: 0.9; }
-@keyframes infiniteSlide { 0% { left: -40%; } 100% { left: 100%; } }
-.progress-track.complete .progress-fill { width: 100%; left: 0; animation: none; background: linear-gradient(90deg, var(--pp-violet), var(--pp-lavender), var(--pp-sky)); transition: all 0.8s ease; }
-.progress-track.complete .progress-fill::after { display: none; }
-.progress-label-text { font-size: 12px; color: var(--pp-text-muted); font-family: 'DM Sans', sans-serif; letter-spacing: 0.3px; }
-.feature-cards { display: flex; gap: 16px; margin-top: 16px; opacity: 0; animation: fadeSlideUp 1s ease-out 2s forwards; }
-.feature-card { background: var(--pp-surface); border: 1px solid rgba(139, 111, 192, 0.1); border-radius: 16px; padding: 20px 22px; width: 150px; box-shadow: 0 2px 12px rgba(139, 111, 192, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04); opacity: 0; transform: translateY(20px) scale(0.95); transition: all 0.8s cubic-bezier(0.22, 1, 0.36, 1); }
-.feature-card.visible { opacity: 1; transform: translateY(0) scale(1); }
-.feature-card:hover { border-color: rgba(139, 111, 192, 0.2); box-shadow: 0 4px 24px rgba(139, 111, 192, 0.12), 0 2px 6px rgba(0, 0, 0, 0.04); transform: translateY(-2px) scale(1.02); }
-.feature-card-icon { font-size: 24px; margin-bottom: 10px; display: block; }
-.feature-card-label { font-family: 'Outfit', sans-serif; font-size: 13px; font-weight: 500; color: var(--pp-text-secondary); line-height: 1.4; }
-.connector-lines { position: fixed; inset: 0; z-index: 2; pointer-events: none; overflow: hidden; }
-.connector { position: absolute; height: 1px; background: linear-gradient(90deg, transparent, rgba(139, 111, 192, 0.12), transparent); animation: connectorSweep 6s ease-in-out infinite; }
-@keyframes connectorSweep { 0%, 100% { transform: translateX(-100%); opacity: 0; } 20% { opacity: 1; } 80% { opacity: 1; } 100% { transform: translateX(100vw); opacity: 0; } }
-.scanline { position: fixed; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent 0%, var(--pp-lavender) 50%, transparent 100%); opacity: 0.06; z-index: 2; animation: scanDrop 8s linear infinite; pointer-events: none; }
-@keyframes scanDrop { 0% { top: -2px; } 100% { top: 100%; } }
-.tip-area { text-align: center; margin-top: 12px; opacity: 0; animation: fadeSlideUp 1s ease-out 3s forwards; }
-.tip-label { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--pp-text-muted); margin-bottom: 8px; font-family: 'Outfit', sans-serif; }
-.tip-text { font-size: 13px; color: var(--pp-text-muted); max-width: 380px; line-height: 1.6; margin: 0 auto; min-height: 42px; transition: opacity 0.6s ease, transform 0.6s ease; }
-@keyframes fadeSlideUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
-.center-stage.complete .main-heading { animation: completePulse 2s ease-in-out infinite alternate; }
-@keyframes completePulse { 0% { filter: brightness(1); } 100% { filter: brightness(1.15); } }
-@media (max-width: 600px) { .main-heading { font-size: 24px; } .progress-container { width: 260px; } .feature-cards { flex-direction: column; align-items: center; } .orbit-system { width: 180px; height: 180px; } }
-`
+const services = [
+  {
+    icon: '🪪',
+    title: 'License Renewal',
+    desc: 'Renew your driver\'s license online in minutes. No office visit required for most renewals.',
+    to: '/license-renewal',
+    cta: 'Renew License',
+  },
+  {
+    icon: '🚗',
+    title: 'Vehicle Registration',
+    desc: 'Register a new vehicle or renew your existing registration quickly and securely.',
+    to: '/vehicle-registration',
+    cta: 'Register Vehicle',
+  },
+  {
+    icon: '📅',
+    title: 'Schedule Appointment',
+    desc: 'Book an in-person appointment at your nearest DMV office for services requiring a visit.',
+    to: '/appointments',
+    cta: 'Book Appointment',
+  },
+  {
+    icon: '📄',
+    title: 'Upload Documents',
+    desc: 'Securely submit required documents for license applications, registrations, and title transfers.',
+    to: '/documents',
+    cta: 'Upload Now',
+  },
+  {
+    icon: '❓',
+    title: 'Frequently Asked Questions',
+    desc: 'Find answers to the most common questions about licenses, registrations, and DMV services.',
+    to: '/faq',
+    cta: 'Browse FAQ',
+  },
+  {
+    icon: '📋',
+    title: 'Check Application Status',
+    desc: 'Track the status of your pending license application, title transfer, or registration.',
+    to: '/faq',
+    cta: 'Check Status',
+  },
+]
 
 export default function Home() {
   useEffect(() => {
-    const intervals: number[] = []
-    const timeouts: number[] = []
-
-    const particlesEl = document.getElementById('particles')
-    const connectorsEl = document.getElementById('connectors')
-    const statusArea = document.getElementById('statusArea')
-    const progressLabel = document.getElementById('progressLabel')
-    const tipTextEl = document.getElementById('tipText')
-
-    // Particles
-    function createParticle() {
-      if (!particlesEl) return
-      const p = document.createElement('div')
-      p.classList.add('particle')
-      const size = Math.random() * 3 + 1
-      const colors = ['rgba(167,139,219,0.5)', 'rgba(128,136,217,0.5)', 'rgba(90,155,213,0.5)', 'rgba(139,111,192,0.5)']
-      const color = colors[Math.floor(Math.random() * colors.length)]
-      p.style.cssText = `width:${size}px;height:${size}px;left:${Math.random() * 100}%;background:${color};box-shadow:0 0 ${size * 2}px ${color};animation-duration:${Math.random() * 15 + 12}s;animation-delay:${Math.random() * 10}s;`
-      particlesEl.appendChild(p)
-      timeouts.push(window.setTimeout(() => p.remove(), 30000))
-    }
-    for (let i = 0; i < 30; i++) timeouts.push(window.setTimeout(() => createParticle(), i * 200))
-    intervals.push(window.setInterval(createParticle, 800))
-
-    // Connectors
-    function createConnector() {
-      if (!connectorsEl) return
-      const c = document.createElement('div')
-      c.classList.add('connector')
-      c.style.cssText = `top:${Math.random() * 100}%;width:${Math.random() * 300 + 200}px;animation-duration:${Math.random() * 4 + 4}s;animation-delay:${Math.random() * 6}s;`
-      connectorsEl.appendChild(c)
-      timeouts.push(window.setTimeout(() => c.remove(), 12000))
-    }
-    for (let i = 0; i < 8; i++) timeouts.push(window.setTimeout(() => createConnector(), i * 1500))
-    intervals.push(window.setInterval(createConnector, 2000))
-
-    // Status messages
-    const statuses = [
-      { text: 'Setting up your workspace', duration: 8000 },
-      { text: 'Installing dependencies', duration: 10000 },
-      { text: 'Configuring build tools', duration: 12000 },
-      { text: 'Loading design system', duration: 14000 },
-      { text: 'Preparing components', duration: 10000 },
-      { text: 'Building page templates', duration: 8000 },
-      { text: 'Setting up routing', duration: 12000 },
-      { text: 'Applying design tokens', duration: 10000 },
-      { text: 'Optimizing assets', duration: 10000 },
-      { text: 'Running final checks', duration: 12000 },
-      { text: 'Polishing details', duration: 8000 },
-      { text: 'Almost there...', duration: 6000 },
-    ]
-
-    const phaseLabels = [
-      'Getting started...', 'Setting up infrastructure...', 'Building your pages...',
-      'Configuring features...', 'Optimizing & securing...', 'Final steps...',
-    ]
-
-    let currentStatusIndex = 0
-
-    function showStatus(index: number) {
-      if (!statusArea) return
-      const existing = statusArea.querySelector('.status-message')
-      if (existing) {
-        existing.classList.remove('active')
-        existing.classList.add('exiting')
-        timeouts.push(window.setTimeout(() => existing.remove(), 700))
-      }
-      const msg = document.createElement('div')
-      msg.classList.add('status-message')
-      const icon = document.createElement('div')
-      icon.classList.add('status-icon', 'working')
-      msg.appendChild(icon)
-      const text = document.createElement('span')
-      text.textContent = statuses[index].text
-      msg.appendChild(text)
-      statusArea.appendChild(msg)
-      requestAnimationFrame(() => requestAnimationFrame(() => msg.classList.add('active')))
-      if (progressLabel) {
-        const phaseIndex = Math.min(Math.floor((index / statuses.length) * phaseLabels.length), phaseLabels.length - 1)
-        progressLabel.textContent = phaseLabels[phaseIndex]
-      }
-    }
-
-    function advanceStatus() {
-      showStatus(currentStatusIndex % statuses.length)
-      const duration = statuses[currentStatusIndex % statuses.length].duration
-      timeouts.push(window.setTimeout(() => {
-        currentStatusIndex++
-        advanceStatus()
-      }, duration))
-    }
-
-    timeouts.push(window.setTimeout(() => advanceStatus(), 2000))
-
-    // Feature cards
-    timeouts.push(window.setTimeout(() => {
-      document.querySelectorAll('.feature-card').forEach(card => {
-        const delay = parseInt((card as HTMLElement).dataset.delay || '0')
-        timeouts.push(window.setTimeout(() => card.classList.add('visible'), delay))
-      })
-    }, 2500))
-
-    // Tips
-    const tips = [
-      'Power Pages sites are built on Microsoft Dataverse, giving you enterprise-level data capabilities from day one.',
-      'Your site automatically includes responsive design \u2014 it looks great on phones, tablets, and desktops.',
-      'With role-based security, you can control exactly who sees what on your site.',
-      'Power Pages integrates seamlessly with Power Automate, Power BI, and the entire Microsoft ecosystem.',
-      'You can extend your site with custom code, and JavaScript for unlimited flexibility.',
-      'Built-in content delivery networks ensure your pages load fast for users worldwide.',
-      'Multi-language support lets you reach audiences across the globe with localized content.',
-    ]
-
-    let tipIndex = 0
-    function showTip() {
-      if (!tipTextEl) return
-      tipTextEl.style.opacity = '0'
-      tipTextEl.style.transform = 'translateY(8px)'
-      timeouts.push(window.setTimeout(() => {
-        tipTextEl.textContent = tips[tipIndex % tips.length]
-        tipTextEl.style.opacity = '1'
-        tipTextEl.style.transform = 'translateY(0)'
-        tipIndex++
-      }, 500))
-    }
-    timeouts.push(window.setTimeout(() => showTip(), 3500))
-    intervals.push(window.setInterval(showTip, 12000))
-
-    return () => {
-      intervals.forEach(id => clearInterval(id))
-      timeouts.forEach(id => clearTimeout(id))
-    }
+    document.title = 'Contoso DMV'
   }, [])
 
   return (
     <>
-      <style>{loadingCSS}</style>
-      <div className="loading-wrapper">
-        <div className="ambient" />
-        <div className="grid-overlay" />
-        <div className="scanline" />
-        <div className="particles" id="particles" />
-        <div className="connector-lines" id="connectors" />
-
-        <div className="center-stage" id="centerStage">
-          <div className="orbit-system">
-            <div className="core-glow" />
-            <div className="core-shape">
-              <div className="slab" />
-              <div className="slab" />
-              <div className="slab" />
-            </div>
-            <div className="orbit-ring" />
-            <div className="orbit-ring" />
-            <div className="orbit-ring" />
-            <div className="orbit-dot" />
-            <div className="orbit-dot" />
-            <div className="orbit-dot" />
-          </div>
-
-          <div className="text-content">
-            <div className="brand-title">Power Pages</div>
-            <div className="main-heading" id="mainHeading">Building Contoso DMV</div>
-
-            <div className="status-area" id="statusArea" />
-
-            <div className="progress-container">
-              <div className="progress-track" id="progressTrack">
-                <div className="progress-fill" />
-              </div>
-              <span className="progress-label-text" id="progressLabel">Initializing...</span>
-            </div>
-          </div>
-
-          <div className="feature-cards">
-            <div className="feature-card" data-delay="0">
-              <span className="feature-card-icon">{ '\uD83D\uDD12' }</span>
-              <span className="feature-card-label">Enterprise-grade security</span>
-            </div>
-            <div className="feature-card" data-delay="400">
-              <span className="feature-card-icon">{ '\u26A1' }</span>
-              <span className="feature-card-label">Lightning-fast performance</span>
-            </div>
-            <div className="feature-card" data-delay="800">
-              <span className="feature-card-icon">{ '\uD83C\uDF10' }</span>
-              <span className="feature-card-label">Ready to scale globally</span>
-            </div>
-          </div>
-
-          <div className="tip-area">
-            <div className="tip-label">Did you know</div>
-            <div className="tip-text" id="tipText" />
-          </div>
+      {/* Alert Banner */}
+      <div role="alert" aria-live="polite" style={styles.alertBanner}>
+        <div className="container" style={styles.alertInner}>
+          <span style={styles.alertBadge}>Notice</span>
+          <span>
+            DMV offices will be closed on Memorial Day, May 26. Online services remain available 24/7.
+          </span>
+          <Link to="/faq" style={styles.alertLink}>Learn more →</Link>
         </div>
       </div>
+
+      {/* Hero */}
+      <section style={styles.hero} aria-label="Welcome section">
+        <div style={styles.heroOverlay} aria-hidden="true" />
+        <div className="container" style={styles.heroContent}>
+          <p style={styles.heroEyebrow}>Official Government Portal</p>
+          <h1 style={styles.heroTitle}>
+            Contoso County<br />
+            <em style={styles.heroTitleItalic}>Department of Motor Vehicles</em>
+          </h1>
+          <p style={styles.heroSubtitle}>
+            Fast, secure, and accessible government services — available online 24/7
+            so you spend less time at the office and more time on the road.
+          </p>
+          <div style={styles.heroActions}>
+            <Link to="/appointments" className="btn btn-primary" style={{ fontSize: '15px', padding: '13px 28px' }}>
+              Schedule an Appointment
+            </Link>
+            <Link to="/faq" className="btn btn-outline" style={{ fontSize: '15px', padding: '13px 28px', borderColor: 'rgba(255,255,255,0.5)', color: '#fff' }}>
+              Learn More
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Quick Status Bar */}
+      <div style={styles.statusBar} aria-label="Service status">
+        <div className="container" style={styles.statusBarInner}>
+          {[
+            { label: 'Online Services', status: 'All Operational', color: '#2A9D8F' },
+            { label: 'Processing Time', status: '2–3 Business Days', color: 'var(--color-secondary)' },
+            { label: 'Wait Time (In-Person)', status: 'Approx. 45 min', color: 'var(--color-text-muted)' },
+          ].map(item => (
+            <div key={item.label} style={styles.statusItem}>
+              <span style={styles.statusDot(item.color)} aria-hidden="true" />
+              <span style={styles.statusLabel}>{item.label}:</span>
+              <span style={{ ...styles.statusValue, color: item.color }}>{item.status}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Services Grid */}
+      <section style={styles.servicesSection} aria-labelledby="services-heading">
+        <div className="container">
+          <div className="section-header">
+            <h2 id="services-heading">Online Services</h2>
+            <p>Complete your DMV transactions from home — no waiting in line.</p>
+          </div>
+          <ul style={styles.servicesGrid} role="list">
+            {services.map((svc, i) => (
+              <li key={svc.title} className="animate-in" style={{ animationDelay: `${i * 0.07}s` }}>
+                <article className="card" style={styles.serviceCard}>
+                  <span style={styles.serviceIcon} aria-hidden="true">{svc.icon}</span>
+                  <h3 style={styles.serviceTitle}>{svc.title}</h3>
+                  <p style={styles.serviceDesc}>{svc.desc}</p>
+                  <Link to={svc.to} className="btn btn-ghost" style={styles.serviceCta}>
+                    {svc.cta} →
+                  </Link>
+                </article>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+
+      {/* How It Works */}
+      <section style={styles.howSection} aria-labelledby="how-heading">
+        <div className="container">
+          <div className="section-header">
+            <h2 id="how-heading">How It Works</h2>
+            <p>Most DMV transactions can be completed in three simple steps.</p>
+          </div>
+          <ol style={styles.stepsGrid} role="list">
+            {[
+              { step: '01', title: 'Select a Service', desc: 'Choose the service you need from our online portal — license renewal, registration, appointments, and more.' },
+              { step: '02', title: 'Provide Information', desc: 'Fill out the required information and upload any necessary documents securely through our encrypted portal.' },
+              { step: '03', title: 'Submit & Confirm', desc: 'Review and submit your request. You\'ll receive a confirmation email with your reference number and next steps.' },
+            ].map(step => (
+              <li key={step.step} className="animate-in" style={styles.step}>
+                <span style={styles.stepNumber}>{step.step}</span>
+                <h3 style={styles.stepTitle}>{step.title}</h3>
+                <p style={styles.stepDesc}>{step.desc}</p>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </section>
+
+      {/* Important Notices */}
+      <section style={styles.noticesSection} aria-labelledby="notices-heading">
+        <div className="container">
+          <h2 id="notices-heading" style={{ marginBottom: '24px' }}>Important Notices</h2>
+          <div style={styles.noticesGrid}>
+            <div style={styles.noticeCard} role="article">
+              <span style={styles.noticeBadge('var(--color-warning)', '#7A5200')}>Update</span>
+              <h4 style={styles.noticeTitle}>REAL ID Compliance Deadline</h4>
+              <p style={styles.noticeDesc}>
+                Beginning May 7, 2025, a REAL ID-compliant card will be required to board domestic flights
+                and access federal facilities. Visit us to upgrade your license.
+              </p>
+            </div>
+            <div style={styles.noticeCard} role="article">
+              <span style={styles.noticeBadge('var(--color-info-bg)', 'var(--color-secondary)')}>Info</span>
+              <h4 style={styles.noticeTitle}>Extended Online Services</h4>
+              <p style={styles.noticeDesc}>
+                You can now complete vehicle title transfers and duplicate license requests entirely online.
+                No office visit needed.
+              </p>
+            </div>
+            <div style={styles.noticeCard} role="article">
+              <span style={styles.noticeBadge('#E8F5E9', '#1B5E20')}>New</span>
+              <h4 style={styles.noticeTitle}>Digital Driver's License Pilot</h4>
+              <p style={styles.noticeDesc}>
+                Contoso County is piloting a mobile digital driver's license. Eligible residents can apply
+                through the Contoso DMV app, available on iOS and Android.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
     </>
   )
 }
 
+type StyleValue = React.CSSProperties
+
+const styles: Record<string, StyleValue | ((...args: string[]) => StyleValue)> = {
+  alertBanner: {
+    background: '#1A2B42',
+    borderBottom: '3px solid var(--color-accent)',
+    color: 'rgba(255,255,255,0.85)',
+    fontSize: '13px',
+    padding: '10px 0',
+  },
+  alertInner: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    flexWrap: 'wrap',
+  },
+  alertBadge: {
+    background: 'var(--color-accent)',
+    color: '#fff',
+    fontWeight: 600,
+    fontSize: '11px',
+    padding: '2px 8px',
+    borderRadius: '3px',
+    letterSpacing: '0.05em',
+    textTransform: 'uppercase',
+    flexShrink: 0,
+  },
+  alertLink: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: '13px',
+    marginLeft: 'auto',
+    textDecoration: 'underline',
+  },
+  hero: {
+    position: 'relative',
+    background: 'linear-gradient(135deg, #0F1E33 0%, #1D3557 50%, #2E4A6B 100%)',
+    color: '#fff',
+    padding: '80px 0 72px',
+    overflow: 'hidden',
+  },
+  heroOverlay: {
+    position: 'absolute',
+    inset: 0,
+    background: `url(https://images.unsplash.com/photo-1624417963912-8532660d9de8?w=1600&h=700&fit=crop) center/cover no-repeat`,
+    opacity: 0.08,
+    zIndex: 0,
+  },
+  heroContent: {
+    position: 'relative',
+    zIndex: 1,
+    maxWidth: '680px',
+  },
+  heroEyebrow: {
+    fontFamily: 'var(--font-body)',
+    fontSize: '11px',
+    fontWeight: 500,
+    letterSpacing: '0.14em',
+    textTransform: 'uppercase',
+    color: 'rgba(255,255,255,0.5)',
+    marginBottom: '16px',
+  },
+  heroTitle: {
+    fontFamily: 'var(--font-heading)',
+    fontWeight: 600,
+    fontSize: 'clamp(2.2rem, 5vw, 3.5rem)',
+    lineHeight: 1.15,
+    color: '#fff',
+    marginBottom: '20px',
+  },
+  heroTitleItalic: {
+    fontStyle: 'italic',
+    fontWeight: 300,
+    color: 'rgba(255,255,255,0.8)',
+  },
+  heroSubtitle: {
+    fontSize: '17px',
+    lineHeight: 1.65,
+    color: 'rgba(255,255,255,0.7)',
+    marginBottom: '36px',
+    maxWidth: '580px',
+  },
+  heroActions: {
+    display: 'flex',
+    gap: '16px',
+    flexWrap: 'wrap',
+  },
+  statusBar: {
+    background: 'var(--color-surface)',
+    borderBottom: '1px solid var(--color-border)',
+    padding: '12px 0',
+  },
+  statusBarInner: {
+    display: 'flex',
+    gap: '32px',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+  },
+  statusItem: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    fontSize: '13px',
+  },
+  statusDot: (color: string) => ({
+    width: '8px',
+    height: '8px',
+    borderRadius: '50%',
+    background: color,
+    flexShrink: 0,
+  }),
+  statusLabel: {
+    color: 'var(--color-text-muted)',
+    fontSize: '13px',
+  },
+  statusValue: {
+    fontWeight: 500,
+    fontSize: '13px',
+  },
+  servicesSection: {
+    padding: '80px 0',
+  },
+  servicesGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+    gap: '20px',
+    listStyle: 'none',
+  },
+  serviceCard: {
+    height: '100%',
+    display: 'flex',
+    flexDirection: 'column',
+  },
+  serviceIcon: {
+    fontSize: '32px',
+    marginBottom: '16px',
+    display: 'block',
+  },
+  serviceTitle: {
+    fontFamily: 'var(--font-heading)',
+    fontWeight: 600,
+    fontSize: '1.1rem',
+    color: 'var(--color-primary)',
+    marginBottom: '8px',
+  },
+  serviceDesc: {
+    fontSize: '14px',
+    color: 'var(--color-text-muted)',
+    lineHeight: 1.6,
+    flex: 1,
+    marginBottom: '20px',
+  },
+  serviceCta: {
+    fontSize: '14px',
+    fontWeight: 500,
+    color: 'var(--color-accent)',
+    padding: '0',
+    marginTop: 'auto',
+  },
+  howSection: {
+    background: 'var(--color-primary)',
+    padding: '80px 0',
+    color: '#fff',
+  },
+  stepsGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+    gap: '40px',
+    listStyle: 'none',
+  },
+  step: {
+    position: 'relative',
+  },
+  stepNumber: {
+    display: 'block',
+    fontFamily: 'var(--font-mono)',
+    fontSize: '48px',
+    fontWeight: 400,
+    color: 'rgba(255,255,255,0.12)',
+    lineHeight: 1,
+    marginBottom: '12px',
+    letterSpacing: '-0.02em',
+  },
+  stepTitle: {
+    fontFamily: 'var(--font-heading)',
+    fontWeight: 600,
+    fontSize: '1.2rem',
+    color: '#fff',
+    marginBottom: '10px',
+  },
+  stepDesc: {
+    fontSize: '14px',
+    color: 'rgba(255,255,255,0.65)',
+    lineHeight: 1.65,
+  },
+  noticesSection: {
+    padding: '64px 0 80px',
+    background: 'var(--color-surface-alt)',
+  },
+  noticesGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+    gap: '20px',
+  },
+  noticeCard: {
+    background: 'var(--color-surface)',
+    border: '1px solid var(--color-border)',
+    borderRadius: 'var(--radius-lg)',
+    padding: '24px',
+  },
+  noticeBadge: (bg: string, color: string) => ({
+    display: 'inline-block',
+    background: bg,
+    color,
+    fontSize: '11px',
+    fontWeight: 600,
+    letterSpacing: '0.06em',
+    textTransform: 'uppercase',
+    padding: '3px 10px',
+    borderRadius: '3px',
+    marginBottom: '12px',
+  }),
+  noticeTitle: {
+    fontFamily: 'var(--font-heading)',
+    fontWeight: 600,
+    color: 'var(--color-primary)',
+    fontSize: '1rem',
+    marginBottom: '8px',
+  },
+  noticeDesc: {
+    fontSize: '14px',
+    color: 'var(--color-text-muted)',
+    lineHeight: 1.6,
+  },
+}
