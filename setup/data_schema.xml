@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<entities>
+  <entity name="contact" displayname="Contacts" etc="2" primaryidfield="contactid" primarynamefield="fullname" disableplugins="false">
+    <fields>
+      <field displayname="First Name" name="firstname" type="string" customfield="false" />
+      <field displayname="Last Name" name="lastname" type="string" customfield="false" />
+      <field displayname="Full Name" name="fullname" type="string" customfield="false" />
+      <field displayname="Email" name="emailaddress1" type="string" customfield="false" />
+      <field displayname="Business Phone" name="telephone1" type="string" customfield="false" />
+      <field displayname="Street 1" name="address1_line1" type="string" customfield="false" />
+      <field displayname="City" name="address1_city" type="string" customfield="false" />
+      <field displayname="State/Province" name="address1_stateorprovince" type="string" customfield="false" />
+      <field displayname="ZIP/Postal Code" name="address1_postalcode" type="string" customfield="false" />
+    </fields>
+  </entity>
+</entities>

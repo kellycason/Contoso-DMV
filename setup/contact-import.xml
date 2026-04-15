@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<entities>
+  <entity name="contact" displayname="Contact">
+    <records>
+      <record id="{00000000-0000-0000-0000-000000000001}">
+        <field name="firstname" value="Maria" />
+        <field name="lastname" value="Jennings" />
+        <field name="emailaddress1" value="kellycason+maria@microsoft.com" />
+        <field name="telephone1" value="555-0123" />
+        <field name="address1_line1" value="123 Main Street" />
+        <field name="address1_city" value="Contoso City" />
+        <field name="address1_stateorprovince" value="CA" />
+        <field name="address1_postalcode" value="90210" />
+      </record>
+    </records>
+  </entity>
+</entities>

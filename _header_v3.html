@@ -1,0 +1,352 @@
+<div/>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+</style>
+{% if page.url == '/SignIn' or page.url == '/Account/Login/Register' or page.url == '/Account/Redeem' or request.url contains '/SignIn' or request.url contains '/Account' %}
+<style>
+/* ==============================
+   CONTOSO DMV — SIGN-IN PAGE V3
+   Clean flat 50/50 grid layout
+   ============================== */
+
+/* --- Reset --- */
+*, *::before, *::after { box-sizing: border-box; }
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  font-family: 'IBM Plex Sans', system-ui, -apple-system, sans-serif !important;
+  background: #fff !important;
+}
+
+/* --- Hide portal chrome --- */
+.navbar, .breadcrumb, footer, .footer, .portal-nav, header, .header {
+  display: none !important;
+}
+
+/* --- Grid split layout --- */
+#content-container, .body-content, .container-fluid {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  min-height: 100vh !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  max-width: 100% !important;
+  width: 100% !important;
+}
+
+/* --- LEFT PANEL: white form area --- */
+#mainContent, .page-content {
+  background: #ffffff !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  align-items: center !important;
+  padding: 48px 32px !important;
+  margin: 0 !important;
+  min-height: 100vh;
+  overflow-y: auto;
+  position: relative !important;
+}
+
+/* Logo top-left */
+#mainContent::before, .page-content::before {
+  content: '' !important;
+  display: block !important;
+  width: 36px !important;
+  height: 36px !important;
+  background: url('/Logo-sm-64.png') no-repeat center / contain !important;
+  position: absolute !important;
+  top: 24px !important;
+  left: 32px !important;
+}
+
+/* Constrain all form content to 380px centered */
+#mainContent > *, .page-content > * {
+  max-width: 380px;
+  width: 100%;
+  text-align: left !important;
+}
+
+/* --- RIGHT PANEL: branded side with circles --- */
+#content-container::after, .body-content::after, .container-fluid::after {
+  content: '';
+  display: block;
+  min-height: 100vh;
+  background-color: #1a2744;
+  background-image:
+    radial-gradient(circle 280px at 70% 25%, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.04) 100%, transparent 100%),
+    radial-gradient(circle 200px at 30% 70%, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.03) 100%, transparent 100%),
+    radial-gradient(circle 120px at 80% 75%, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.05) 100%, transparent 100%),
+    radial-gradient(circle 90px at 20% 30%, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.04) 100%, transparent 100%),
+    radial-gradient(circle 60px at 50% 50%, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.03) 100%, transparent 100%),
+    linear-gradient(170deg, #1e3f6f 0%, #1a2744 100%);
+}
+
+/* --- HIDE TAB NAV — single cohesive form --- */
+.nav.nav-tabs, .nav-tabs {
+  display: none !important;
+}
+
+/* All tab panes visible as one flow */
+.tab-content > .tab-pane {
+  display: block !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  position: relative !important;
+}
+
+/* But only show the active/first pane to avoid stacking all three */
+.tab-content > .tab-pane:not(.active) {
+  display: none !important;
+}
+
+/* --- Branding above form --- */
+#mainContent .tab-content::before, .page-content .tab-content::before,
+#mainContent > fieldset::before, .page-content > fieldset::before,
+#mainContent > form::before, .page-content > form::before {
+  content: 'Contoso DMV';
+  display: block;
+  font-family: 'IBM Plex Sans', system-ui, sans-serif;
+  font-weight: 600;
+  font-size: 1.25rem;
+  color: #1a2744;
+  letter-spacing: 0.01em;
+  margin-bottom: 2rem;
+}
+
+/* --- Headings --- */
+h1, h2, h3, h4, .page-heading {
+  font-family: 'IBM Plex Sans', system-ui, sans-serif !important;
+  color: #1a2744 !important;
+  font-weight: 600 !important;
+  font-size: 1.375rem !important;
+  line-height: 1.4 !important;
+  margin: 0 0 0.5rem 0 !important;
+  text-align: left !important;
+}
+
+h3, h4 {
+  font-size: 1rem !important;
+  font-weight: 500 !important;
+  margin: 1rem 0 0.75rem 0 !important;
+}
+
+/* --- Body text --- */
+p, .text-muted {
+  color: #4a5568 !important;
+  font-family: 'IBM Plex Sans', system-ui, sans-serif !important;
+  font-size: 0.875rem !important;
+  line-height: 1.5 !important;
+  margin: 0 0 1rem 0 !important;
+  text-align: left !important;
+}
+
+/* --- Labels --- */
+label {
+  font-family: 'IBM Plex Sans', system-ui, sans-serif !important;
+  font-weight: 500 !important;
+  font-size: 0.8125rem !important;
+  color: #4a5568 !important;
+  display: block !important;
+  margin-bottom: 6px !important;
+  letter-spacing: normal !important;
+  text-transform: none !important;
+  text-align: left !important;
+}
+
+/* --- Inputs --- */
+.form-control, input[type="text"], input[type="email"], input[type="password"] {
+  font-family: 'IBM Plex Sans', system-ui, sans-serif !important;
+  border: 0.5px solid #cbd5e0 !important;
+  border-radius: 4px !important;
+  padding: 10px 12px !important;
+  font-size: 0.875rem !important;
+  background: #fff !important;
+  color: #1a2744 !important;
+  height: auto !important;
+  width: 100% !important;
+  transition: border-color 0.15s ease !important;
+  outline: none !important;
+}
+
+.form-control:focus, input[type="text"]:focus, input[type="email"]:focus, input[type="password"]:focus {
+  border-color: #2c5aa0 !important;
+  outline: none !important;
+  background: #fff !important;
+}
+
+/* --- Form groups --- */
+.form-group {
+  margin-bottom: 1rem !important;
+}
+
+/* --- Primary button --- */
+.btn-primary, button[type="submit"], input[type="submit"] {
+  font-family: 'IBM Plex Sans', system-ui, sans-serif !important;
+  background: #2c5aa0 !important;
+  border: none !important;
+  border-radius: 4px !important;
+  color: #fff !important;
+  padding: 10px 20px !important;
+  font-size: 0.875rem !important;
+  font-weight: 500 !important;
+  width: 100% !important;
+  cursor: pointer !important;
+  margin-top: 0.5rem !important;
+  transition: background-color 0.15s ease !important;
+  display: block !important;
+  text-align: center !important;
+  letter-spacing: normal !important;
+}
+
+.btn-primary:hover, button[type="submit"]:hover, input[type="submit"]:hover {
+  background: #1e3f6f !important;
+}
+
+.btn-primary:active, button[type="submit"]:active, input[type="submit"]:active {
+  background: #1a2744 !important;
+}
+
+/* --- Secondary / default button --- */
+.btn-default, a.btn-default {
+  font-family: 'IBM Plex Sans', system-ui, sans-serif !important;
+  background: #fff !important;
+  border: 0.5px solid #cbd5e0 !important;
+  border-radius: 4px !important;
+  color: #4a5568 !important;
+  padding: 10px 20px !important;
+  font-size: 0.8125rem !important;
+  font-weight: 500 !important;
+  width: 100% !important;
+  cursor: pointer !important;
+  margin-top: 12px !important;
+  transition: border-color 0.15s ease, color 0.15s ease !important;
+  display: block !important;
+  text-align: center !important;
+  text-decoration: none !important;
+}
+
+.btn-default:hover, a.btn-default:hover {
+  border-color: #2c5aa0 !important;
+  color: #1a2744 !important;
+}
+
+/* --- Links --- */
+a:not(.btn):not(.nav-link) {
+  color: #2c5aa0 !important;
+  font-weight: 500;
+  text-decoration: none !important;
+  font-size: 0.8125rem !important;
+}
+
+a:not(.btn):not(.nav-link):hover {
+  color: #1e3f6f !important;
+  text-decoration: underline !important;
+}
+
+/* --- External login buttons --- */
+.external-login .btn, .btn-branded {
+  border: 0.5px solid #cbd5e0 !important;
+  background: #fff !important;
+  color: #1a2744 !important;
+  border-radius: 4px !important;
+  width: 100% !important;
+  margin-bottom: 12px !important;
+  padding: 10px 14px !important;
+  font-size: 0.875rem !important;
+  font-weight: 500 !important;
+  text-align: center !important;
+  transition: border-color 0.15s ease !important;
+}
+
+.external-login .btn:hover, .btn-branded:hover {
+  border-color: #2c5aa0 !important;
+}
+
+/* --- Dividers --- */
+hr {
+  border: none !important;
+  border-top: 0.5px solid #e2e8f0 !important;
+  margin: 1.5rem 0 !important;
+}
+
+/* --- Validation --- */
+.field-validation-error, .validation-summary-errors {
+  color: #c53030 !important;
+  font-size: 0.75rem !important;
+  margin-top: 4px;
+}
+
+.alert-danger {
+  background: #fff5f5 !important;
+  border: 0.5px solid #c53030 !important;
+  color: #c53030 !important;
+  border-radius: 4px !important;
+  padding: 10px 14px !important;
+  font-size: 0.8125rem !important;
+  margin-bottom: 1rem !important;
+}
+
+.alert-info {
+  background: #ebf8ff !important;
+  border: 0.5px solid #2c5aa0 !important;
+  color: #1a2744 !important;
+  border-radius: 4px !important;
+  padding: 10px 14px !important;
+  font-size: 0.8125rem !important;
+  margin-bottom: 1rem !important;
+}
+
+/* --- Checkbox --- */
+.checkbox label {
+  font-size: 0.8125rem !important;
+  color: #4a5568 !important;
+  text-transform: none !important;
+  letter-spacing: normal !important;
+  font-weight: 400 !important;
+}
+
+/* --- Container resets --- */
+.row { margin: 0 !important; }
+.row > div {
+  max-width: 100% !important;
+  width: 100% !important;
+  margin: 0 !important;
+  float: none !important;
+  padding: 0 !important;
+}
+.container {
+  width: 100% !important;
+  max-width: 100% !important;
+  padding: 0 !important;
+}
+.tab-content {
+  padding-top: 0 !important;
+}
+
+/* Reset col widths that Bootstrap may apply */
+.col-md-6, .col-md-8, .col-md-4, .col-sm-6, .col-sm-8 {
+  width: 100% !important;
+  max-width: 100% !important;
+  flex: none !important;
+  padding: 0 !important;
+}
+
+/* --- Responsive: single column under 768px --- */
+@media (max-width: 768px) {
+  #content-container, .body-content, .container-fluid {
+    display: flex !important;
+    flex-direction: column !important;
+  }
+  #content-container::after, .body-content::after, .container-fluid::after {
+    display: none !important;
+  }
+  #mainContent, .page-content {
+    min-height: auto !important;
+    padding: 32px 24px !important;
+  }
+}
+</style>
+{% endif %}

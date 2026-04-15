@@ -1852,3 +1852,346 @@ h6,
 a:not(.btn):hover {
   text-decoration: underline !important;
 }
+
+/* ============================================================
+   Contoso DMV — Sign-In Page Custom Styles
+   Matches Navy #1D3557, Action Blue #457B9D, IBM Plex fonts
+   ============================================================ */
+
+/* Page background */
+body.page-signin,
+body[class*="signin"] {
+  background: linear-gradient(135deg, #1D3557 0%, #152844 50%, #0D1B2A 100%) !important;
+  min-height: 100vh;
+}
+
+/* Hide default portal chrome on sign-in */
+body.page-signin .navbar,
+body.page-signin .breadcrumb,
+body.page-signin footer,
+body.page-signin .footer,
+body[class*="signin"] .navbar,
+body[class*="signin"] .breadcrumb,
+body[class*="signin"] footer,
+body[class*="signin"] .footer {
+  display: none !important;
+}
+
+/* Center the login container */
+#mainContent,
+.container.body-content,
+#content-container {
+  font-family: 'IBM Plex Sans', system-ui, sans-serif;
+}
+
+body.page-signin #mainContent,
+body.page-signin .container.body-content,
+body.page-signin #content-container,
+body[class*="signin"] #mainContent,
+body[class*="signin"] .container.body-content,
+body[class*="signin"] #content-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 40px 20px;
+}
+
+/* Login form card */
+.login-form,
+.login-form-container,
+#local-login,
+.loginBox,
+[id*="loginPanel"] {
+  font-family: 'IBM Plex Sans', system-ui, sans-serif;
+}
+
+body.page-signin .login-form,
+body.page-signin .login-form-container,
+body.page-signin #local-login,
+body.page-signin .loginBox,
+body.page-signin [id*="loginPanel"],
+body[class*="signin"] .login-form,
+body[class*="signin"] .login-form-container,
+body[class*="signin"] #local-login,
+body[class*="signin"] .loginBox,
+body[class*="signin"] [id*="loginPanel"] {
+  background: #FFFFFF;
+  border-radius: 12px;
+  padding: 48px 40px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.05);
+  max-width: 440px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+/* Page title / heading */
+body.page-signin h2,
+body.page-signin h3,
+body.page-signin .page-heading,
+body[class*="signin"] h2,
+body[class*="signin"] h3,
+body[class*="signin"] .page-heading {
+  font-family: 'IBM Plex Serif', Georgia, serif !important;
+  color: #1D3557 !important;
+  font-weight: 600 !important;
+  font-size: 1.75rem !important;
+  margin-bottom: 8px !important;
+  letter-spacing: -0.01em;
+}
+
+/* Subtitle text */
+body.page-signin p,
+body.page-signin .text-muted,
+body[class*="signin"] p,
+body[class*="signin"] .text-muted {
+  color: #5A6478 !important;
+  font-size: 14px;
+  margin-bottom: 24px;
+}
+
+/* Form labels */
+body.page-signin label,
+body[class*="signin"] label {
+  font-family: 'IBM Plex Sans', system-ui, sans-serif !important;
+  color: #1A2332 !important;
+  font-weight: 500 !important;
+  font-size: 13px !important;
+  letter-spacing: 0.02em;
+  margin-bottom: 6px !important;
+  display: block;
+}
+
+/* Form inputs */
+body.page-signin input[type="text"],
+body.page-signin input[type="email"],
+body.page-signin input[type="password"],
+body.page-signin .form-control,
+body[class*="signin"] input[type="text"],
+body[class*="signin"] input[type="email"],
+body[class*="signin"] input[type="password"],
+body[class*="signin"] .form-control {
+  font-family: 'IBM Plex Sans', system-ui, sans-serif !important;
+  border: 1.5px solid #D0D8E8 !important;
+  border-radius: 6px !important;
+  padding: 12px 14px !important;
+  font-size: 14px !important;
+  color: #1A2332 !important;
+  background: #F4F6FA !important;
+  transition: border-color 0.2s, box-shadow 0.2s !important;
+  height: auto !important;
+}
+
+body.page-signin input[type="text"]:focus,
+body.page-signin input[type="email"]:focus,
+body.page-signin input[type="password"]:focus,
+body.page-signin .form-control:focus,
+body[class*="signin"] input[type="text"]:focus,
+body[class*="signin"] input[type="email"]:focus,
+body[class*="signin"] input[type="password"]:focus,
+body[class*="signin"] .form-control:focus {
+  border-color: #457B9D !important;
+  box-shadow: 0 0 0 3px rgba(69,123,157,0.15) !important;
+  background: #FFFFFF !important;
+  outline: none !important;
+}
+
+/* Primary button (Sign In) */
+body.page-signin .btn-primary,
+body.page-signin .btn-default,
+body.page-signin input[type="submit"],
+body.page-signin button[type="submit"],
+body[class*="signin"] .btn-primary,
+body[class*="signin"] .btn-default,
+body[class*="signin"] input[type="submit"],
+body[class*="signin"] button[type="submit"] {
+  font-family: 'IBM Plex Sans', system-ui, sans-serif !important;
+  background: #1D3557 !important;
+  border: none !important;
+  border-radius: 6px !important;
+  color: #FFFFFF !important;
+  padding: 12px 24px !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.02em !important;
+  width: 100% !important;
+  cursor: pointer !important;
+  transition: background 0.2s, transform 0.1s !important;
+  margin-top: 8px !important;
+}
+
+body.page-signin .btn-primary:hover,
+body.page-signin .btn-default:hover,
+body.page-signin input[type="submit"]:hover,
+body.page-signin button[type="submit"]:hover,
+body[class*="signin"] .btn-primary:hover,
+body[class*="signin"] .btn-default:hover,
+body[class*="signin"] input[type="submit"]:hover,
+body[class*="signin"] button[type="submit"]:hover {
+  background: #457B9D !important;
+  transform: translateY(-1px);
+}
+
+body.page-signin .btn-primary:active,
+body.page-signin input[type="submit"]:active,
+body.page-signin button[type="submit"]:active,
+body[class*="signin"] .btn-primary:active,
+body[class*="signin"] input[type="submit"]:active,
+body[class*="signin"] button[type="submit"]:active {
+  transform: translateY(0);
+}
+
+/* Links on sign-in page */
+body.page-signin a,
+body[class*="signin"] a {
+  color: #457B9D !important;
+  font-weight: 500;
+  text-decoration: none !important;
+}
+
+body.page-signin a:hover,
+body[class*="signin"] a:hover {
+  color: #1D3557 !important;
+  text-decoration: underline !important;
+}
+
+/* External login buttons */
+body.page-signin .external-login .btn,
+body[class*="signin"] .external-login .btn {
+  border: 1.5px solid #D0D8E8 !important;
+  background: #FFFFFF !important;
+  color: #1A2332 !important;
+  border-radius: 6px !important;
+  padding: 10px 16px !important;
+  font-size: 13px !important;
+  width: 100% !important;
+  margin-bottom: 8px !important;
+  transition: border-color 0.2s, background 0.2s !important;
+}
+
+body.page-signin .external-login .btn:hover,
+body[class*="signin"] .external-login .btn:hover {
+  border-color: #457B9D !important;
+  background: #F4F6FA !important;
+}
+
+/* Divider between local/external login */
+body.page-signin hr,
+body[class*="signin"] hr {
+  border-top: 1px solid #D0D8E8 !important;
+  margin: 24px 0 !important;
+}
+
+/* Form groups spacing */
+body.page-signin .form-group,
+body[class*="signin"] .form-group {
+  margin-bottom: 20px !important;
+}
+
+/* Checkbox styling */
+body.page-signin .checkbox label,
+body[class*="signin"] .checkbox label {
+  font-size: 13px !important;
+  color: #5A6478 !important;
+}
+
+/* Validation errors */
+body.page-signin .field-validation-error,
+body.page-signin .validation-summary-errors,
+body[class*="signin"] .field-validation-error,
+body[class*="signin"] .validation-summary-errors {
+  color: #C42230 !important;
+  font-size: 12px !important;
+  margin-top: 4px;
+}
+
+/* Alert messages */
+body.page-signin .alert-danger,
+body[class*="signin"] .alert-danger {
+  background: #FFF0F0 !important;
+  border: 1px solid #C42230 !important;
+  color: #C42230 !important;
+  border-radius: 6px !important;
+  padding: 12px 16px !important;
+  font-size: 13px !important;
+}
+
+/* Registration page styles (same theme) */
+body.page-register,
+body[class*="register"] {
+  background: linear-gradient(135deg, #1D3557 0%, #152844 50%, #0D1B2A 100%) !important;
+  min-height: 100vh;
+}
+
+body.page-register .navbar,
+body.page-register .breadcrumb,
+body.page-register footer,
+body.page-register .footer,
+body[class*="register"] .navbar,
+body[class*="register"] .breadcrumb,
+body[class*="register"] footer,
+body[class*="register"] .footer {
+  display: none !important;
+}
+
+body.page-register #mainContent,
+body.page-register .container.body-content,
+body.page-register #content-container,
+body[class*="register"] #mainContent,
+body[class*="register"] .container.body-content,
+body[class*="register"] #content-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 40px 20px;
+}
+
+body.page-register .login-form,
+body.page-register .login-form-container,
+body.page-register .loginBox,
+body.page-register [id*="loginPanel"],
+body[class*="register"] .login-form,
+body[class*="register"] .login-form-container,
+body[class*="register"] .loginBox,
+body[class*="register"] [id*="loginPanel"] {
+  background: #FFFFFF;
+  border-radius: 12px;
+  padding: 48px 40px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.05);
+  max-width: 440px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+body.page-register h2,
+body.page-register h3,
+body[class*="register"] h2,
+body[class*="register"] h3 {
+  font-family: 'IBM Plex Serif', Georgia, serif !important;
+  color: #1D3557 !important;
+  font-weight: 600 !important;
+  font-size: 1.75rem !important;
+}
+
+/* Invitation redemption page */
+body.page-redeem,
+body[class*="redeem"] {
+  background: linear-gradient(135deg, #1D3557 0%, #152844 50%, #0D1B2A 100%) !important;
+  min-height: 100vh;
+}
+
+/* Responsive adjustments */
+@media (max-width: 480px) {
+  body.page-signin .login-form,
+  body.page-signin .login-form-container,
+  body.page-signin #local-login,
+  body.page-signin .loginBox,
+  body[class*="signin"] .login-form,
+  body[class*="signin"] .login-form-container,
+  body[class*="signin"] #local-login,
+  body[class*="signin"] .loginBox {
+    padding: 32px 24px;
+    margin: 0 12px;
+  }
+}

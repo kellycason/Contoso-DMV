@@ -1,0 +1,179 @@
+﻿<div/>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Serif:ital,wght@0,300;0,400;0,600;1,300&display=swap');
+</style>
+{% if page.url == '/SignIn' or page.url == '/Account/Login/Register' or page.url == '/Account/Redeem' or request.url contains '/SignIn' or request.url contains '/Account' %}
+<style>
+/* === RESET === */
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;overflow-x:hidden;font-family:'IBM Plex Sans',system-ui,sans-serif!important}
+body{background:#fff!important}
+
+/* Hide portal chrome */
+.navbar,.breadcrumb,footer,.footer,.portal-nav,header,.header{display:none!important}
+
+/* === MAIN SPLIT LAYOUT === */
+#content-container,.body-content,.container-fluid{
+  display:flex!important;min-height:100vh!important;padding:0!important;margin:0!important;
+  max-width:100%!important;width:100%!important
+}
+
+/* LEFT: white form panel - 55% */
+#mainContent,.page-content{
+  background:#fff!important;width:55%!important;max-width:none!important;min-height:100vh;
+  display:flex!important;flex-direction:column!important;justify-content:center!important;
+  padding:0 0 0 0!important;margin:0!important;border-radius:0!important;box-shadow:none!important;
+  overflow-y:auto
+}
+
+/* Inner content wrapper - constrain form width and center it */
+#mainContent>*,.page-content>*{
+  max-width:420px;width:100%;margin-left:auto!important;margin-right:auto!important;
+  padding-left:24px!important;padding-right:24px!important
+}
+
+/* RIGHT: gradient panel - 45% */
+#content-container::after,.body-content::after,.container-fluid::after{
+  content:'';display:block;width:45%;min-height:100vh;flex-shrink:0;
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200' fill='none'%3E%3Ccircle cx='100' cy='100' r='95' stroke='rgba(255,255,255,0.08)' stroke-width='2'/%3E%3Ccircle cx='100' cy='100' r='70' stroke='rgba(255,255,255,0.05)' stroke-width='1'/%3E%3Cpolygon points='100,30 112,70 155,70 120,95 132,135 100,110 68,135 80,95 45,70 88,70' fill='rgba(255,255,255,0.06)'/%3E%3C/svg%3E"),
+    radial-gradient(ellipse at 25% 15%,rgba(255,255,255,0.08) 0%,transparent 50%),
+    radial-gradient(ellipse at 75% 85%,rgba(69,123,157,0.3) 0%,transparent 50%),
+    linear-gradient(160deg,#1D3557 0%,#234170 35%,#457B9D 75%,#5BA3C9 100%);
+  background-repeat:no-repeat;
+  background-position:center center,center,center,center;
+  background-size:280px 280px,100% 100%,100% 100%,100% 100%
+}
+
+/* === TAB NAV (Sign in | Register | Redeem) === */
+.nav.nav-tabs,.nav-tabs{
+  border-bottom:2px solid #E8ECF2!important;margin-bottom:36px!important;
+  padding:20px 0 0 0!important;display:flex!important;gap:0!important;
+  max-width:420px;margin-left:auto!important;margin-right:auto!important;
+  padding-left:24px!important;padding-right:24px!important
+}
+.nav-tabs>li{margin-bottom:-2px!important}
+.nav-tabs>li>a{
+  font-family:'IBM Plex Sans',system-ui,sans-serif!important;font-size:14px!important;
+  font-weight:500!important;color:#5A6478!important;padding:12px 20px!important;
+  border:none!important;border-bottom:2px solid transparent!important;
+  background:none!important;border-radius:0!important;transition:color .2s,border-color .2s!important;
+  text-decoration:none!important
+}
+.nav-tabs>li>a:hover{color:#1D3557!important;background:none!important;border-bottom-color:#D0D8E8!important}
+.nav-tabs>li.active>a,.nav-tabs>li.active>a:hover,.nav-tabs>li.active>a:focus{
+  color:#1D3557!important;font-weight:600!important;
+  border:none!important;border-bottom:2px solid #E63946!important;
+  background:none!important
+}
+
+/* === BRANDING ABOVE FORM === */
+#mainContent .tab-content::before,.page-content .tab-content::before{
+  content:'Contoso DMV';display:block;
+  font-family:'IBM Plex Serif',Georgia,serif;font-weight:600;font-size:1.05rem;
+  color:#1D3557;letter-spacing:0.02em;margin-bottom:32px;margin-top:8px;
+  padding-bottom:12px;border-bottom:2px solid #E63946;width:fit-content
+}
+
+/* === HEADINGS === */
+h1,h2,h3,h4,.page-heading{
+  font-family:'IBM Plex Serif',Georgia,serif!important;color:#1D3557!important;
+  font-weight:600!important;font-size:1.5rem!important;text-align:left!important;
+  margin-bottom:24px!important;line-height:1.35!important
+}
+
+/* Smaller sub-headings like "Sign in with an external account" */
+h3,h4{font-size:1.1rem!important;margin-top:8px!important;margin-bottom:16px!important}
+
+/* Subtitle text */
+p,.text-muted{
+  color:#5A6478!important;font-family:'IBM Plex Sans',system-ui,sans-serif!important;
+  font-size:14px!important;text-align:left!important
+}
+
+/* === LABELS === */
+label{
+  font-family:'IBM Plex Sans',system-ui,sans-serif!important;font-weight:500!important;
+  font-size:11px!important;color:#5A6478!important;letter-spacing:0.08em!important;
+  text-transform:uppercase!important;margin-bottom:6px!important
+}
+
+/* === INPUTS === */
+.form-control,input[type="text"],input[type="email"],input[type="password"]{
+  font-family:'IBM Plex Sans',system-ui,sans-serif!important;
+  border:1.5px solid #D0D8E8!important;border-radius:8px!important;
+  padding:13px 16px!important;font-size:15px!important;
+  background:#FAFBFD!important;height:auto!important;color:#1A2332!important;
+  transition:border-color .2s,box-shadow .2s!important;width:100%!important
+}
+.form-control:focus,input:focus{
+  border-color:#457B9D!important;box-shadow:0 0 0 3px rgba(69,123,157,.12)!important;
+  background:#fff!important;outline:none!important
+}
+
+/* === PRIMARY BUTTON (Sign In) === */
+.btn-primary,button[type="submit"],input[type="submit"]{
+  font-family:'IBM Plex Sans',system-ui,sans-serif!important;
+  background:#1D3557!important;border:none!important;border-radius:8px!important;
+  color:#fff!important;padding:13px 24px!important;font-size:15px!important;
+  font-weight:500!important;width:100%!important;cursor:pointer!important;
+  margin-top:8px!important;transition:background .2s,transform .1s!important;
+  letter-spacing:0.02em!important;display:block!important;text-align:center!important
+}
+.btn-primary:hover,button[type="submit"]:hover{background:#457B9D!important;transform:translateY(-1px)}
+.btn-primary:active,button[type="submit"]:active{transform:translateY(0)}
+
+/* === SECONDARY / DEFAULT BUTTON — make it a ghost/outline style === */
+.btn-default,a.btn-default{
+  font-family:'IBM Plex Sans',system-ui,sans-serif!important;
+  background:transparent!important;border:1.5px solid #D0D8E8!important;
+  border-radius:8px!important;color:#5A6478!important;padding:11px 24px!important;
+  font-size:13px!important;font-weight:500!important;width:100%!important;
+  cursor:pointer!important;margin-top:8px!important;transition:all .2s!important;
+  display:block!important;text-align:center!important
+}
+.btn-default:hover,a.btn-default:hover{
+  border-color:#457B9D!important;color:#1D3557!important;background:#F4F6FA!important
+}
+
+/* === LINKS === */
+a:not(.btn):not(.nav-link){color:#457B9D!important;font-weight:500;text-decoration:none!important;font-size:14px!important}
+a:not(.btn):not(.nav-link):hover{color:#1D3557!important;text-decoration:underline!important}
+
+/* === EXTERNAL LOGIN === */
+.external-login .btn,.btn-branded{
+  border:1.5px solid #D0D8E8!important;background:#fff!important;color:#1A2332!important;
+  border-radius:8px!important;width:100%!important;margin-bottom:10px!important;
+  padding:12px 16px!important;font-size:14px!important;font-weight:500!important
+}
+.external-login .btn:hover,.btn-branded:hover{border-color:#457B9D!important;background:#F4F6FA!important}
+
+/* === DIVIDERS === */
+hr{border-top:1px solid #E8ECF2!important;margin:24px 0!important}
+
+/* === FORM GROUPS === */
+.form-group{margin-bottom:20px!important}
+
+/* === VALIDATION === */
+.field-validation-error,.validation-summary-errors{color:#C42230!important;font-size:12px!important;margin-top:4px}
+.alert-danger{background:#FFF0F0!important;border:1px solid #C42230!important;color:#C42230!important;border-radius:8px!important;padding:12px 16px!important}
+.alert-info{background:#EBF4FF!important;border:1px solid #457B9D!important;color:#1D3557!important;border-radius:8px!important}
+
+/* === CHECKBOX === */
+.checkbox label{font-size:13px!important;color:#5A6478!important;text-transform:none!important;letter-spacing:0!important}
+
+/* === CONTAINER RESETS === */
+.row{margin:0!important}
+.row>div{max-width:100%!important;width:100%!important;margin:0!important;float:none!important;padding:0!important}
+.container{width:100%!important;max-width:100%!important;padding:0!important}
+.tab-content{padding-top:8px!important}
+
+/* === RESPONSIVE: stack below 900px === */
+@media(max-width:900px){
+  #content-container,.body-content,.container-fluid{flex-direction:column!important}
+  #mainContent,.page-content{width:100%!important;min-height:auto!important;padding:24px!important}
+  #content-container::after,.body-content::after,.container-fluid::after{display:none!important}
+  .nav-tabs{padding-left:16px!important}
+}
+</style>
+{% endif %}

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { NavLink, Link } from 'react-router-dom'
+import { useAuth } from '../hooks/useAuth'
 
 const navLinks = [
   { to: '/my-dmv',                label: 'MyDMV' },
@@ -14,13 +15,24 @@ const navLinks = [
 
 export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false)
+  const { isAuthenticated, userName } = useAuth()
 
   return (
     <header style={styles.header}>
       <div style={styles.topBar}>
         <div className="container" style={styles.topBarInner}>
           <span>Official Contoso DMV Government Portal</span>
-          <span>Mon–Fri 8:00 AM – 5:00 PM</span>
+          <div style={styles.topBarRight}>
+            <span>Mon–Fri 8:00 AM – 5:00 PM</span>
+            {isAuthenticated ? (
+              <>
+                <span style={styles.userName}>Welcome, {userName}</span>
+                <a href="/Account/Login/LogOff" style={styles.signInLink}>Sign Out</a>
+              </>
+            ) : (
+              <a href="/SignIn" style={styles.signInLink}>Sign In</a>
+            )}
+          </div>
         </div>
       </div>
 
@@ -57,9 +69,6 @@ export default function Header() {
           </ul>
 
           <div style={styles.navActions}>
-            <Link to="/appointments" className="btn btn-primary" style={{ fontSize: '13px', padding: '8px 18px' }}>
-              Schedule Appointment
-            </Link>
             <button
               style={styles.menuBtn}
               onClick={() => setMenuOpen(v => !v)}
@@ -94,6 +103,24 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
+  },
+  topBarRight: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '16px',
+  },
+  signInLink: {
+    color: 'rgba(255,255,255,0.85)',
+    textDecoration: 'none',
+    fontWeight: 500,
+    borderLeft: '1px solid rgba(255,255,255,0.25)',
+    paddingLeft: '16px',
+  },
+  userName: {
+    color: 'rgba(255,255,255,0.85)',
+    fontWeight: 500,
+    borderLeft: '1px solid rgba(255,255,255,0.25)',
+    paddingLeft: '16px',
   },
   nav: {
     background: 'var(--color-primary)',
@@ -181,5 +208,19 @@ const styles: Record<string, React.CSSProperties> = {
   menuIcon: {
     color: '#fff',
     fontSize: '18px',
+  },
+  loginBtn: {
+    display: 'inline-block',
+    fontSize: '13px',
+    padding: '8px 18px',
+    background: 'rgba(255,255,255,0.15)',
+    color: '#fff',
+    border: '1px solid rgba(255,255,255,0.4)',
+    borderRadius: '4px',
+    textDecoration: 'none',
+    fontFamily: 'var(--font-body)',
+    fontWeight: 500,
+    letterSpacing: '0.02em',
+    transition: 'background 0.15s',
   },
 }

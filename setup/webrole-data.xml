@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<entities>
+  <entity name="mspp_webroleid_contact" displayname="Web Role Contact" etc="0" primaryidfield="mspp_webroleid_contactid" primarynamefield="" disableplugins="false">
+    <records>
+      <record id="{00000000-0000-0000-0000-000000000002}">
+        <field name="contactid" value="{d2c23913-f238-f111-88b3-001dd801f94a}" lookupentity="contact" />
+        <field name="mspp_webroleid" value="{c7500f9c-350c-471b-a6da-e16f0f18009c}" lookupentity="mspp_webrole" />
+      </record>
+    </records>
+  </entity>
+</entities>

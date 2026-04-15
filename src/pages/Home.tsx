@@ -81,23 +81,48 @@ export default function Home() {
       {/* Hero */}
       <section style={styles.hero} aria-label="Welcome section">
         <div style={styles.heroOverlay} aria-hidden="true" />
-        <div className="container" style={styles.heroContent}>
-          <p style={styles.heroEyebrow}>Official Government Portal</p>
-          <h1 style={styles.heroTitle}>
-            Contoso County<br />
-            <em style={styles.heroTitleItalic}>Department of Motor Vehicles</em>
-          </h1>
-          <p style={styles.heroSubtitle}>
-            Fast, secure, and accessible government services — available online 24/7
-            so you spend less time at the office and more time on the road.
-          </p>
-          <div style={styles.heroActions}>
-            <Link to="/appointments" className="btn btn-primary" style={{ fontSize: '15px', padding: '13px 28px' }}>
-              Schedule an Appointment
-            </Link>
-            <Link to="/faq" className="btn btn-outline" style={{ fontSize: '15px', padding: '13px 28px', borderColor: 'rgba(255,255,255,0.5)', color: '#fff' }}>
-              Learn More
-            </Link>
+        <div className="container" style={styles.heroGrid}>
+          <div style={styles.heroLeft}>
+            <p style={styles.heroEyebrow}>Official Government Portal</p>
+            <h1 style={styles.heroTitle}>
+              Contoso County<br />
+              <em style={styles.heroTitleItalic}>Department of Motor Vehicles</em>
+            </h1>
+            <p style={styles.heroSubtitle}>
+              Fast, secure, and accessible government services — available online 24/7
+              so you spend less time at the office and more time on the road.
+            </p>
+            <div style={styles.heroActions}>
+              <Link to="/appointments" className="btn btn-primary" style={{ fontSize: '15px', padding: '13px 28px' }}>
+                Schedule an Appointment
+              </Link>
+              <Link to="/faq" className="btn btn-outline" style={{ fontSize: '15px', padding: '13px 28px', borderColor: 'rgba(255,255,255,0.5)', color: '#fff' }}>
+                Learn More
+              </Link>
+            </div>
+          </div>
+          <div style={styles.heroRight}>
+            <div style={styles.heroCard}>
+              <span style={styles.heroCardIcon}>🕐</span>
+              <div>
+                <span style={styles.heroCardLabel}>Average wait time</span>
+                <span style={styles.heroCardValue}>Under 10 minutes</span>
+              </div>
+            </div>
+            <div style={styles.heroCard}>
+              <span style={styles.heroCardIcon}>✅</span>
+              <div>
+                <span style={styles.heroCardLabel}>Online transactions</span>
+                <span style={styles.heroCardValue}>50,000+ this month</span>
+              </div>
+            </div>
+            <div style={styles.heroCard}>
+              <span style={styles.heroCardIcon}>⭐</span>
+              <div>
+                <span style={styles.heroCardLabel}>Citizen satisfaction</span>
+                <span style={styles.heroCardValue}>4.8 / 5.0 rating</span>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -111,7 +136,7 @@ export default function Home() {
             { label: 'Wait Time (In-Person)', status: 'Approx. 45 min', color: 'var(--color-text-muted)' },
           ].map(item => (
             <div key={item.label} style={styles.statusItem}>
-              <span style={styles.statusDot(item.color)} aria-hidden="true" />
+              <span style={statusDot(item.color)} aria-hidden="true" />
               <span style={styles.statusLabel}>{item.label}:</span>
               <span style={{ ...styles.statusValue, color: item.color }}>{item.status}</span>
             </div>
@@ -172,7 +197,7 @@ export default function Home() {
           <h2 id="notices-heading" style={{ marginBottom: '24px' }}>Important Notices</h2>
           <div style={styles.noticesGrid}>
             <div style={styles.noticeCard} role="article">
-              <span style={styles.noticeBadge('var(--color-warning)', '#4D3200')}>Update</span>
+              <span style={noticeBadge('var(--color-warning)', '#4D3200')}>Update</span>
               <h4 style={styles.noticeTitle}>REAL ID Compliance Deadline</h4>
               <p style={styles.noticeDesc}>
                 Beginning May 7, 2025, a REAL ID-compliant card will be required to board domestic flights
@@ -180,7 +205,7 @@ export default function Home() {
               </p>
             </div>
             <div style={styles.noticeCard} role="article">
-              <span style={styles.noticeBadge('var(--color-info-bg)', 'var(--color-primary)')}>Info</span>
+              <span style={noticeBadge('var(--color-info-bg)', 'var(--color-primary)')}>Info</span>
               <h4 style={styles.noticeTitle}>Extended Online Services</h4>
               <p style={styles.noticeDesc}>
                 You can now complete vehicle title transfers and duplicate license requests entirely online.
@@ -188,7 +213,7 @@ export default function Home() {
               </p>
             </div>
             <div style={styles.noticeCard} role="article">
-              <span style={styles.noticeBadge('#E8F5E9', '#14491E')}>New</span>
+              <span style={noticeBadge('#E8F5E9', '#14491E')}>New</span>
               <h4 style={styles.noticeTitle}>Digital Driver's License Pilot</h4>
               <p style={styles.noticeDesc}>
                 Contoso County is piloting a mobile digital driver's license. Eligible residents can apply
@@ -204,7 +229,7 @@ export default function Home() {
 
 type StyleValue = React.CSSProperties
 
-const styles: Record<string, StyleValue | ((...args: string[]) => StyleValue)> = {
+const styles: Record<string, StyleValue> = {
   alertBanner: {
     background: '#1A2B42',
     borderBottom: '3px solid var(--color-accent)',
@@ -253,6 +278,50 @@ const styles: Record<string, StyleValue | ((...args: string[]) => StyleValue)> =
     position: 'relative',
     zIndex: 1,
     maxWidth: '680px',
+  },
+  heroGrid: {
+    position: 'relative',
+    zIndex: 1,
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gap: '60px',
+    alignItems: 'center',
+  },
+  heroLeft: {},
+  heroRight: {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: '16px',
+    paddingTop: '24px',
+  },
+  heroCard: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '16px',
+    background: 'rgba(255,255,255,0.07)',
+    backdropFilter: 'blur(4px)',
+    border: '1px solid rgba(255,255,255,0.1)',
+    borderRadius: '12px',
+    padding: '20px 24px',
+  },
+  heroCardIcon: {
+    fontSize: '28px',
+    flexShrink: 0,
+  },
+  heroCardLabel: {
+    display: 'block',
+    fontSize: '12px',
+    fontWeight: 500,
+    letterSpacing: '0.05em',
+    textTransform: 'uppercase' as const,
+    color: 'rgba(255,255,255,0.5)',
+    marginBottom: '4px',
+  },
+  heroCardValue: {
+    display: 'block',
+    fontSize: '18px',
+    fontWeight: 600,
+    color: '#fff',
   },
   heroEyebrow: {
     fontFamily: 'var(--font-body)',
@@ -305,13 +374,7 @@ const styles: Record<string, StyleValue | ((...args: string[]) => StyleValue)> =
     gap: '8px',
     fontSize: '13px',
   },
-  statusDot: (color: string) => ({
-    width: '8px',
-    height: '8px',
-    borderRadius: '50%',
-    background: color,
-    flexShrink: 0,
-  }),
+  statusDot: {},  // see statusDot() function below
   statusLabel: {
     color: 'var(--color-text-muted)',
     fontSize: '13px',
@@ -411,18 +474,7 @@ const styles: Record<string, StyleValue | ((...args: string[]) => StyleValue)> =
     borderRadius: 'var(--radius-lg)',
     padding: '24px',
   },
-  noticeBadge: (bg: string, color: string) => ({
-    display: 'inline-block',
-    background: bg,
-    color,
-    fontSize: '11px',
-    fontWeight: 700,
-    letterSpacing: '0.06em',
-    textTransform: 'uppercase',
-    padding: '3px 10px',
-    borderRadius: '3px',
-    marginBottom: '12px',
-  }),
+  noticeBadge: {},  // see noticeBadge() function below
   noticeTitle: {
     fontFamily: 'var(--font-heading)',
     fontWeight: 600,
@@ -437,3 +489,27 @@ const styles: Record<string, StyleValue | ((...args: string[]) => StyleValue)> =
   },
 }
 
+function statusDot(color: string): React.CSSProperties {
+  return {
+    width: '8px',
+    height: '8px',
+    borderRadius: '50%',
+    background: color,
+    flexShrink: 0,
+  }
+}
+
+function noticeBadge(bg: string, color: string): React.CSSProperties {
+  return {
+    display: 'inline-block',
+    background: bg,
+    color,
+    fontSize: '11px',
+    fontWeight: 700,
+    letterSpacing: '0.06em',
+    textTransform: 'uppercase',
+    padding: '3px 10px',
+    borderRadius: '3px',
+    marginBottom: '12px',
+  }
+}
