@@ -1,0 +1,6 @@
+{
+  "$schema": "https://www.schemastore.org/powerpages.config.json",
+  "siteName": "Contoso DMV",
+  "compiledPath": "dist",
+  "defaultLandingPage": "index.html"
+}
