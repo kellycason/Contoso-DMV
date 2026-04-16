@@ -53,6 +53,30 @@ export async function dvCreate(
   return entityId?.match(/\(([^)]+)\)/)?.[1] ?? ''
 }
 
+/** Update a record via Web API. */
+export async function dvUpdate(
+  entitySet: string,
+  id: string,
+  data: Record<string, unknown>
+): Promise<void> {
+  const res = await fetch(`${API_BASE}/${entitySet}(${id})`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'OData-MaxVersion': '4.0',
+      'OData-Version': '4.0',
+      '__RequestVerificationToken': getVerificationToken(),
+    },
+    credentials: 'same-origin',
+    body: JSON.stringify(data),
+  })
+  if (!res.ok) {
+    const err = await res.text()
+    throw new Error(`Update failed (${res.status}): ${err}`)
+  }
+}
+
 /** Get the formatted display value of a choice/lookup/date column */
 export function fmt(record: Record<string, any>, column: string): string {
   return (

@@ -1,16 +1,88 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useAuth } from '../hooks/useAuth'
+import { dvCreate, dvQuery, fmt } from '../hooks/useDataverse'
 
 export default function TempTags() {
+  const { isAuthenticated, userId } = useAuth()
   const [formData, setFormData] = useState({ vin: '', make: '', model: '', year: '', color: '', buyer: '', saleDate: '' })
   const [generated, setGenerated] = useState(false)
-  const tagNumber = `TMP-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 9999)).padStart(4, '0')}`
-  const expiryDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+  const [submitting, setSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState('')
+  const [tagNumber, setTagNumber] = useState('')
+  const [expiryDate, setExpiryDate] = useState('')
+  const [activeTags, setActiveTags] = useState<Record<string, any>[]>([])
+  const [loadingTags, setLoadingTags] = useState(true)
 
-  const mockActive = [
-    { tag: 'TMP-2026-0234', vin: '3VWDX7AJ5BM123456', buyer: 'Sarah Wilson', issued: '2026-04-12', expires: '2026-05-12', status: 'Active' },
-    { tag: 'TMP-2026-0220', vin: '2T1BURHE2JC789012', buyer: 'David Brown', issued: '2026-04-08', expires: '2026-05-08', status: 'Active' },
-    { tag: 'TMP-2026-0198', vin: 'WBAJB0C51JB345678', buyer: 'Emily Chen', issued: '2026-03-28', expires: '2026-04-27', status: 'Expiring' },
-  ]
+  useEffect(() => {
+    if (isAuthenticated && userId) {
+      dvQuery('dmv_temporarytags',
+        `$filter=_dmv_generatedby_value eq ${userId}&$select=dmv_tagnumber,dmv_buyername,dmv_issuedate,dmv_expirationdate,dmv_tagstatus&$orderby=dmv_issuedate desc&$top=20`
+      ).then(setActiveTags).catch(() => {}).finally(() => setLoadingTags(false))
+    } else {
+      setLoadingTags(false)
+    }
+  }, [isAuthenticated, userId])
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setSubmitting(true)
+    setSubmitError('')
+    try {
+      // Create the vehicle record
+      const vehicleId = await dvCreate('dmv_vehicles', {
+        dmv_vin: formData.vin,
+        dmv_make: formData.make,
+        dmv_model: formData.model,
+        dmv_year: parseInt(formData.year),
+        dmv_color: formData.color,
+        dmv_platetype: 100000004, // Temporary
+        ...(userId ? { 'dmv_ownercontactid@odata.bind': `/contacts(${userId})` } : {}),
+      })
+
+      const tag = `TMP-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 9999)).padStart(4, '0')}`
+      const expiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+
+      // Create the temp tag
+      await dvCreate('dmv_temporarytags', {
+        dmv_tagnumber: tag,
+        dmv_buyername: formData.buyer,
+        dmv_issuedate: new Date().toISOString().split('T')[0],
+        dmv_expirationdate: expiry,
+        dmv_tagstatus: 100000000, // Active
+        dmv_saleprice: 0,
+        dmv_printcount: 0,
+        'dmv_vehicleid@odata.bind': `/dmv_vehicles(${vehicleId})`,
+        ...(userId ? { 'dmv_generatedby@odata.bind': `/contacts(${userId})` } : {}),
+      })
+
+      // Log the transaction
+      if (userId) {
+        await dvCreate('dmv_transactionlogs', {
+          dmv_transactionid: `TXN-${Math.floor(Math.random() * 9000000 + 1000000)}`,
+          dmv_transactiontype: 100000003, // Tag Issued
+          dmv_transactiondate: new Date().toISOString(),
+          dmv_status: 100000001, // Completed
+          dmv_channel: 100000002, // Dealer Portal
+          'dmv_contactid@odata.bind': `/contacts(${userId})`,
+        })
+      }
+
+      setTagNumber(tag)
+      setExpiryDate(expiry)
+      setGenerated(true)
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : 'Tag generation failed. Please try again.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const tagStatusStyle = (val: string) => {
+    if (val === 'Active') return { bg: '#d4edda', color: '#155724' }
+    if (val === 'Expired' || val === 'Voided') return { bg: '#f8d7da', color: '#721c24' }
+    if (val === 'Converted to Plate') return { bg: '#cce5ff', color: '#004085' }
+    return { bg: '#fff3cd', color: '#856404' }
+  }
 
   return (
     <div>
@@ -26,7 +98,7 @@ export default function TempTags() {
           <div style={styles.grid}>
             <div style={styles.card}>
               <h2 style={styles.cardTitle}>Generate New Temp Tag</h2>
-              <form onSubmit={e => { e.preventDefault(); setGenerated(true) }} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 <div style={styles.formGrid}>
                   <div style={styles.field}><label style={styles.label}>VIN</label><input style={styles.input} maxLength={17} placeholder="17-character VIN" required value={formData.vin} onChange={e => setFormData(p => ({ ...p, vin: e.target.value }))} /></div>
                   <div style={styles.field}><label style={styles.label}>Make</label><input style={styles.input} placeholder="e.g. Toyota" required value={formData.make} onChange={e => setFormData(p => ({ ...p, make: e.target.value }))} /></div>
@@ -36,26 +108,37 @@ export default function TempTags() {
                   <div style={styles.field}><label style={styles.label}>Buyer Name</label><input style={styles.input} placeholder="Full legal name" required value={formData.buyer} onChange={e => setFormData(p => ({ ...p, buyer: e.target.value }))} /></div>
                   <div style={styles.field}><label style={styles.label}>Sale Date</label><input style={styles.input} type="date" required value={formData.saleDate} onChange={e => setFormData(p => ({ ...p, saleDate: e.target.value }))} /></div>
                 </div>
-                <button type="submit" className="btn btn-primary" style={{ alignSelf: 'flex-start', padding: '12px 32px' }}>🏷️ Generate Temporary Tag</button>
+                {submitError && <p style={{ color: '#E63946', fontSize: '14px', margin: 0 }}>{submitError}</p>}
+                <button type="submit" className="btn btn-primary" disabled={submitting} style={{ alignSelf: 'flex-start', padding: '12px 32px' }}>
+                  {submitting ? '⏳ Generating...' : '🏷️ Generate Temporary Tag'}
+                </button>
               </form>
             </div>
 
             <div style={styles.card}>
               <h3 style={styles.cardTitle}>Active Temporary Tags</h3>
-              {mockActive.map(t => (
-                <div key={t.tag} style={styles.tagRow}>
-                  <div>
-                    <strong style={{ fontFamily: 'var(--font-mono)' }}>{t.tag}</strong>
-                    <div style={{ fontSize: '12px', color: '#888' }}>{t.buyer} · VIN: {t.vin.slice(0, 8)}...</div>
-                  </div>
-                  <div style={{ textAlign: 'right' as const }}>
-                    <span style={{ ...styles.badge, background: t.status === 'Active' ? '#d4edda' : '#fff3cd', color: t.status === 'Active' ? '#155724' : '#856404' }}>
-                      {t.status}
-                    </span>
-                    <div style={{ fontSize: '11px', color: '#888', marginTop: '2px' }}>Exp: {t.expires}</div>
-                  </div>
-                </div>
-              ))}
+              {loadingTags ? (
+                <p style={{ color: '#888', fontSize: '14px' }}>Loading tags...</p>
+              ) : activeTags.length === 0 ? (
+                <p style={{ color: '#888', fontSize: '14px' }}>No temporary tags issued yet.</p>
+              ) : (
+                activeTags.map(t => {
+                  const status = fmt(t, 'dmv_tagstatus') || 'Active'
+                  const sc = tagStatusStyle(status)
+                  return (
+                    <div key={t.dmv_temporarytagid} style={styles.tagRow}>
+                      <div>
+                        <strong style={{ fontFamily: 'var(--font-mono)' }}>{t.dmv_tagnumber}</strong>
+                        <div style={{ fontSize: '12px', color: '#888' }}>{t.dmv_buyername}</div>
+                      </div>
+                      <div style={{ textAlign: 'right' as const }}>
+                        <span style={{ ...styles.badge, background: sc.bg, color: sc.color }}>{status}</span>
+                        <div style={{ fontSize: '11px', color: '#888', marginTop: '2px' }}>Exp: {fmt(t, 'dmv_expirationdate')}</div>
+                      </div>
+                    </div>
+                  )
+                })
+              )}
             </div>
           </div>
         ) : (
@@ -75,7 +158,7 @@ export default function TempTags() {
             </div>
             <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', marginTop: '24px' }}>
               <button className="btn btn-primary">🖨️ Print Tag</button>
-              <button className="btn" style={{ border: '1px solid #ccc' }} onClick={() => { setGenerated(false); setFormData({ vin: '', make: '', model: '', year: '', color: '', buyer: '', saleDate: '' }) }}>Generate Another</button>
+              <button className="btn" style={{ border: '1px solid #ccc' }} onClick={() => { setGenerated(false); setSubmitError(''); setFormData({ vin: '', make: '', model: '', year: '', color: '', buyer: '', saleDate: '' }) }}>Generate Another</button>
             </div>
           </div>
         )}
