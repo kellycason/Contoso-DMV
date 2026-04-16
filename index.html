@@ -10,7 +10,7 @@
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Serif:ital,wght@0,300;0,400;0,600;1,300&display=swap" rel="stylesheet" />
   </head>
   <body>
-    <script>window.__PORTAL_USER__={% if user %}{"name":"{{ user.fullname | escape }}","id":"{{ user.id }}"}{% else %}null{% endif %};</script>
+    <!-- Auth + data injected by Header web template (Liquid processed there) -->
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

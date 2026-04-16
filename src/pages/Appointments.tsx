@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { dvCreate } from '../hooks/useDataverse'
+import { useAuth } from '../hooks/useAuth'
 
 const services = [
   'Driver License (New/Renewal)',
@@ -33,11 +35,49 @@ export default function Appointments() {
   const [time, setTime] = useState('')
   const [form, setForm] = useState({ firstName: '', lastName: '', email: '', phone: '' })
   const [submitted, setSubmitted] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [confirmNum, setConfirmNum] = useState('')
+  const [submitError, setSubmitError] = useState('')
+  const { userId } = useAuth()
 
   const handle = (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm(f => ({ ...f, [e.target.name]: e.target.value }))
 
-  const handleSubmit = (e: React.FormEvent) => { e.preventDefault(); setSubmitted(true) }
+  const serviceTypeMap: Record<string, number> = {
+    'Driver License (New/Renewal)': 100000001,
+    'Vehicle Registration': 100000000,
+    'Title Transfer': 100000002,
+    'REAL ID Application': 100000000,
+    'Name/Address Change': 100000005,
+    'Duplicate License': 100000001,
+    'Commercial License (CDL)': 100000001,
+    'Other': 100000005,
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setSubmitting(true)
+    setSubmitError('')
+    try {
+      const aptNum = `APT-${Math.floor(Math.random() * 9000000 + 1000000)}`
+      await dvCreate('dmv_appointments', {
+        dmv_name: `${serviceType} - ${form.firstName} ${form.lastName}`,
+        dmv_servicetype: serviceTypeMap[serviceType] ?? 100000005,
+        dmv_appointmentdate: date,
+        dmv_appointmenttime: time,
+        dmv_status: 100000000, // Scheduled
+        dmv_confirmationsent: false,
+        dmv_remindersent: false,
+        ...(userId ? { 'dmv_contactid@odata.bind': `/contacts(${userId})` } : {}),
+      })
+      setConfirmNum(aptNum)
+      setSubmitted(true)
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : 'Booking failed. Please try again.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
 
   if (submitted) {
     return (
@@ -51,7 +91,7 @@ export default function Appointments() {
             <div style={confirmRow}><span style={confirmLabel}>Date:</span><span>{new Date(date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span></div>
             <div style={confirmRow}><span style={confirmLabel}>Time:</span><span>{time}</span></div>
             <div style={confirmRow}><span style={confirmLabel}>Name:</span><span>{form.firstName} {form.lastName}</span></div>
-            <div style={confirmRow}><span style={confirmLabel}>Confirmation:</span><span className="mono">APT-{Math.floor(Math.random() * 9000000 + 1000000)}</span></div>
+            <div style={confirmRow}><span style={confirmLabel}>Confirmation:</span><span className="mono">{confirmNum}</span></div>
           </div>
           <p style={{ color: 'var(--color-text-muted)', fontSize: '14px', marginBottom: '24px' }}>
             A confirmation email has been sent to <strong>{form.email}</strong>.
@@ -196,9 +236,10 @@ export default function Appointments() {
                 <div style={{ display: 'flex', gap: '12px', marginTop: '28px' }}>
                   <button type="button" className="btn btn-outline" onClick={() => setStep(2)}>← Back</button>
                   <button type="submit" className="btn btn-primary"
-                    disabled={!form.firstName || !form.lastName || !form.email}>
-                    Confirm Appointment
+                    disabled={!form.firstName || !form.lastName || !form.email || submitting}>
+                    {submitting ? 'Booking...' : 'Confirm Appointment'}
                   </button>
+                  {submitError && <p style={{ color: 'var(--color-danger)', fontSize: '14px', marginTop: '8px' }}>{submitError}</p>}
                 </div>
               </form>
             </section>

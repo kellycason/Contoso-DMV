@@ -1,33 +1,45 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-
-const mockCitizen = {
-  name: 'Maria Rodriguez',
-  licenseNumber: 'D1234567',
-  licenseStatus: 'Active',
-  licenseExpiry: '2027-03-15',
-  realIdFlag: true,
-  address: '123 Main Street, Contoso City, ST 12345',
-}
-
-const mockVehicles = [
-  { vin: '1HGCM82633A004352', plate: 'ABC-1234', make: 'Honda', model: 'Accord', year: 2023, regStatus: 'Active', regExpiry: '2026-08-01', insured: true },
-  { vin: '5YJSA1E26HF000316', plate: 'XYZ-5678', make: 'Tesla', model: 'Model S', year: 2024, regStatus: 'Expiring Soon', regExpiry: '2026-05-01', insured: true },
-]
-
-const mockActions = [
-  { id: 1, type: 'Registration Renewal', vehicle: '2024 Tesla Model S', due: '2026-05-01', urgency: 'high' },
-  { id: 2, type: 'Insurance Verification', vehicle: '2023 Honda Accord', due: '2026-06-15', urgency: 'medium' },
-]
-
-const mockTransactions = [
-  { id: 'TXN-2026-0412', type: 'Registration Renewal', date: '2026-01-10', status: 'Completed', amount: '$85.00' },
-  { id: 'TXN-2026-0298', type: 'License Renewal', date: '2025-11-22', status: 'Completed', amount: '$45.00' },
-  { id: 'TXN-2026-0187', type: 'Title Transfer', date: '2025-09-05', status: 'Completed', amount: '$120.00' },
-]
+import { useAuth } from '../hooks/useAuth'
+import { useMyDMVData } from '../hooks/useMyDMVData'
 
 export default function MyDMV() {
+  const { isAuthenticated, userName, userId } = useAuth()
+  const { loading, error, citizen, license, vehicles, transactions, actions } = useMyDMVData(userId)
   const [activeTab, setActiveTab] = useState<'overview' | 'vehicles' | 'history'>('overview')
+  const firstName = userName?.split(' ')[0] ?? 'there'
+
+  if (!isAuthenticated) {
+    return (
+      <div style={{ textAlign: 'center', padding: '80px 24px' }}>
+        <div style={{ fontSize: '48px', marginBottom: '16px' }}>🪪</div>
+        <h2 style={{ color: '#1D3557', marginBottom: '12px' }}>Sign In Required</h2>
+        <p style={{ color: '#666', marginBottom: '24px' }}>Please sign in to access your DMV dashboard.</p>
+        <a href="/Account/Login/ExternalLogin" className="btn btn-primary" style={{ display: 'inline-block' }}>Sign In</a>
+      </div>
+    )
+  }
+
+  if (loading) {
+    return (
+      <div style={{ textAlign: 'center', padding: '80px 24px' }}>
+        <div style={{ fontSize: '32px', marginBottom: '16px', animation: 'spin 1s linear infinite' }}>⏳</div>
+        <p style={{ color: '#666', fontSize: '16px' }}>Loading your dashboard...</p>
+      </div>
+    )
+  }
+
+  if (error) {
+    const diag = (window as any).__DMV_DIAG__
+    return (
+      <div style={{ textAlign: 'center', padding: '80px 24px' }}>
+        <div style={{ fontSize: '32px', marginBottom: '16px' }}>⚠️</div>
+        <h2 style={{ color: '#1D3557', marginBottom: '12px' }}>Unable to Load Dashboard</h2>
+        <p style={{ color: '#666' }}>{error}</p>
+        {diag && <pre style={{ marginTop: '24px', fontSize: '12px', color: '#999', textAlign: 'left', maxWidth: '600px', margin: '24px auto 0' }}>{JSON.stringify(diag, null, 2)}</pre>}
+      </div>
+    )
+  }
 
   return (
     <div>
@@ -35,34 +47,36 @@ export default function MyDMV() {
         <div className="container">
           <div style={styles.heroContent}>
             <div>
-              <h1 style={styles.heroTitle}>Welcome back, {mockCitizen.name.split(' ')[0]}</h1>
+              <h1 style={styles.heroTitle}>Welcome back, {firstName}</h1>
               <p style={styles.heroSub}>Manage your licenses, vehicles, and DMV services from your personal dashboard.</p>
             </div>
-            <div style={styles.licenseCard}>
-              <div style={styles.licenseHeader}>
-                <span style={styles.licenseIcon}>🪪</span>
-                <span style={styles.licenseLabel}>Driver License</span>
+            {license && (
+              <div style={styles.licenseCard}>
+                <div style={styles.licenseHeader}>
+                  <span style={styles.licenseIcon}>🪪</span>
+                  <span style={styles.licenseLabel}>Driver License</span>
+                </div>
+                <div style={styles.licenseNumber}>{license.licenseNumber}</div>
+                <div style={styles.licenseRow}>
+                  <span>Status: <strong style={{ color: '#2a9d8f' }}>{license.status}</strong></span>
+                  <span>Expires: {license.expirationDate}</span>
+                </div>
+                {license.realIdCompliant && <span style={styles.realIdBadge}>★ REAL ID</span>}
               </div>
-              <div style={styles.licenseNumber}>{mockCitizen.licenseNumber}</div>
-              <div style={styles.licenseRow}>
-                <span>Status: <strong style={{ color: '#2a9d8f' }}>{mockCitizen.licenseStatus}</strong></span>
-                <span>Expires: {mockCitizen.licenseExpiry}</span>
-              </div>
-              {mockCitizen.realIdFlag && <span style={styles.realIdBadge}>★ REAL ID</span>}
-            </div>
+            )}
           </div>
         </div>
       </section>
 
-      {mockActions.length > 0 && (
+      {actions.length > 0 && (
         <section style={styles.alertBanner}>
           <div className="container">
-            <h3 style={{ margin: '0 0 12px', fontSize: '15px' }}>⚠️ Action Required ({mockActions.length})</h3>
+            <h3 style={{ margin: '0 0 12px', fontSize: '15px' }}>⚠️ Action Required ({actions.length})</h3>
             <div style={styles.alertGrid}>
-              {mockActions.map(a => (
+              {actions.map(a => (
                 <div key={a.id} style={{ ...styles.alertCard, borderLeftColor: a.urgency === 'high' ? '#E63946' : '#E9C46A' }}>
                   <strong>{a.type}</strong>
-                  <span style={{ fontSize: '13px', color: '#555' }}>{a.vehicle}</span>
+                  <span style={{ fontSize: '13px', color: '#555' }}>{a.detail}</span>
                   <span style={{ fontSize: '12px', color: a.urgency === 'high' ? '#E63946' : '#888' }}>Due: {a.due}</span>
                 </div>
               ))}
@@ -95,24 +109,32 @@ export default function MyDMV() {
             </div>
             <div style={styles.card}>
               <h3 style={styles.cardTitle}>License Summary</h3>
-              <div style={styles.infoRow}><span>Name</span><strong>{mockCitizen.name}</strong></div>
-              <div style={styles.infoRow}><span>License #</span><strong>{mockCitizen.licenseNumber}</strong></div>
-              <div style={styles.infoRow}><span>Status</span><strong style={{ color: '#2a9d8f' }}>{mockCitizen.licenseStatus}</strong></div>
-              <div style={styles.infoRow}><span>Expires</span><strong>{mockCitizen.licenseExpiry}</strong></div>
-              <div style={styles.infoRow}><span>REAL ID</span><strong>{mockCitizen.realIdFlag ? '✅ Yes' : '❌ No'}</strong></div>
-              <div style={styles.infoRow}><span>Address</span><strong style={{ fontSize: '12px' }}>{mockCitizen.address}</strong></div>
+              {license ? (
+                <>
+                  <div style={styles.infoRow}><span>Name</span><strong>{citizen?.fullName}</strong></div>
+                  <div style={styles.infoRow}><span>License #</span><strong>{license.licenseNumber}</strong></div>
+                  <div style={styles.infoRow}><span>Status</span><strong style={{ color: '#2a9d8f' }}>{license.status}</strong></div>
+                  <div style={styles.infoRow}><span>Expires</span><strong>{license.expirationDate}</strong></div>
+                  <div style={styles.infoRow}><span>REAL ID</span><strong>{license.realIdCompliant ? '✅ Yes' : '❌ No'}</strong></div>
+                  <div style={styles.infoRow}><span>Address</span><strong style={{ fontSize: '12px' }}>{citizen?.address}</strong></div>
+                </>
+              ) : (
+                <p style={{ color: '#888', fontSize: '14px' }}>No license on file.</p>
+              )}
             </div>
             <div style={styles.card}>
               <h3 style={styles.cardTitle}>Registered Vehicles</h3>
-              {mockVehicles.map(v => (
-                <div key={v.vin} style={styles.vehicleMini}>
+              {vehicles.length > 0 ? vehicles.map(v => (
+                <div key={v.id} style={styles.vehicleMini}>
                   <div><strong>{v.year} {v.make} {v.model}</strong></div>
-                  <div style={{ fontSize: '12px', color: '#666' }}>Plate: {v.plate} · Reg: {v.regExpiry}</div>
-                  <span style={{ ...styles.statusBadge, background: v.regStatus === 'Active' ? '#d4edda' : '#fff3cd', color: v.regStatus === 'Active' ? '#155724' : '#856404' }}>
-                    {v.regStatus}
+                  <div style={{ fontSize: '12px', color: '#666' }}>Plate: {v.plateNumber} · Reg: {v.registration?.expirationDate ?? 'N/A'}</div>
+                  <span style={{ ...styles.statusBadge, background: v.registration?.status === 'Active' ? '#d4edda' : '#fff3cd', color: v.registration?.status === 'Active' ? '#155724' : '#856404' }}>
+                    {v.registration?.status ?? 'Unknown'}
                   </span>
                 </div>
-              ))}
+              )) : (
+                <p style={{ color: '#888', fontSize: '14px' }}>No vehicles registered.</p>
+              )}
             </div>
           </div>
         )}
@@ -123,57 +145,65 @@ export default function MyDMV() {
               <h2 style={{ margin: 0 }}>Virtual Garage</h2>
               <Link to="/vehicle-registration" className="btn btn-primary">+ Add Vehicle</Link>
             </div>
-            <div style={styles.vehicleGrid}>
-              {mockVehicles.map(v => (
-                <div key={v.vin} style={styles.vehicleCard}>
-                  <div style={styles.vehicleCardHeader}>
-                    <span style={{ fontSize: '28px' }}>🚗</span>
-                    <div>
-                      <h3 style={{ margin: 0, fontSize: '18px' }}>{v.year} {v.make} {v.model}</h3>
-                      <span style={{ fontSize: '13px', color: '#888' }}>VIN: {v.vin}</span>
+            {vehicles.length > 0 ? (
+              <div style={styles.vehicleGrid}>
+                {vehicles.map(v => (
+                  <div key={v.id} style={styles.vehicleCard}>
+                    <div style={styles.vehicleCardHeader}>
+                      <span style={{ fontSize: '28px' }}>🚗</span>
+                      <div>
+                        <h3 style={{ margin: 0, fontSize: '18px' }}>{v.year} {v.make} {v.model}</h3>
+                        <span style={{ fontSize: '13px', color: '#888' }}>VIN: {v.vin}</span>
+                      </div>
+                    </div>
+                    <div style={styles.vehicleDetails}>
+                      <div style={styles.infoRow}><span>Plate</span><strong>{v.plateNumber}</strong></div>
+                      <div style={styles.infoRow}><span>Registration</span><strong style={{ color: v.registration?.status === 'Active' ? '#2a9d8f' : '#E9C46A' }}>{v.registration?.status ?? 'Unknown'}</strong></div>
+                      <div style={styles.infoRow}><span>Reg. Expires</span><strong>{v.registration?.expirationDate ?? 'N/A'}</strong></div>
+                      <div style={styles.infoRow}><span>Insurance</span><strong>{v.insuranceStatus === 'Verified' ? '✅ Verified' : '❌ ' + (v.insuranceStatus || 'Unverified')}</strong></div>
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
+                      <Link to="/vehicle-registration" className="btn btn-primary" style={{ flex: 1, textAlign: 'center', fontSize: '13px' }}>Renew Registration</Link>
+                      <Link to="/documents" className="btn" style={{ flex: 1, textAlign: 'center', fontSize: '13px', border: '1px solid #ccc' }}>Upload Docs</Link>
                     </div>
                   </div>
-                  <div style={styles.vehicleDetails}>
-                    <div style={styles.infoRow}><span>Plate</span><strong>{v.plate}</strong></div>
-                    <div style={styles.infoRow}><span>Registration</span><strong style={{ color: v.regStatus === 'Active' ? '#2a9d8f' : '#E9C46A' }}>{v.regStatus}</strong></div>
-                    <div style={styles.infoRow}><span>Reg. Expires</span><strong>{v.regExpiry}</strong></div>
-                    <div style={styles.infoRow}><span>Insurance</span><strong>{v.insured ? '✅ Verified' : '❌ Unverified'}</strong></div>
-                  </div>
-                  <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
-                    <Link to="/vehicle-registration" className="btn btn-primary" style={{ flex: 1, textAlign: 'center', fontSize: '13px' }}>Renew Registration</Link>
-                    <Link to="/documents" className="btn" style={{ flex: 1, textAlign: 'center', fontSize: '13px', border: '1px solid #ccc' }}>Upload Docs</Link>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <p style={{ color: '#888', textAlign: 'center', padding: '40px' }}>No vehicles found. Add your first vehicle to get started.</p>
+            )}
           </div>
         )}
 
         {activeTab === 'history' && (
           <div>
             <h2 style={{ marginBottom: '24px' }}>Transaction History</h2>
-            <table style={styles.table}>
-              <thead>
-                <tr>
-                  <th style={styles.th}>Transaction ID</th>
-                  <th style={styles.th}>Type</th>
-                  <th style={styles.th}>Date</th>
-                  <th style={styles.th}>Status</th>
-                  <th style={styles.th}>Amount</th>
-                </tr>
-              </thead>
-              <tbody>
-                {mockTransactions.map(t => (
-                  <tr key={t.id}>
-                    <td style={styles.td}><code style={{ fontFamily: 'var(--font-mono)' }}>{t.id}</code></td>
-                    <td style={styles.td}>{t.type}</td>
-                    <td style={styles.td}>{t.date}</td>
-                    <td style={styles.td}><span style={styles.statusBadge}>{t.status}</span></td>
-                    <td style={styles.td}>{t.amount}</td>
+            {transactions.length > 0 ? (
+              <table style={styles.table}>
+                <thead>
+                  <tr>
+                    <th style={styles.th}>Transaction ID</th>
+                    <th style={styles.th}>Type</th>
+                    <th style={styles.th}>Date</th>
+                    <th style={styles.th}>Status</th>
+                    <th style={styles.th}>Amount</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {transactions.map(t => (
+                    <tr key={t.id}>
+                      <td style={styles.td}><code style={{ fontFamily: 'var(--font-mono)' }}>{t.transactionId}</code></td>
+                      <td style={styles.td}>{t.type}</td>
+                      <td style={styles.td}>{t.date}</td>
+                      <td style={styles.td}><span style={styles.statusBadge}>{t.status}</span></td>
+                      <td style={styles.td}>{t.amount}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <p style={{ color: '#888', textAlign: 'center', padding: '40px' }}>No transactions yet.</p>
+            )}
           </div>
         )}
       </section>

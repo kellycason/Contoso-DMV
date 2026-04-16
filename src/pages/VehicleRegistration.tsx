@@ -1,10 +1,20 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { dvCreate } from '../hooks/useDataverse'
+import { useAuth } from '../hooks/useAuth'
+
+const plateTypeMap: Record<string, number> = {
+  standard: 100000000, personalized: 100000001, veteran: 100000002, disability: 100000003,
+}
 
 export default function VehicleRegistration() {
   useEffect(() => { document.title = 'Vehicle Registration — Contoso DMV' }, [])
+  const { userId } = useAuth()
 
   const [submitted, setSubmitted] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [refNumber, setRefNumber] = useState('')
+  const [submitError, setSubmitError] = useState('')
   const [form, setForm] = useState({
     vin: '',
     make: '',
@@ -27,7 +37,51 @@ export default function VehicleRegistration() {
   const handle = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     setForm(f => ({ ...f, [e.target.name]: e.target.value }))
 
-  const handleSubmit = (e: React.FormEvent) => { e.preventDefault(); setSubmitted(true) }
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setSubmitting(true)
+    setSubmitError('')
+    try {
+      // 1. Create vehicle
+      const vehicleId = await dvCreate('dmv_vehicles', {
+        dmv_vin: form.vin,
+        dmv_make: form.make,
+        dmv_model: form.model,
+        dmv_year: parseInt(form.year),
+        dmv_color: form.color,
+        dmv_platetype: plateTypeMap[form.plateType] ?? 100000000,
+        dmv_salvagetitle: false,
+        dmv_outofstate: false,
+        dmv_insurancestatus: 100000000, // Verified
+        dmv_insurancecarrier: form.insurer,
+        dmv_insurancepolicy: form.policyNumber,
+        dmv_insuranceexp: form.policyExp,
+        ...(userId ? { 'dmv_ownercontactid@odata.bind': `/contacts(${userId})` } : {}),
+      })
+      // 2. Create registration
+      const regId = `REG-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 99999)).padStart(5, '0')}`
+      await dvCreate('dmv_vehicleregistrations', {
+        dmv_registrationid: regId,
+        dmv_regstatus: 100000000, // Active
+        dmv_regtype: 100000000, // New
+        dmv_regyear: new Date().getFullYear(),
+        dmv_effectivedate: new Date().toISOString().split('T')[0],
+        dmv_expirationdate: `${new Date().getFullYear() + 1}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`,
+        dmv_onlineeligible: true,
+        dmv_fee: 75.00,
+        dmv_totaldue: 75.00,
+        dmv_paymentstatus: 100000000, // Unpaid
+        'dmv_vehicleid@odata.bind': `/dmv_vehicles(${vehicleId})`,
+        ...(userId ? { 'dmv_regcontactid@odata.bind': `/contacts(${userId})` } : {}),
+      })
+      setRefNumber(regId)
+      setSubmitted(true)
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : 'Submission failed. Please try again.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
 
   if (submitted) {
     return (
@@ -40,7 +94,7 @@ export default function VehicleRegistration() {
             Your vehicle registration request has been received and is being processed.
           </p>
           <p style={{ marginBottom: '32px' }}>
-            Reference number: <span className="mono">VR-{Math.floor(Math.random() * 9000000 + 1000000)}</span>
+            Reference number: <span className="mono">{refNumber}</span>
           </p>
           <Link to="/" className="btn btn-primary">Return to Home</Link>
         </div>
@@ -171,10 +225,11 @@ export default function VehicleRegistration() {
             </section>
 
             <div style={{ marginTop: '40px', display: 'flex', gap: '16px', alignItems: 'center' }}>
-              <button type="submit" className="btn btn-primary" style={{ fontSize: '15px', padding: '12px 28px' }}>
-                Submit Registration
+              <button type="submit" className="btn btn-primary" style={{ fontSize: '15px', padding: '12px 28px' }} disabled={submitting}>
+                {submitting ? 'Submitting...' : 'Submit Registration'}
               </button>
               <Link to="/" className="btn btn-ghost">Cancel</Link>
+              {submitError && <p style={{ color: 'var(--color-danger)', fontSize: '14px', marginTop: '8px' }}>{submitError}</p>}
             </div>
           </form>
         </div>

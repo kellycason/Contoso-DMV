@@ -1,4 +1,102 @@
 <div/>
+<!-- Portal user + DMV data injection (processed by Liquid engine in web template) -->
+<script>window.__PORTAL_USER__={% if user %}{"name":"{{ user.fullname | escape }}","id":"{{ user.id }}"}{% else %}null{% endif %};</script>
+{% if user %}
+{% fetchxml contact_query %}
+<fetch top="1">
+  <entity name="contact">
+    <attribute name="address1_line1" />
+    <attribute name="address1_city" />
+    <attribute name="address1_stateorprovince" />
+    <attribute name="address1_postalcode" />
+    <attribute name="telephone1" />
+    <filter>
+      <condition attribute="contactid" operator="eq" value="{{ user.id }}" />
+    </filter>
+  </entity>
+</fetch>
+{% endfetchxml %}
+{% assign ct = contact_query.results.entities[0] %}
+{% fetchxml license_query %}
+<fetch top="1">
+  <entity name="dmv_driverlicense">
+    <attribute name="dmv_driverlicenseid" />
+    <attribute name="dmv_licensenumber" />
+    <attribute name="dmv_licensestatus" />
+    <attribute name="dmv_expirationdate" />
+    <attribute name="dmv_realidcompliant" />
+    <attribute name="dmv_licenseclass" />
+    <attribute name="dmv_issuedate" />
+    <filter>
+      <condition attribute="dmv_contactid" operator="eq" value="{{ user.id }}" />
+    </filter>
+    <order attribute="dmv_issuedate" descending="true" />
+  </entity>
+</fetch>
+{% endfetchxml %}
+{% fetchxml vehicles_query %}
+<fetch>
+  <entity name="dmv_vehicle">
+    <attribute name="dmv_vehicleid" />
+    <attribute name="dmv_vin" />
+    <attribute name="dmv_year" />
+    <attribute name="dmv_make" />
+    <attribute name="dmv_model" />
+    <attribute name="dmv_platenumber" />
+    <attribute name="dmv_color" />
+    <attribute name="dmv_insurancestatus" />
+    <attribute name="dmv_insuranceexp" />
+    <filter>
+      <condition attribute="dmv_ownercontactid" operator="eq" value="{{ user.id }}" />
+    </filter>
+  </entity>
+</fetch>
+{% endfetchxml %}
+{% fetchxml regs_query %}
+<fetch>
+  <entity name="dmv_vehicleregistration">
+    <attribute name="dmv_vehicleregistrationid" />
+    <attribute name="dmv_registrationid" />
+    <attribute name="dmv_regstatus" />
+    <attribute name="dmv_expirationdate" />
+    <attribute name="dmv_totaldue" />
+    <attribute name="dmv_paymentstatus" />
+    <attribute name="dmv_vehicleid" />
+    <filter>
+      <condition attribute="dmv_regcontactid" operator="eq" value="{{ user.id }}" />
+    </filter>
+    <order attribute="dmv_expirationdate" descending="true" />
+  </entity>
+</fetch>
+{% endfetchxml %}
+{% fetchxml txn_query %}
+<fetch top="20">
+  <entity name="dmv_transactionlog">
+    <attribute name="dmv_transactionlogid" />
+    <attribute name="dmv_transactionid" />
+    <attribute name="dmv_transactiontype" />
+    <attribute name="dmv_transactiondate" />
+    <attribute name="dmv_status" />
+    <attribute name="dmv_amount" />
+    <filter>
+      <condition attribute="dmv_contactid" operator="eq" value="{{ user.id }}" />
+    </filter>
+    <order attribute="dmv_transactiondate" descending="true" />
+  </entity>
+</fetch>
+{% endfetchxml %}
+<script>
+window.__DMV_DATA__={
+  citizen:{id:"{{ user.id }}",fullName:"{{ user.fullname | escape }}",address:"{{ ct.address1_line1 | escape }}{% if ct.address1_city %}, {{ ct.address1_city | escape }}{% endif %}{% if ct.address1_stateorprovince %}, {{ ct.address1_stateorprovince | escape }}{% endif %}{% if ct.address1_postalcode %} {{ ct.address1_postalcode | escape }}{% endif %}",phone:"{{ ct.telephone1 | escape }}"},
+  license:{% if license_query.results.entities.size > 0 %}{% assign lic = license_query.results.entities[0] %}{id:"{{ lic.dmv_driverlicenseid }}",licenseNumber:"{{ lic.dmv_licensenumber | escape }}",status:"{{ lic.dmv_licensestatus | escape }}",expirationDate:"{{ lic.dmv_expirationdate | date: '%Y-%m-%d' }}",realIdCompliant:{{ lic.dmv_realidcompliant | default: false }},licenseClass:"{{ lic.dmv_licenseclass | escape }}",issueDate:"{{ lic.dmv_issuedate | date: '%Y-%m-%d' }}"}{% else %}null{% endif %},
+  vehicles:[{% for v in vehicles_query.results.entities %}{id:"{{ v.dmv_vehicleid }}",vin:"{{ v.dmv_vin | escape }}",year:{{ v.dmv_year | default: 0 }},make:"{{ v.dmv_make | escape }}",model:"{{ v.dmv_model | escape }}",plateNumber:"{{ v.dmv_platenumber | escape }}",color:"{{ v.dmv_color | escape }}",insuranceStatus:"{{ v.dmv_insurancestatus | escape }}",insuranceExpiry:"{{ v.dmv_insuranceexp | date: '%Y-%m-%d' }}"}{% unless forloop.last %},{% endunless %}{% endfor %}],
+  registrations:[{% for r in regs_query.results.entities %}{id:"{{ r.dmv_vehicleregistrationid }}",regId:"{{ r.dmv_registrationid | escape }}",status:"{{ r.dmv_regstatus | escape }}",expirationDate:"{{ r.dmv_expirationdate | date: '%Y-%m-%d' }}",totalDue:{{ r.dmv_totaldue | default: 0 }},paymentStatus:"{{ r.dmv_paymentstatus | escape }}",vehicleId:"{{ r.dmv_vehicleid }}"}{% unless forloop.last %},{% endunless %}{% endfor %}],
+  transactions:[{% for t in txn_query.results.entities %}{id:"{{ t.dmv_transactionlogid }}",transactionId:"{{ t.dmv_transactionid | escape }}",type:"{{ t.dmv_transactiontype | escape }}",date:"{{ t.dmv_transactiondate | date: '%Y-%m-%d' }}",status:"{{ t.dmv_status | escape }}",amount:{{ t.dmv_amount | default: 0 }}}{% unless forloop.last %},{% endunless %}{% endfor %}]
+};
+</script>
+{% else %}
+  <script>window.__DMV_DATA__=null;</script>
+{% endif %}
 <style>
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
 </style>

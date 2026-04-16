@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { dvCreate } from '../hooks/useDataverse'
+import { useAuth } from '../hooks/useAuth'
 
 export default function LicenseRenewal() {
   useEffect(() => { document.title = 'License Renewal — Contoso DMV' }, [])
+  const { userId } = useAuth()
 
   const [form, setForm] = useState({
     licenseNumber: '',
@@ -16,14 +19,36 @@ export default function LicenseRenewal() {
     zip: '',
   })
   const [submitted, setSubmitted] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [refNumber, setRefNumber] = useState('')
+  const [submitError, setSubmitError] = useState('')
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setForm(f => ({ ...f, [e.target.name]: e.target.value }))
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setSubmitted(true)
+    setSubmitting(true)
+    setSubmitError('')
+    try {
+      const txnId = `TXN-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 9999)).padStart(4, '0')}`
+      await dvCreate('dmv_transactionlogs', {
+        dmv_transactionid: txnId,
+        dmv_transactiontype: 100000000, // License Renewal
+        dmv_transactiondate: new Date().toISOString(),
+        dmv_status: 100000000, // Pending
+        dmv_amount: 45.00,
+        dmv_channel: 100000000, // Online
+        ...(userId ? { 'dmv_contactid@odata.bind': `/contacts(${userId})` } : {}),
+      })
+      setRefNumber(txnId)
+      setSubmitted(true)
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : 'Submission failed. Please try again.')
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   if (submitted) {
@@ -39,7 +64,7 @@ export default function LicenseRenewal() {
             Your license renewal request has been received. You will receive a confirmation email within 24 hours.
           </p>
           <p style={{ marginBottom: '32px' }}>
-            Reference number: <span className="mono">DMV-{Math.floor(Math.random() * 9000000 + 1000000)}</span>
+            Reference number: <span className="mono">{refNumber}</span>
           </p>
           <Link to="/" className="btn btn-primary">Return to Home</Link>
         </div>
@@ -138,10 +163,11 @@ export default function LicenseRenewal() {
             </section>
 
             <div style={{ marginTop: '40px', display: 'flex', gap: '16px', alignItems: 'center' }}>
-              <button type="submit" className="btn btn-primary" style={{ fontSize: '15px', padding: '12px 28px' }}>
-                Submit Renewal Request
+              <button type="submit" className="btn btn-primary" style={{ fontSize: '15px', padding: '12px 28px' }} disabled={submitting}>
+                {submitting ? 'Submitting...' : 'Submit Renewal Request'}
               </button>
               <Link to="/" className="btn btn-ghost">Cancel</Link>
+              {submitError && <p style={{ color: 'var(--color-danger)', fontSize: '14px', marginTop: '8px' }}>{submitError}</p>}
             </div>
           </form>
         </div>
