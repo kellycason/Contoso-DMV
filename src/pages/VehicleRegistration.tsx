@@ -197,56 +197,91 @@ export default function VehicleRegistration() {
                   )}
 
                   {!loading && vehicles.length > 0 && (
-                    <div style={{ display: 'grid', gap: '16px' }}>
-                      {vehicles.map(v => {
+                    <div style={{ display: 'grid', gap: '0' }}>
+                      {/* header row */}
+                      <div style={cardHeader}>
+                        <span style={{ flex: '1 1 0' }}>Vehicle</span>
+                        <span style={{ width: '140px', textAlign: 'center' }}>Status</span>
+                        <span style={{ width: '160px', textAlign: 'right' }}>Registration Expires</span>
+                        <span style={{ width: '140px', textAlign: 'right' }}>Action</span>
+                      </div>
+                      {vehicles.map((v, i) => {
                         const status = v.reg?.dmv_regstatus ?? -1
                         const expiring = v.daysLeft !== undefined && v.daysLeft <= 90 && v.daysLeft > 0
                         const expired = v.daysLeft !== undefined && v.daysLeft <= 0
                         return (
-                          <div key={v.dmv_vehicleid} style={vehicleCard}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px' }}>
-                              <div>
-                                <h3 style={{ margin: 0, fontSize: '1.05rem', color: 'var(--color-primary)' }}>
-                                  {v.dmv_year} {v.dmv_make} {v.dmv_model}
-                                </h3>
-                                <p style={{ margin: '4px 0 0', fontSize: '13px', color: 'var(--color-text-muted)' }}>
-                                  VIN: <span className="mono">{v.dmv_vin}</span>
-                                  {v.dmv_color && <> &middot; {v.dmv_color}</>}
-                                  {v.dmv_platenumber && <> &middot; Plate: <strong>{v.dmv_platenumber}</strong></>}
-                                </p>
+                          <div key={v.dmv_vehicleid} style={{ ...cardRow, ...(i % 2 === 0 ? {} : cardRowAlt) }}>
+                            {/* icon + details */}
+                            <div style={{ flex: '1 1 0', display: 'flex', gap: '16px', alignItems: 'center', minWidth: 0 }}>
+                              <div style={vehicleIcon} aria-hidden="true">
+                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M5 17h14M5 17a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h1l2-3h8l2 3h1a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2M7 17v1a1 1 0 0 0 1 1h1a1 1 0 0 0 1-1v-1m6 0v1a1 1 0 0 0 1 1h1a1 1 0 0 0 1-1v-1" />
+                                  <circle cx="7.5" cy="13" r="1.5" /><circle cx="16.5" cy="13" r="1.5" />
+                                </svg>
                               </div>
-                              {v.reg && (
-                                <span style={{ ...badge, background: statusColors[status] ?? 'var(--color-text-muted)' }}>
+                              <div style={{ minWidth: 0 }}>
+                                <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--color-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                  {v.dmv_year} {v.dmv_make} {v.dmv_model}
+                                </div>
+                                <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '2px' }}>
+                                  VIN: <span className="mono">{v.dmv_vin}</span>
+                                </div>
+                                <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '1px', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                                  {v.dmv_color && <span>{v.dmv_color}</span>}
+                                  {v.dmv_platenumber && <span>Plate: <strong>{v.dmv_platenumber}</strong></span>}
+                                  {v.reg && <span>Reg #: {v.reg.dmv_registrationid}</span>}
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* status column */}
+                            <div style={{ width: '140px', textAlign: 'center', flexShrink: 0 }}>
+                              <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Status</div>
+                              {v.reg ? (
+                                <span style={{ fontWeight: 600, fontSize: '13px', color: statusColors[status] ?? 'var(--color-text-muted)' }}>
                                   {statusLabels[status] ?? 'Unknown'}
                                 </span>
+                              ) : (
+                                <span style={{ fontWeight: 600, fontSize: '13px', color: 'var(--color-text-muted)' }}>Unregistered</span>
                               )}
                             </div>
 
-                            {v.reg && (
-                              <div style={{ marginTop: '12px', display: 'flex', gap: '24px', flexWrap: 'wrap', fontSize: '13px', color: 'var(--color-text-muted)' }}>
-                                <span>Reg #: <strong>{v.reg.dmv_registrationid}</strong></span>
-                                <span>Expires: <strong style={{ color: expired ? 'var(--color-danger)' : expiring ? 'var(--color-warning)' : 'inherit' }}>
-                                  {new Date(v.reg.dmv_expirationdate).toLocaleDateString()}
-                                </strong></span>
-                                {v.daysLeft !== undefined && v.daysLeft > 0 && (
-                                  <span>({v.daysLeft} day{v.daysLeft !== 1 ? 's' : ''} remaining)</span>
-                                )}
-                              </div>
-                            )}
+                            {/* expiration column */}
+                            <div style={{ width: '160px', textAlign: 'right', flexShrink: 0 }}>
+                              <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Expires</div>
+                              {v.reg?.dmv_expirationdate ? (
+                                <>
+                                  <div style={{ fontWeight: 600, fontSize: '13px', color: expired ? 'var(--color-danger)' : expiring ? 'var(--color-warning)' : 'var(--color-text)' }}>
+                                    {new Date(v.reg.dmv_expirationdate).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                  </div>
+                                  {v.daysLeft !== undefined && v.daysLeft > 0 && (
+                                    <div style={{ fontSize: '11px', color: expiring ? 'var(--color-warning)' : 'var(--color-text-muted)', marginTop: '2px' }}>
+                                      {v.daysLeft} day{v.daysLeft !== 1 ? 's' : ''} left
+                                    </div>
+                                  )}
+                                  {expired && <div style={{ fontSize: '11px', color: 'var(--color-danger)', marginTop: '2px' }}>Overdue</div>}
+                                </>
+                              ) : (
+                                <span style={{ fontSize: '13px', color: 'var(--color-text-muted)' }}>—</span>
+                              )}
+                            </div>
 
-                            {/* actions */}
-                            <div style={{ marginTop: '14px', display: 'flex', gap: '10px' }}>
+                            {/* action column */}
+                            <div style={{ width: '140px', textAlign: 'right', flexShrink: 0 }}>
                               {(expired || expiring || status === 100000001) && (
-                                <button className="btn btn-primary" style={{ fontSize: '13px', padding: '6px 16px' }}
+                                <button className="btn btn-primary" style={{ fontSize: '12px', padding: '5px 14px' }}
                                   onClick={() => { setRenewTarget(v); setSubmitError(''); setView('renew') }}>
-                                  Renew Registration
+                                  Renew
                                 </button>
                               )}
                               {!v.reg && (
-                                <button className="btn btn-secondary" style={{ fontSize: '13px', padding: '6px 16px' }}
+                                <button className="btn btn-secondary" style={{ fontSize: '12px', padding: '5px 14px' }}
                                   onClick={() => { setRenewTarget(v); setSubmitError(''); setView('renew') }}>
-                                  Register This Vehicle
+                                  Register
                                 </button>
+                              )}
+                              {v.reg && !expired && !expiring && status !== 100000001 && (
+                                <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>Up to date</span>
                               )}
                             </div>
                           </div>
@@ -407,7 +442,23 @@ const vehicleCard: React.CSSProperties = {
   background: 'var(--color-surface)', border: '1px solid var(--color-border)',
   borderRadius: 'var(--radius-lg)', padding: '20px 24px',
 }
-const badge: React.CSSProperties = {
-  display: 'inline-block', fontSize: '11px', fontWeight: 600, color: '#fff',
-  padding: '3px 10px', borderRadius: '12px', letterSpacing: '0.03em', textTransform: 'uppercase',
+const cardHeader: React.CSSProperties = {
+  display: 'flex', alignItems: 'center', gap: '16px', padding: '10px 20px',
+  fontSize: '11px', fontWeight: 600, color: 'var(--color-text-muted)',
+  textTransform: 'uppercase', letterSpacing: '0.05em',
+  borderBottom: '2px solid var(--color-border)', background: 'var(--color-surface-alt)',
+  borderRadius: 'var(--radius-lg) var(--radius-lg) 0 0',
+}
+const cardRow: React.CSSProperties = {
+  display: 'flex', alignItems: 'center', gap: '16px', padding: '16px 20px',
+  borderBottom: '1px solid var(--color-border)', background: 'var(--color-surface)',
+  transition: 'background 0.1s',
+}
+const cardRowAlt: React.CSSProperties = {
+  background: 'var(--color-surface-alt, #fafbfc)',
+}
+const vehicleIcon: React.CSSProperties = {
+  width: '52px', height: '52px', borderRadius: 'var(--radius-md)',
+  background: 'var(--color-info-bg)', display: 'flex', alignItems: 'center',
+  justifyContent: 'center', color: 'var(--color-secondary)', flexShrink: 0,
 }
