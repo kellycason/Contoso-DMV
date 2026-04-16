@@ -214,7 +214,7 @@ export default function MyDMV() {
 const styles: Record<string, React.CSSProperties> = {
   hero: { background: 'linear-gradient(135deg, #1D3557 0%, #264674 100%)', color: '#fff', padding: '48px 0 40px' },
   heroContent: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '32px', flexWrap: 'wrap' },
-  heroTitle: { fontSize: '32px', fontFamily: 'var(--font-heading)', margin: '0 0 8px' },
+  heroTitle: { fontSize: '32px', fontFamily: 'var(--font-heading)', margin: '0 0 8px', color: '#ffffff' },
   heroSub: { fontSize: '16px', opacity: 0.85, margin: 0 },
   licenseCard: { background: 'rgba(255,255,255,0.1)', borderRadius: '12px', padding: '20px 24px', minWidth: '280px', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.15)' },
   licenseHeader: { display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' },
