@@ -1,6 +1,7 @@
 <div/>
 <!-- Portal user + DMV data injection (processed by Liquid engine in web template) -->
-<script>window.__PORTAL_USER__={% if user %}{"name":"{{ user.fullname | escape }}","id":"{{ user.id }}"}{% else %}null{% endif %};</script>
+<script>window.__PORTAL_USER__={% if user %}{"name":"{{ user.fullname | escape }}","id":"{{ user.id }}"}{% else %}null{% endif %};
+if(window.__PORTAL_USER__){fetch('/_layout/tokenhtml').then(function(r){return r.text()}).then(function(h){var d=document.createElement('div');d.style.display='none';d.innerHTML=h;document.body.appendChild(d)})}</script>
 {% if user %}
 {% fetchxml contact_query %}
 <fetch top="1">

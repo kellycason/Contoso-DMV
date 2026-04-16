@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { dvCreate } from '../hooks/useDataverse'
+import { dvCreate, dvQuery } from '../hooks/useDataverse'
 import { useAuth } from '../hooks/useAuth'
 
 const services = [
@@ -31,6 +31,8 @@ export default function Appointments() {
 
   const [step, setStep] = useState(1)
   const [serviceType, setServiceType] = useState('')
+  const [officeId, setOfficeId] = useState('')
+  const [offices, setOffices] = useState<{id:string,name:string}[]>([])
   const [date, setDate] = useState('')
   const [time, setTime] = useState('')
   const [form, setForm] = useState({ firstName: '', lastName: '', email: '', phone: '' })
@@ -40,17 +42,23 @@ export default function Appointments() {
   const [submitError, setSubmitError] = useState('')
   const { userId } = useAuth()
 
+  useEffect(() => {
+    dvQuery('dmv_dmvoffices', '$select=dmv_officename,dmv_dmvofficeid&$orderby=dmv_officename')
+      .then(rows => setOffices(rows.map(r => ({ id: r.dmv_dmvofficeid, name: r.dmv_officename }))))
+      .catch(() => {})
+  }, [])
+
   const handle = (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm(f => ({ ...f, [e.target.name]: e.target.value }))
 
   const serviceTypeMap: Record<string, number> = {
     'Driver License (New/Renewal)': 100000001,
-    'Vehicle Registration': 100000000,
-    'Title Transfer': 100000002,
+    'Vehicle Registration': 100000002,
+    'Title Transfer': 100000004,
     'REAL ID Application': 100000000,
     'Name/Address Change': 100000005,
     'Duplicate License': 100000001,
-    'Commercial License (CDL)': 100000001,
+    'Commercial License (CDL)': 100000003,
     'Other': 100000005,
   }
 
@@ -61,13 +69,14 @@ export default function Appointments() {
     try {
       const aptNum = `APT-${Math.floor(Math.random() * 9000000 + 1000000)}`
       await dvCreate('dmv_appointments', {
-        dmv_name: `${serviceType} - ${form.firstName} ${form.lastName}`,
+        dmv_appointmentnumber: aptNum,
         dmv_servicetype: serviceTypeMap[serviceType] ?? 100000005,
-        dmv_appointmentdate: date,
+        dmv_appointmentdate: `${date}T00:00:00Z`,
         dmv_appointmenttime: time,
         dmv_status: 100000000, // Scheduled
         dmv_confirmationsent: false,
         dmv_remindersent: false,
+        'dmv_officeid@odata.bind': `/dmv_dmvoffices(${officeId})`,
         ...(userId ? { 'dmv_contactid@odata.bind': `/contacts(${userId})` } : {}),
       })
       setConfirmNum(aptNum)
@@ -88,6 +97,7 @@ export default function Appointments() {
           <h2 style={{ marginBottom: '12px', color: 'var(--color-success)' }}>Appointment Confirmed!</h2>
           <div style={confirmCard}>
             <div style={confirmRow}><span style={confirmLabel}>Service:</span><span>{serviceType}</span></div>
+            <div style={confirmRow}><span style={confirmLabel}>Location:</span><span>{offices.find(o => o.id === officeId)?.name}</span></div>
             <div style={confirmRow}><span style={confirmLabel}>Date:</span><span>{new Date(date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span></div>
             <div style={confirmRow}><span style={confirmLabel}>Time:</span><span>{time}</span></div>
             <div style={confirmRow}><span style={confirmLabel}>Name:</span><span>{form.firstName} {form.lastName}</span></div>
@@ -120,7 +130,7 @@ export default function Appointments() {
       {/* Progress steps */}
       <div style={stepBarWrap} aria-label="Appointment booking progress">
         <div className="container" style={stepBarInner}>
-          {[{ n: 1, label: 'Service' }, { n: 2, label: 'Date & Time' }, { n: 3, label: 'Your Info' }].map(s => (
+          {[{ n: 1, label: 'Service' }, { n: 2, label: 'Location' }, { n: 3, label: 'Date & Time' }, { n: 4, label: 'Your Info' }].map(s => (
             <div key={s.n} style={stepItem}>
               <div style={{ ...stepCircle, ...(step >= s.n ? stepCircleActive : {}) }}
                 aria-current={step === s.n ? 'step' : undefined}>
@@ -161,8 +171,33 @@ export default function Appointments() {
             </section>
           )}
 
-          {/* Step 2: Date & Time */}
+          {/* Step 2: Location */}
           {step === 2 && (
+            <section aria-labelledby="location-heading">
+              <h2 id="location-heading" style={stepHeading}>Select a Location</h2>
+              <div style={{ display: 'grid', gap: '10px' }} role="radiogroup" aria-label="Office location">
+                {offices.map(o => (
+                  <label key={o.id} style={{ ...serviceOption, ...(officeId === o.id ? serviceOptionActive : {}) }}>
+                    <input type="radio" name="office" value={o.id}
+                      checked={officeId === o.id} onChange={() => setOfficeId(o.id)}
+                      style={{ position: 'absolute', opacity: 0, width: 0, height: 0 }}
+                      aria-label={o.name} />
+                    {o.name}
+                  </label>
+                ))}
+                {offices.length === 0 && <p style={{ color: 'var(--color-text-muted)' }}>Loading locations...</p>}
+              </div>
+              <div style={{ display: 'flex', gap: '12px', marginTop: '28px' }}>
+                <button type="button" className="btn btn-outline" onClick={() => setStep(1)}>← Back</button>
+                <button className="btn btn-primary" onClick={() => setStep(3)} disabled={!officeId}>
+                  Continue →
+                </button>
+              </div>
+            </section>
+          )}
+
+          {/* Step 3: Date & Time */}
+          {step === 3 && (
             <section aria-labelledby="datetime-heading">
               <h2 id="datetime-heading" style={stepHeading}>Choose a Date &amp; Time</h2>
               <div className="form-group">
@@ -195,16 +230,16 @@ export default function Appointments() {
                 </fieldset>
               )}
               <div style={{ display: 'flex', gap: '12px', marginTop: '28px' }}>
-                <button type="button" className="btn btn-outline" onClick={() => setStep(1)}>← Back</button>
-                <button className="btn btn-primary" onClick={() => setStep(3)} disabled={!date || !time}>
+                <button type="button" className="btn btn-outline" onClick={() => setStep(2)}>← Back</button>
+                <button className="btn btn-primary" onClick={() => setStep(4)} disabled={!date || !time}>
                   Continue →
                 </button>
               </div>
             </section>
           )}
 
-          {/* Step 3: Personal Info */}
-          {step === 3 && (
+          {/* Step 4: Personal Info */}
+          {step === 4 && (
             <section aria-labelledby="personal-heading">
               <div style={summaryBox}>
                 <strong>Your appointment:</strong> {serviceType} on{' '}
@@ -234,7 +269,7 @@ export default function Appointments() {
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: '12px', marginTop: '28px' }}>
-                  <button type="button" className="btn btn-outline" onClick={() => setStep(2)}>← Back</button>
+                  <button type="button" className="btn btn-outline" onClick={() => setStep(3)}>← Back</button>
                   <button type="submit" className="btn btn-primary"
                     disabled={!form.firstName || !form.lastName || !form.email || submitting}>
                     {submitting ? 'Booking...' : 'Confirm Appointment'}
