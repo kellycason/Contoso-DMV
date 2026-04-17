@@ -1,20 +1,26 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { dvCreate, dvQuery } from '../hooks/useDataverse'
+import { dvCreate, dvQuery, dvUpdate } from '../hooks/useDataverse'
 import { useAuth } from '../hooks/useAuth'
 
 /* ── constants ── */
 const plateTypeMap: Record<string, number> = {
   standard: 100000000, personalized: 100000001, veteran: 100000002, disability: 100000003,
 }
-const statusLabels: Record<number, string> = {
+const regStatusLabels: Record<number, string> = {
   100000000: 'Active', 100000001: 'Expired', 100000002: 'Pending Payment',
   100000003: 'Pending Inspection', 100000004: 'Suspended', 100000005: 'Cancelled',
 }
-const statusColors: Record<number, string> = {
+const regStatusColors: Record<number, string> = {
   100000000: 'var(--color-success)', 100000001: 'var(--color-danger)',
   100000002: 'var(--color-warning)', 100000003: 'var(--color-warning)',
   100000004: 'var(--color-danger)', 100000005: 'var(--color-text-muted)',
+}
+const termStatusLabels: Record<number, string> = {
+  100000000: 'Active', 100000001: 'Pending', 100000002: 'Expired',
+}
+const termStatusColors: Record<number, string> = {
+  100000000: 'var(--color-success)', 100000001: 'var(--color-warning)', 100000002: 'var(--color-danger)',
 }
 
 type VehicleRow = {
@@ -24,10 +30,17 @@ type VehicleRow = {
 }
 type RegRow = {
   dmv_vehicleregistrationid: string; dmv_registrationid: string;
-  dmv_regstatus: number; dmv_expirationdate: string; dmv_effectivedate: string;
-  dmv_regyear: number; _dmv_vehicleid_value: string;
+  dmv_regstatus: number; _dmv_vehicleid_value: string;
+  _dmv_currenttermid_value?: string;
+  dmv_currenttermid?: TermRow; // populated via $expand
 }
-type VehicleWithReg = VehicleRow & { reg?: RegRow; daysLeft?: number }
+type TermRow = {
+  dmv_registrationtermid: string; dmv_termnumber: string;
+  dmv_termtype: number; dmv_termstatus: number;
+  dmv_startdate: string; dmv_enddate: string;
+  _dmv_vehicleregistrationid_value: string;
+}
+type VehicleWithReg = VehicleRow & { reg?: RegRow; term?: TermRow; daysLeft?: number }
 
 export default function VehicleRegistration() {
   useEffect(() => { document.title = 'Vehicle Registration — Contoso DMV' }, [])
@@ -51,15 +64,28 @@ export default function VehicleRegistration() {
   const handle = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     setForm(f => ({ ...f, [e.target.name]: e.target.value }))
 
-  /* ── load vehicles + registrations ── */
+  /* ── load vehicles + registrations + terms ── */
   const loadData = async () => {
     if (!userId) { setLoading(false); return }
     setLoading(true)
     try {
+      // Server-injected registrations include expirationDate directly
+      const dmvData = (window as any).__DMV_DATA__
+      type InjectedReg = { id: string; regId: string; status: number; vehicleId: string; expirationDate: string }
+      const injectedRegs: InjectedReg[] = dmvData?.registrations ?? []
+      // Map injected reg expiration by regId
+      const injExpByRegId = new Map<string, string>()
+      for (const ir of injectedRegs) {
+        if (ir.id && ir.expirationDate) injExpByRegId.set(ir.id, ir.expirationDate)
+      }
+      console.log('[DMV] Injected regs:', injectedRegs.length, 'with expiration:', injExpByRegId.size)
+
       const [vRows, rRows] = await Promise.all([
         dvQuery('dmv_vehicles', `$filter=_dmv_ownercontactid_value eq ${userId}&$select=dmv_vehicleid,dmv_vin,dmv_make,dmv_model,dmv_year,dmv_color,dmv_platenumber,dmv_insurancecarrier,dmv_insurancepolicy&$orderby=dmv_year desc`),
-        dvQuery('dmv_vehicleregistrations', `$filter=_dmv_regcontactid_value eq ${userId}&$select=dmv_vehicleregistrationid,dmv_registrationid,dmv_regstatus,dmv_expirationdate,dmv_effectivedate,dmv_regyear,_dmv_vehicleid_value&$orderby=dmv_expirationdate desc`),
+        dvQuery('dmv_vehicleregistrations', `$filter=_dmv_regcontactid_value eq ${userId}&$select=dmv_vehicleregistrationid,dmv_registrationid,dmv_regstatus,_dmv_vehicleid_value,_dmv_currenttermid_value,dmv_expirationdate`),
       ])
+
+      // Index: vehicleId → reg
       const regByVehicle = new Map<string, RegRow>()
       for (const r of rRows as RegRow[]) {
         const vid = r._dmv_vehicleid_value
@@ -68,13 +94,23 @@ export default function VehicleRegistration() {
       const now = Date.now()
       const merged: VehicleWithReg[] = (vRows as VehicleRow[]).map(v => {
         const reg = regByVehicle.get(v.dmv_vehicleid)
-        const daysLeft = reg?.dmv_expirationdate
-          ? Math.ceil((new Date(reg.dmv_expirationdate).getTime() - now) / 86400000)
+        // Get expiration from Web API registration, fall back to injected data
+        const expDate = (reg as any)?.dmv_expirationdate
+          || (reg ? injExpByRegId.get(reg.dmv_vehicleregistrationid) : undefined)
+        // Build a minimal term object for display compatibility
+        const term: TermRow | undefined = expDate ? {
+          dmv_registrationtermid: reg?._dmv_currenttermid_value || '',
+          dmv_termnumber: '', dmv_termtype: 0, dmv_termstatus: 100000000,
+          dmv_startdate: '', dmv_enddate: expDate,
+          _dmv_vehicleregistrationid_value: reg?.dmv_vehicleregistrationid || '',
+        } : undefined
+        const daysLeft = expDate
+          ? Math.ceil((new Date(expDate).getTime() - now) / 86400000)
           : undefined
-        return { ...v, reg, daysLeft }
+        return { ...v, reg, term, daysLeft }
       })
       setVehicles(merged)
-    } catch { /* silently handle */ }
+    } catch (e) { console.error('[DMV] loadData failed:', e) }
     setLoading(false)
   }
   useEffect(() => { loadData() }, [userId])
@@ -83,6 +119,7 @@ export default function VehicleRegistration() {
   const handleNewSubmit = async (e: React.FormEvent) => {
     e.preventDefault(); setSubmitting(true); setSubmitError('')
     try {
+      // 1. Create vehicle
       const vehicleId = await dvCreate('dmv_vehicles', {
         dmv_vin: form.vin, dmv_make: form.make, dmv_model: form.model,
         dmv_year: parseInt(form.year), dmv_color: form.color,
@@ -93,18 +130,38 @@ export default function VehicleRegistration() {
         dmv_insuranceexp: form.policyExp ? `${form.policyExp}T00:00:00Z` : undefined,
         ...(userId ? { 'dmv_ownercontactid@odata.bind': `/contacts(${userId})` } : {}),
       })
+      // 2. Create parent registration
       const regId = `REG-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 99999)).padStart(5, '0')}`
-      const today = new Date()
-      const expDate = new Date(today); expDate.setFullYear(expDate.getFullYear() + 1)
-      await dvCreate('dmv_vehicleregistrations', {
-        dmv_registrationid: regId, dmv_regstatus: 100000002, dmv_regtype: 100000000,
-        dmv_regyear: today.getFullYear(),
-        dmv_effectivedate: today.toISOString().split('T')[0] + 'T00:00:00Z',
-        dmv_expirationdate: expDate.toISOString().split('T')[0] + 'T00:00:00Z',
-        dmv_onlineeligible: true, dmv_fee: 75.00, dmv_totaldue: 75.00,
-        dmv_paymentstatus: 100000000,
+      const registrationId = await dvCreate('dmv_vehicleregistrations', {
+        dmv_registrationid: regId,
+        dmv_regstatus: 100000002, // Pending Payment
         'dmv_vehicleid@odata.bind': `/dmv_vehicles(${vehicleId})`,
         ...(userId ? { 'dmv_regcontactid@odata.bind': `/contacts(${userId})` } : {}),
+      })
+      // 3. Create first term
+      const today = new Date()
+      const expDate = new Date(today); expDate.setFullYear(expDate.getFullYear() + 1)
+      const termNum = `TERM-${today.getFullYear()}-${String(Math.floor(Math.random() * 99999)).padStart(5, '0')}`
+      const termId = await dvCreate('dmv_registrationterms', {
+        dmv_termnumber: termNum,
+        dmv_termtype: 100000000,   // New
+        dmv_termstatus: 100000001, // Pending
+        dmv_startdate: today.toISOString().split('T')[0] + 'T00:00:00Z',
+        dmv_enddate: expDate.toISOString().split('T')[0] + 'T00:00:00Z',
+        dmv_issuedate: today.toISOString().split('T')[0] + 'T00:00:00Z',
+        'dmv_vehicleregistrationid@odata.bind': `/dmv_vehicleregistrations(${registrationId})`,
+      })
+      // 4. Create payment
+      const payRef = `PAY-${today.getFullYear()}-${String(Math.floor(Math.random() * 99999)).padStart(5, '0')}`
+      await dvCreate('dmv_registrationpayments', {
+        dmv_paymentref: payRef,
+        dmv_amount: 75.00, dmv_total: 75.00,
+        dmv_paymentstatus: 100000000, // Unpaid
+        'dmv_registrationtermid@odata.bind': `/dmv_registrationterms(${termId})`,
+      })
+      // 5. Point parent to current term
+      await dvUpdate('dmv_vehicleregistrations', registrationId, {
+        'dmv_currenttermid@odata.bind': `/dmv_registrationterms(${termId})`,
       })
       setRefNumber(regId); setView('success')
     } catch (err) {
@@ -114,22 +171,47 @@ export default function VehicleRegistration() {
 
   /* ── renewal ── */
   const handleRenew = async () => {
-    if (!renewTarget) return; setSubmitting(true); setSubmitError('')
+    if (!renewTarget?.reg) return; setSubmitting(true); setSubmitError('')
     try {
-      const regId = `REG-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 99999)).padStart(5, '0')}`
       const today = new Date()
       const expDate = new Date(today); expDate.setFullYear(expDate.getFullYear() + 1)
-      await dvCreate('dmv_vehicleregistrations', {
-        dmv_registrationid: regId, dmv_regstatus: 100000002, dmv_regtype: 100000001,
-        dmv_regyear: today.getFullYear(),
-        dmv_effectivedate: today.toISOString().split('T')[0] + 'T00:00:00Z',
-        dmv_expirationdate: expDate.toISOString().split('T')[0] + 'T00:00:00Z',
-        dmv_onlineeligible: true, dmv_fee: 50.00, dmv_totaldue: 50.00,
-        dmv_paymentstatus: 100000000,
-        'dmv_vehicleid@odata.bind': `/dmv_vehicles(${renewTarget.dmv_vehicleid})`,
-        ...(userId ? { 'dmv_regcontactid@odata.bind': `/contacts(${userId})` } : {}),
+      const regId = renewTarget.reg.dmv_vehicleregistrationid
+
+      // 1. Create new term (Renewal)
+      const termNum = `TERM-${today.getFullYear()}-${String(Math.floor(Math.random() * 99999)).padStart(5, '0')}`
+      const termId = await dvCreate('dmv_registrationterms', {
+        dmv_termnumber: termNum,
+        dmv_termtype: 100000001,   // Renewal
+        dmv_termstatus: 100000001, // Pending
+        dmv_startdate: today.toISOString().split('T')[0] + 'T00:00:00Z',
+        dmv_enddate: expDate.toISOString().split('T')[0] + 'T00:00:00Z',
+        dmv_issuedate: today.toISOString().split('T')[0] + 'T00:00:00Z',
+        'dmv_vehicleregistrationid@odata.bind': `/dmv_vehicleregistrations(${regId})`,
       })
-      setRefNumber(regId); setView('success')
+
+      // 2. Create payment for the new term
+      const payRef = `PAY-${today.getFullYear()}-${String(Math.floor(Math.random() * 99999)).padStart(5, '0')}`
+      await dvCreate('dmv_registrationpayments', {
+        dmv_paymentref: payRef,
+        dmv_amount: 50.00, dmv_total: 50.00,
+        dmv_paymentstatus: 100000000, // Unpaid
+        'dmv_registrationtermid@odata.bind': `/dmv_registrationterms(${termId})`,
+      })
+
+      // 3. Mark old term as Expired (if exists)
+      if (renewTarget.term) {
+        await dvUpdate('dmv_registrationterms', renewTarget.term.dmv_registrationtermid, {
+          dmv_termstatus: 100000002, // Expired
+        })
+      }
+
+      // 4. Update parent: point to new term + mark active
+      await dvUpdate('dmv_vehicleregistrations', regId, {
+        'dmv_currenttermid@odata.bind': `/dmv_registrationterms(${termId})`,
+        dmv_regstatus: 100000000, // Active
+      })
+
+      setRefNumber(renewTarget.reg.dmv_registrationid); setView('success')
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : 'Renewal failed.')
     } finally { setSubmitting(false) }
@@ -237,9 +319,13 @@ export default function VehicleRegistration() {
                             {/* status column */}
                             <div style={{ width: '140px', textAlign: 'center', flexShrink: 0 }}>
                               <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Status</div>
-                              {v.reg ? (
-                                <span style={{ fontWeight: 600, fontSize: '13px', color: statusColors[status] ?? 'var(--color-text-muted)' }}>
-                                  {statusLabels[status] ?? 'Unknown'}
+                              {v.term ? (
+                                <span style={{ fontWeight: 600, fontSize: '13px', color: termStatusColors[v.term.dmv_termstatus] ?? 'var(--color-text-muted)' }}>
+                                  {termStatusLabels[v.term.dmv_termstatus] ?? 'Unknown'}
+                                </span>
+                              ) : v.reg ? (
+                                <span style={{ fontWeight: 600, fontSize: '13px', color: regStatusColors[status] ?? 'var(--color-text-muted)' }}>
+                                  {regStatusLabels[status] ?? 'Unknown'}
                                 </span>
                               ) : (
                                 <span style={{ fontWeight: 600, fontSize: '13px', color: 'var(--color-text-muted)' }}>Unregistered</span>
@@ -249,13 +335,13 @@ export default function VehicleRegistration() {
                             {/* expiration column */}
                             <div style={{ width: '160px', textAlign: 'right', flexShrink: 0 }}>
                               <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Expires</div>
-                              {v.reg?.dmv_expirationdate ? (
+                              {v.term?.dmv_enddate ? (
                                 <>
-                                  <div style={{ fontWeight: 600, fontSize: '13px', color: expired ? 'var(--color-danger)' : expiring ? 'var(--color-warning)' : 'var(--color-text)' }}>
-                                    {new Date(v.reg.dmv_expirationdate).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                  <div style={{ fontWeight: 600, fontSize: '13px', color: expired ? 'var(--color-danger)' : expiring ? '#b45309' : 'var(--color-text)' }}>
+                                    {new Date(v.term.dmv_enddate).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
                                   </div>
                                   {v.daysLeft !== undefined && v.daysLeft > 0 && (
-                                    <div style={{ fontSize: '11px', color: expiring ? 'var(--color-warning)' : 'var(--color-text-muted)', marginTop: '2px' }}>
+                                    <div style={{ fontSize: '11px', color: expiring ? '#b45309' : 'var(--color-text-muted)', marginTop: '2px' }}>
                                       {v.daysLeft} day{v.daysLeft !== 1 ? 's' : ''} left
                                     </div>
                                   )}
@@ -268,7 +354,7 @@ export default function VehicleRegistration() {
 
                             {/* action column */}
                             <div style={{ width: '140px', textAlign: 'right', flexShrink: 0 }}>
-                              {(expired || expiring || status === 100000001) && (
+                              {(expired || expiring || status === 100000001 || (v.term && v.term.dmv_termstatus === 100000002)) && (
                                 <button className="btn btn-primary" style={{ fontSize: '12px', padding: '5px 14px' }}
                                   onClick={() => { setRenewTarget(v); setSubmitError(''); setView('renew') }}>
                                   Renew
@@ -316,8 +402,8 @@ export default function VehicleRegistration() {
                   </h3>
                   <p style={{ margin: '4px 0 0', fontSize: '13px', color: 'var(--color-text-muted)' }}>
                     VIN: <span className="mono">{renewTarget.dmv_vin}</span>
-                    {renewTarget.reg && <> &middot; Current Reg: {renewTarget.reg.dmv_registrationid}</>}
-                    {renewTarget.reg && <> &middot; Expires: {new Date(renewTarget.reg.dmv_expirationdate).toLocaleDateString()}</>}
+                    {renewTarget.reg && <> &middot; Reg #: {renewTarget.reg.dmv_registrationid}</>}
+                    {renewTarget.term?.dmv_enddate && <> &middot; Current term expires: {new Date(renewTarget.term.dmv_enddate).toLocaleDateString()}</>}
                   </p>
                 </div>
                 <div style={{ fontSize: '14px', marginBottom: '20px' }}>
