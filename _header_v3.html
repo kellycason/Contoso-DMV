@@ -3,6 +3,7 @@
 <script>window.__PORTAL_USER__={% if user %}{"name":"{{ user.fullname | escape }}","id":"{{ user.id }}"}{% else %}null{% endif %};
 if(window.__PORTAL_USER__){fetch('/_layout/tokenhtml').then(function(r){return r.text()}).then(function(h){var d=document.createElement('div');d.style.display='none';d.innerHTML=h;document.body.appendChild(d)})}</script>
 {% if user %}
+<script>window.__DMV_DIAG__={step:0};</script>
 {% fetchxml contact_query %}
 <fetch top="1">
   <entity name="contact">
@@ -18,6 +19,7 @@ if(window.__PORTAL_USER__){fetch('/_layout/tokenhtml').then(function(r){return r
 </fetch>
 {% endfetchxml %}
 {% assign ct = contact_query.results.entities[0] %}
+<script>window.__DMV_DIAG__.step=1;window.__DMV_DIAG__.contact={{ contact_query.results.entities.size }};</script>
 {% fetchxml license_query %}
 <fetch top="1">
   <entity name="dmv_driverlicense">
@@ -35,6 +37,7 @@ if(window.__PORTAL_USER__){fetch('/_layout/tokenhtml').then(function(r){return r
   </entity>
 </fetch>
 {% endfetchxml %}
+<script>window.__DMV_DIAG__.step=2;window.__DMV_DIAG__.license={{ license_query.results.entities.size }};</script>
 {% fetchxml vehicles_query %}
 <fetch>
   <entity name="dmv_vehicle">
@@ -53,15 +56,14 @@ if(window.__PORTAL_USER__){fetch('/_layout/tokenhtml').then(function(r){return r
   </entity>
 </fetch>
 {% endfetchxml %}
+<script>window.__DMV_DIAG__.step=3;window.__DMV_DIAG__.vehicles={{ vehicles_query.results.entities.size }};</script>
 {% fetchxml regs_query %}
 <fetch>
   <entity name="dmv_vehicleregistration">
     <attribute name="dmv_vehicleregistrationid" />
     <attribute name="dmv_registrationid" />
     <attribute name="dmv_regstatus" />
-    <attribute name="dmv_currenttermid" />
     <attribute name="dmv_vehicleid" />
-    <attribute name="dmv_expirationdate" />
     <filter>
       <condition attribute="dmv_regcontactid" operator="eq" value="{{ user.id }}" />
     </filter>
@@ -69,6 +71,7 @@ if(window.__PORTAL_USER__){fetch('/_layout/tokenhtml').then(function(r){return r
   </entity>
 </fetch>
 {% endfetchxml %}
+<script>window.__DMV_DIAG__.step=4;window.__DMV_DIAG__.regs={{ regs_query.results.entities.size }};</script>
 {% fetchxml txn_query %}
 <fetch top="20">
   <entity name="dmv_transactionlog">
@@ -85,15 +88,14 @@ if(window.__PORTAL_USER__){fetch('/_layout/tokenhtml').then(function(r){return r
   </entity>
 </fetch>
 {% endfetchxml %}
-<script>
-window.__DMV_DATA__={
-  citizen:{id:"{{ user.id }}",fullName:"{{ user.fullname | escape }}",address:"{{ ct.address1_line1 | escape }}{% if ct.address1_city %}, {{ ct.address1_city | escape }}{% endif %}{% if ct.address1_stateorprovince %}, {{ ct.address1_stateorprovince | escape }}{% endif %}{% if ct.address1_postalcode %} {{ ct.address1_postalcode | escape }}{% endif %}",phone:"{{ ct.telephone1 | escape }}"},
-  license:{% if license_query.results.entities.size > 0 %}{% assign lic = license_query.results.entities[0] %}{id:"{{ lic.dmv_driverlicenseid }}",licenseNumber:"{{ lic.dmv_licensenumber | escape }}",status:"{{ lic.dmv_licensestatus.Label | escape }}",expirationDate:"{{ lic.dmv_expirationdate | date: '%Y-%m-%d' }}",realIdCompliant:{{ lic.dmv_realidcompliant | default: false }},licenseClass:"{{ lic.dmv_licenseclass.Label | escape }}",issueDate:"{{ lic.dmv_issuedate | date: '%Y-%m-%d' }}"}{% else %}null{% endif %},
-  vehicles:[{% for v in vehicles_query.results.entities %}{id:"{{ v.dmv_vehicleid }}",vin:"{{ v.dmv_vin | escape }}",year:{{ v.dmv_year | default: 0 }},make:"{{ v.dmv_make | escape }}",model:"{{ v.dmv_model | escape }}",plateNumber:"{{ v.dmv_platenumber | escape }}",color:"{{ v.dmv_color | escape }}",insuranceStatus:"{{ v.dmv_insurancestatus.Label | escape }}",insuranceExpiry:"{{ v.dmv_insuranceexp | date: '%Y-%m-%d' }}"}{% unless forloop.last %},{% endunless %}{% endfor %}],
-  registrations:[{% for r in regs_query.results.entities %}{id:"{{ r.dmv_vehicleregistrationid }}",regId:"{{ r.dmv_registrationid | escape }}",status:{{ r.dmv_regstatus | default: 0 }},statusLabel:"{{ r.dmv_regstatus.Label | escape }}",currentTermId:"{{ r.dmv_currenttermid }}",vehicleId:"{{ r.dmv_vehicleid }}",expirationDate:"{{ r.dmv_expirationdate | date: '%Y-%m-%dT%H:%M:%SZ' }}"}{% unless forloop.last %},{% endunless %}{% endfor %}],
-  transactions:[{% for t in txn_query.results.entities %}{id:"{{ t.dmv_transactionlogid }}",transactionId:"{{ t.dmv_transactionid | escape }}",type:"{{ t.dmv_transactiontype.Label | escape }}",date:"{{ t.dmv_transactiondate | date: '%Y-%m-%d' }}",status:"{{ t.dmv_status.Label | escape }}",amount:{{ t.dmv_amount | default: 0 }}}{% unless forloop.last %},{% endunless %}{% endfor %}]
-};
-</script>
+<script>window.__DMV_DIAG__.step=5;window.__DMV_DIAG__.txns={{ txn_query.results.entities.size }};</script>
+<script>window.__DMV_DATA__={citizen:null,license:null,vehicles:[],registrations:[],transactions:[]};</script>
+<script>window.__DMV_DATA__.citizen={id:"{{ user.id }}",fullName:"{{ user.fullname | escape }}",address:"{{ ct.address1_line1 | default: '' | escape }}",phone:"{{ ct.telephone1 | default: '' | escape }}"};window.__DMV_DIAG__.d1=1;</script>
+<script>window.__DMV_DATA__.license={% if license_query.results.entities.size > 0 %}{% assign lic = license_query.results.entities[0] %}{id:"{{ lic.dmv_driverlicenseid }}",licenseNumber:"{{ lic.dmv_licensenumber | default: '' | escape }}",status:"{{ lic.dmv_licensestatus | default: '' }}",expirationDate:"{{ lic.dmv_expirationdate | date: '%Y-%m-%d' }}",realIdCompliant:{% if lic.dmv_realidcompliant %}true{% else %}false{% endif %},licenseClass:"{{ lic.dmv_licenseclass | default: '' }}",issueDate:"{{ lic.dmv_issuedate | date: '%Y-%m-%d' }}"}{% else %}null{% endif %};window.__DMV_DIAG__.d2=1;</script>
+<script>window.__DMV_DATA__.vehicles=[{% for v in vehicles_query.results.entities %}{id:"{{ v.dmv_vehicleid }}",vin:"{{ v.dmv_vin | default: '' | escape }}",year:{{ v.dmv_year | default: 0 }},make:"{{ v.dmv_make | default: '' | escape }}",model:"{{ v.dmv_model | default: '' | escape }}",plateNumber:"{{ v.dmv_platenumber | default: '' | escape }}",color:"{{ v.dmv_color | default: '' | escape }}",insuranceStatus:"{{ v.dmv_insurancestatus | default: '' }}",insuranceExpiry:"{{ v.dmv_insuranceexp | date: '%Y-%m-%d' }}"}{% unless forloop.last %},{% endunless %}{% endfor %}];window.__DMV_DIAG__.d3=1;</script>
+<script>window.__DMV_DATA__.registrations=[{% for r in regs_query.results.entities %}{id:"{{ r.dmv_vehicleregistrationid }}",regId:"{{ r.dmv_registrationid | default: '' | escape }}",status:"{{ r.dmv_regstatus | default: 0 }}",statusLabel:"{{ r.dmv_regstatus | default: '' }}",vehicleId:"{{ r.dmv_vehicleid }}"}{% unless forloop.last %},{% endunless %}{% endfor %}];window.__DMV_DIAG__.d4=1;</script>
+<script>window.__DMV_DATA__.transactions=[{% for t in txn_query.results.entities %}{id:"{{ t.dmv_transactionlogid }}",transactionId:"{{ t.dmv_transactionid | default: '' | escape }}",type:"{{ t.dmv_transactiontype | default: '' }}",date:"{{ t.dmv_transactiondate | date: '%Y-%m-%d' }}",status:"{{ t.dmv_status | default: '' }}",amount:"{{ t.dmv_amount | default: 0 }}"}{% unless forloop.last %},{% endunless %}{% endfor %}];window.__DMV_DIAG__.d5=1;</script>
+<script>window.__DMV_DIAG__.step=6;</script>
 {% else %}
   <script>window.__DMV_DATA__=null;</script>
 {% endif %}

@@ -6,22 +6,30 @@
 <title>Registration Operations Dashboard</title>
 <style>
 :root {
-  --bg: #faf9f8;
+  --bg: #f0f4f8;
   --card: #ffffff;
-  --border: #edebe9;
-  --text: #323130;
-  --text2: #605e5c;
-  --primary: #0078d4;
-  --success: #107c10;
-  --warning: #ca5010;
-  --danger: #d13438;
-  --amber: #986f0b;
-  --shadow: 0 1.6px 3.6px rgba(0,0,0,.13), 0 .3px .9px rgba(0,0,0,.1);
+  --border: #e2e8f0;
+  --text: #1e293b;
+  --text2: #64748b;
+  --text3: #94a3b8;
+  --primary: #3b82f6;
+  --primary-light: #eff6ff;
+  --success: #10b981;
+  --success-light: #ecfdf5;
+  --warning: #f59e0b;
+  --warning-light: #fffbeb;
+  --danger: #ef4444;
+  --danger-light: #fef2f2;
+  --purple: #8b5cf6;
+  --purple-light: #f5f3ff;
+  --shadow: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+  --shadow-md: 0 4px 6px -1px rgba(0,0,0,.07), 0 2px 4px -2px rgba(0,0,0,.05);
+  --radius: 12px;
 }
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { height: 100%; }
 body {
-  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
   background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.5;
   overflow-y: auto;
 }
@@ -39,100 +47,209 @@ body {
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* ── Dashboard ── */
-#dashboard { display: none; padding: 20px 24px 32px; max-width: 1400px; margin: 0 auto; }
+#dashboard { display: none; padding: 24px 28px 36px; max-width: 1400px; margin: 0 auto; }
 
 /* ── Header ── */
-.dash-header {
-  display: flex; align-items: center; justify-content: space-between;
-  margin-bottom: 20px;
+.dash-header { margin-bottom: 24px; }
+.dash-header-top {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 20px;
 }
-.dash-header h1 { font-size: 22px; font-weight: 600; }
-.dash-header-right { display: flex; align-items: center; gap: 12px; color: var(--text2); font-size: 12px; }
-.refresh-btn {
-  background: var(--card); border: 1px solid var(--border); border-radius: 4px;
-  padding: 6px 14px; font-size: 13px; cursor: pointer; color: var(--primary);
-  font-family: inherit; font-weight: 600; transition: all .15s;
+.dash-header .live-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 11px; color: var(--success); font-weight: 500; margin-bottom: 4px;
 }
-.refresh-btn:hover { background: #f3f2f1; border-color: var(--primary); }
+.dash-header .live-badge::before {
+  content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--success);
+  animation: pulse 2s ease-in-out infinite;
+}
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .4; } }
+.dash-header h1 { font-size: 24px; font-weight: 700; letter-spacing: -0.3px; color: var(--text); }
+.dash-header .subtitle { font-size: 13px; color: var(--text2); margin-top: 2px; }
+.dash-header-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+
+/* Search bar */
+.search-box {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--card); border: 1px solid var(--border); border-radius: 8px;
+  padding: 8px 14px; width: 280px; transition: border-color .2s, box-shadow .2s;
+}
+.search-box:focus-within { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(59,130,246,.12); }
+.search-box svg { flex-shrink: 0; color: var(--text3); }
+.search-box input {
+  border: none; outline: none; background: transparent; font: inherit;
+  font-size: 13px; color: var(--text); width: 100%;
+}
+.search-box input::placeholder { color: var(--text3); }
+
+/* Action buttons */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  border-radius: 8px; padding: 8px 16px; font-size: 13px; font-weight: 600;
+  font-family: inherit; cursor: pointer; transition: all .15s; border: none;
+}
+.btn-outline {
+  background: var(--card); border: 1px solid var(--border); color: var(--text);
+}
+.btn-outline:hover { background: #f8fafc; border-color: #cbd5e1; }
+.btn-primary {
+  background: var(--primary); color: white;
+}
+.btn-primary:hover { background: #2563eb; }
+.updated-text { font-size: 12px; color: var(--text3); white-space: nowrap; }
 
 /* ── KPI Cards ── */
 .kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
 .kpi-card {
-  background: var(--card); border-radius: 6px; padding: 18px 20px;
-  box-shadow: var(--shadow); border-left: 4px solid; cursor: pointer;
+  background: var(--card); border-radius: var(--radius); padding: 20px;
+  box-shadow: var(--shadow); cursor: pointer;
   transition: transform .15s, box-shadow .15s;
+  position: relative; overflow: hidden;
 }
-.kpi-card:hover { transform: translateY(-2px); box-shadow: 0 3px 8px rgba(0,0,0,.18); }
-.kpi-label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; color: var(--text2); margin-bottom: 4px; }
-.kpi-value { font-size: 32px; font-weight: 700; line-height: 1.1; }
-.kpi-sub { font-size: 12px; color: var(--text2); margin-top: 4px; }
-.kpi-card.pending { border-left-color: var(--warning); }
+.kpi-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+.kpi-card-top { display: flex; align-items: flex-start; justify-content: space-between; }
+.kpi-label {
+  font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .6px;
+  margin-bottom: 8px;
+}
+.kpi-icon {
+  width: 40px; height: 40px; border-radius: 10px; display: flex;
+  align-items: center; justify-content: center; flex-shrink: 0;
+}
+.kpi-value { font-size: 36px; font-weight: 800; line-height: 1; letter-spacing: -1px; }
+.kpi-bottom { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+.kpi-trend {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: 12px; font-weight: 600; border-radius: 4px; padding: 2px 6px;
+}
+.kpi-trend.up { background: #dcfce7; color: #15803d; }
+.kpi-trend.down { background: #fce7f3; color: #be185d; }
+.kpi-sub { font-size: 12px; color: var(--text2); }
+
+.kpi-card.pending .kpi-label { color: var(--warning); }
 .kpi-card.pending .kpi-value { color: var(--warning); }
-.kpi-card.unpaid { border-left-color: var(--danger); }
+.kpi-card.pending .kpi-icon { background: var(--warning-light); color: var(--warning); }
+
+.kpi-card.unpaid .kpi-label { color: var(--danger); }
 .kpi-card.unpaid .kpi-value { color: var(--danger); }
-.kpi-card.expiring { border-left-color: var(--amber); }
-.kpi-card.expiring .kpi-value { color: var(--amber); }
-.kpi-card.attention { border-left-color: var(--primary); }
-.kpi-card.attention .kpi-value { color: var(--primary); }
+.kpi-card.unpaid .kpi-icon { background: var(--danger-light); color: var(--danger); }
+
+.kpi-card.expiring .kpi-label { color: var(--success); }
+.kpi-card.expiring .kpi-value { color: var(--success); }
+.kpi-card.expiring .kpi-icon { background: var(--success-light); color: var(--success); }
+
+.kpi-card.attention .kpi-label { color: var(--purple); }
+.kpi-card.attention .kpi-value { color: var(--purple); }
+.kpi-card.attention .kpi-icon { background: var(--purple-light); color: var(--purple); }
 
 /* ── Section ── */
 .section {
-  background: var(--card); border-radius: 6px; box-shadow: var(--shadow);
+  background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow);
   margin-bottom: 20px; overflow: hidden;
 }
 .section-header {
-  padding: 14px 20px; font-size: 15px; font-weight: 600;
+  padding: 16px 20px; font-size: 15px; font-weight: 700;
   border-bottom: 1px solid var(--border); display: flex;
   align-items: center; justify-content: space-between;
 }
 .section-header .count {
-  background: #f3f2f1; border-radius: 10px; padding: 2px 10px;
-  font-size: 12px; font-weight: 600; color: var(--text2);
+  background: #f1f5f9; border-radius: 10px; padding: 2px 10px;
+  font-size: 12px; font-weight: 600; color: var(--text2); margin-left: 8px;
 }
+.section-header .header-left { display: flex; align-items: center; }
+.section-header .header-right { display: flex; align-items: center; gap: 12px; }
+.view-all-link {
+  font-size: 13px; color: var(--primary); text-decoration: none; font-weight: 600;
+  cursor: pointer;
+}
+.view-all-link:hover { text-decoration: underline; }
+.outstanding-amount { font-size: 13px; color: var(--danger); font-weight: 600; }
 
 /* ── Tables ── */
 .data-table { width: 100%; border-collapse: collapse; }
 .data-table th {
-  text-align: left; padding: 10px 16px; font-size: 12px; font-weight: 600;
-  color: var(--text2); text-transform: uppercase; letter-spacing: .3px;
-  background: #faf9f8; border-bottom: 1px solid var(--border);
+  text-align: left; padding: 10px 16px; font-size: 11px; font-weight: 700;
+  color: var(--text3); text-transform: uppercase; letter-spacing: .5px;
+  background: #f8fafc; border-bottom: 1px solid var(--border);
 }
-.data-table td { padding: 10px 16px; border-bottom: 1px solid #f3f2f1; font-size: 13px; }
+.data-table td { padding: 12px 16px; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
 .data-table tr.clickable { cursor: pointer; }
-.data-table tr.clickable:hover td { background: #f3f2f1; }
+.data-table tr.clickable:hover td { background: #f8fafc; }
 .data-table .mono { font-family: 'Cascadia Code', 'Consolas', monospace; font-size: 12px; }
 .data-table .currency { text-align: right; }
-.data-table .age-badge {
-  display: inline-block; padding: 2px 8px; border-radius: 10px;
-  font-size: 11px; font-weight: 600;
+
+/* ── Badges ── */
+.type-badge {
+  display: inline-block; padding: 3px 10px; border-radius: 6px;
+  font-size: 12px; font-weight: 600;
 }
-.age-new { background: #fff4ce; color: #986f0b; }
-.age-old { background: #fde7e9; color: #a80000; }
-.empty-state { padding: 32px 20px; text-align: center; color: var(--text2); }
+.type-badge.renewal { background: #dbeafe; color: #1d4ed8; }
+.type-badge.new { background: #dcfce7; color: #15803d; }
+.type-badge.transfer { background: #ffedd5; color: #c2410c; }
+.type-badge.reinstatement { background: #f3e8ff; color: #7c3aed; }
+
+.age-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 32px; padding: 3px 10px; border-radius: 8px;
+  font-size: 12px; font-weight: 700;
+}
+.age-new { background: #dbeafe; color: #1d4ed8; }
+.age-mid { background: #fef3c7; color: #92400e; }
+.age-old { background: #fecaca; color: #991b1b; }
+
+.empty-state { padding: 40px 20px; text-align: center; color: var(--text2); }
 .empty-state .check { font-size: 28px; margin-bottom: 8px; }
+
+/* ── Expiring Soon Section ── */
+.expiring-list { padding: 0; }
+.expiring-item {
+  display: flex; align-items: center; padding: 14px 20px;
+  border-bottom: 1px solid #f1f5f9; cursor: pointer; transition: background .15s;
+}
+.expiring-item:last-child { border-bottom: none; }
+.expiring-item:hover { background: #f8fafc; }
+.expiring-icon {
+  width: 40px; height: 40px; border-radius: 10px; display: flex;
+  align-items: center; justify-content: center; flex-shrink: 0; margin-right: 14px;
+  font-size: 18px;
+}
+.expiring-icon.soon { background: #fef3c7; color: #d97706; }
+.expiring-icon.urgent { background: #fee2e2; color: #dc2626; }
+.expiring-info { flex: 1; min-width: 0; }
+.expiring-info .reg-id { font-weight: 700; font-size: 13px; color: var(--text); }
+.expiring-info .vehicle { font-size: 12px; color: var(--text2); margin-top: 1px; }
+.expiring-date { text-align: right; flex-shrink: 0; }
+.expiring-date .date { font-weight: 700; font-size: 13px; color: var(--text); }
+.expiring-date .days-left { font-size: 12px; margin-top: 1px; }
+.expiring-date .days-left.warn { color: var(--warning); }
+.expiring-date .days-left.crit { color: var(--danger); }
 
 /* ── Charts Row ── */
 .charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-.chart-container { display: flex; align-items: center; gap: 24px; padding: 20px; }
-.chart-svg { flex-shrink: 0; }
-.chart-legend { list-style: none; }
+.chart-container { display: flex; align-items: center; gap: 28px; padding: 24px; }
+.chart-svg-wrap { position: relative; flex-shrink: 0; }
+.chart-legend { list-style: none; flex: 1; }
 .chart-legend li {
-  display: flex; align-items: center; gap: 8px;
-  padding: 4px 0; font-size: 13px;
+  display: flex; align-items: center; gap: 10px;
+  padding: 5px 0; font-size: 13px;
 }
 .chart-legend .dot {
   width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
 }
-.chart-legend .legend-count { font-weight: 600; margin-left: auto; min-width: 24px; text-align: right; }
+.chart-legend .legend-label { flex: 1; color: var(--text2); }
+.chart-legend .legend-pct { font-weight: 600; color: var(--text2); min-width: 36px; text-align: right; }
+.chart-legend .legend-count { font-weight: 700; color: var(--text); min-width: 28px; text-align: right; }
 
 /* ── Responsive ── */
-@media (max-width: 900px) {
+@media (max-width: 1000px) {
   .kpi-row { grid-template-columns: repeat(2, 1fr); }
   .charts-row { grid-template-columns: 1fr; }
+  .search-box { width: 200px; }
 }
 @media (max-width: 600px) {
   .kpi-row { grid-template-columns: 1fr; }
   #dashboard { padding: 12px 16px 24px; }
+  .dash-header-top { flex-direction: column; }
+  .search-box { width: 100%; }
 }
 </style>
 </head>
@@ -141,42 +258,101 @@ body {
 <div id="loading"><div class="spinner"></div><span>Loading dashboard&hellip;</span></div>
 
 <div id="dashboard">
+  <!-- Header -->
   <div class="dash-header">
-    <h1>Registration Operations</h1>
-    <div class="dash-header-right">
-      <span id="updated"></span>
-      <button class="refresh-btn" id="refresh-btn">&#8635; Refresh</button>
+    <div class="dash-header-top">
+      <div class="dash-header-left">
+        <div class="live-badge">Live &middot; synced from Power Platform</div>
+        <h1>Registration Operations</h1>
+        <div class="subtitle">Monitor pending terms, outstanding payments and renewal pipeline.</div>
+      </div>
+      <div class="dash-header-right">
+        <div class="search-box">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="5.5" stroke="currentColor" stroke-width="1.5"/><path d="M11 11l3.5 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <input type="text" id="search-input" placeholder="Search term, registration, payment&hellip;">
+        </div>
+        <button class="btn btn-outline" id="export-btn">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M2 11v3h12v-3M8 2v8M5 7l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Export
+        </button>
+        <button class="btn btn-primary" id="refresh-btn">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M2.5 8a5.5 5.5 0 019.3-4M13.5 8a5.5 5.5 0 01-9.3 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M11 1l2 3-3 1M5 15l-2-3 3-1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Refresh
+        </button>
+        <span class="updated-text" id="updated"></span>
+      </div>
     </div>
   </div>
 
   <!-- KPI Cards -->
   <div class="kpi-row">
     <div class="kpi-card pending" id="kpi-pending" title="Click to open Pending Terms view">
-      <div class="kpi-label">Pending Terms</div>
-      <div class="kpi-value" id="kpi-pending-val">—</div>
-      <div class="kpi-sub" id="kpi-pending-sub">Awaiting review</div>
+      <div class="kpi-card-top">
+        <div>
+          <div class="kpi-label">Pending Terms</div>
+          <div class="kpi-value" id="kpi-pending-val">&mdash;</div>
+        </div>
+        <div class="kpi-icon">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="3" y="3" width="14" height="14" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M7 7h6M7 10h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </div>
+      </div>
+      <div class="kpi-bottom">
+        <span class="kpi-trend up" id="kpi-pending-trend">&uarr; 0%</span>
+        <span class="kpi-sub" id="kpi-pending-sub">Awaiting review</span>
+      </div>
     </div>
     <div class="kpi-card unpaid" id="kpi-unpaid" title="Click to open Unpaid Payments view">
-      <div class="kpi-label">Unpaid Payments</div>
-      <div class="kpi-value" id="kpi-unpaid-val">—</div>
-      <div class="kpi-sub" id="kpi-unpaid-sub">Outstanding</div>
+      <div class="kpi-card-top">
+        <div>
+          <div class="kpi-label">Unpaid Payments</div>
+          <div class="kpi-value" id="kpi-unpaid-val">&mdash;</div>
+        </div>
+        <div class="kpi-icon">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7" stroke="currentColor" stroke-width="1.5"/><path d="M10 6v8M7.5 8.5c0-1 1-1.5 2.5-1.5s2.5.5 2.5 1.5-1 1.5-2.5 2-2.5.5-2.5 1.5 1 1.5 2.5 1.5 2.5-.5 2.5-1.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+        </div>
+      </div>
+      <div class="kpi-bottom">
+        <span class="kpi-sub" id="kpi-unpaid-sub">Outstanding</span>
+      </div>
     </div>
     <div class="kpi-card expiring" id="kpi-expiring" title="Click to open Registration Terms">
-      <div class="kpi-label">Expiring &le;30 Days</div>
-      <div class="kpi-value" id="kpi-expiring-val">—</div>
-      <div class="kpi-sub">Renewal outreach needed</div>
+      <div class="kpi-card-top">
+        <div>
+          <div class="kpi-label">Expiring &lt; 30 Days</div>
+          <div class="kpi-value" id="kpi-expiring-val">&mdash;</div>
+        </div>
+        <div class="kpi-icon">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7" stroke="currentColor" stroke-width="1.5"/><path d="M10 6v4l3 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </div>
+      </div>
+      <div class="kpi-bottom">
+        <span class="kpi-sub">Renewal outreach needed</span>
+      </div>
     </div>
     <div class="kpi-card attention" id="kpi-attention" title="Click to open Registrations">
-      <div class="kpi-label">Needs Attention</div>
-      <div class="kpi-value" id="kpi-attention-val">—</div>
-      <div class="kpi-sub" id="kpi-attention-sub">Blocked registrations</div>
+      <div class="kpi-card-top">
+        <div>
+          <div class="kpi-label">Needs Attention</div>
+          <div class="kpi-value" id="kpi-attention-val">&mdash;</div>
+        </div>
+        <div class="kpi-icon">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 3l7.5 13H2.5L10 3z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M10 9v3M10 14.5v.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </div>
+      </div>
+      <div class="kpi-bottom">
+        <span class="kpi-trend down" id="kpi-attention-trend">&darr; 0%</span>
+        <span class="kpi-sub" id="kpi-attention-sub">Blocked or flagged</span>
+      </div>
     </div>
   </div>
 
   <!-- Pending Terms Table -->
   <div class="section" id="section-terms">
     <div class="section-header">
-      Pending Terms <span class="count" id="terms-count">0</span>
+      <div class="header-left">Pending Terms <span class="count" id="terms-count">0</span></div>
+      <div class="header-right">
+        <a class="view-all-link" id="terms-view-all">View all</a>
+      </div>
     </div>
     <div id="terms-body"></div>
   </div>
@@ -184,19 +360,33 @@ body {
   <!-- Unpaid Payments Table -->
   <div class="section" id="section-payments">
     <div class="section-header">
-      Unpaid Payments <span class="count" id="payments-count">0</span>
+      <div class="header-left">Unpaid Payments <span class="count" id="payments-count">0</span></div>
+      <div class="header-right">
+        <span class="outstanding-amount" id="payments-total"></span>
+      </div>
     </div>
     <div id="payments-body"></div>
+  </div>
+
+  <!-- Expiring Soon -->
+  <div class="section" id="section-expiring">
+    <div class="section-header">
+      <div class="header-left">Expiring Soon <span class="count" id="expiring-count">0</span></div>
+      <div class="header-right">
+        <a class="view-all-link" id="send-renewal">Send renewal notices</a>
+      </div>
+    </div>
+    <div id="expiring-body"></div>
   </div>
 
   <!-- Charts -->
   <div class="charts-row">
     <div class="section">
-      <div class="section-header">Registration Status</div>
+      <div class="section-header"><div class="header-left">Registration Status</div></div>
       <div class="chart-container" id="chart-reg"></div>
     </div>
     <div class="section">
-      <div class="section-header">Payment Status</div>
+      <div class="section-header"><div class="header-left">Payment Status</div></div>
       <div class="chart-container" id="chart-pay"></div>
     </div>
   </div>
@@ -204,59 +394,69 @@ body {
 
 <script>
 /* ─────────────────────────────────────────────────────
-   Registration Operations Dashboard
-   Fetches live data via Xrm.WebApi, renders KPIs,
-   action tables, and status charts.
+   Registration Operations Dashboard v2
    ───────────────────────────────────────────────────── */
 
 // ── Constants ──
-const STATUS_COLORS = {
+var STATUS_COLORS = {
   reg: {
-    100000000: { label: 'Active',             color: '#107c10' },
-    100000001: { label: 'Expired',            color: '#a19f9d' },
-    100000002: { label: 'Pending Payment',    color: '#ca5010' },
-    100000003: { label: 'Pending Inspection', color: '#986f0b' },
-    100000004: { label: 'Suspended',          color: '#d13438' },
-    100000005: { label: 'Cancelled',          color: '#605e5c' }
+    100000000: { label: 'Active',             color: '#10b981' },
+    100000001: { label: 'Expired',            color: '#94a3b8' },
+    100000002: { label: 'Pending Payment',    color: '#f59e0b' },
+    100000003: { label: 'Pending Inspection', color: '#3b82f6' },
+    100000004: { label: 'Suspended',          color: '#ef4444' },
+    100000005: { label: 'Cancelled',          color: '#64748b' }
   },
   pay: {
-    100000000: { label: 'Unpaid',   color: '#d13438' },
-    100000001: { label: 'Paid',     color: '#107c10' },
-    100000002: { label: 'Refunded', color: '#0078d4' },
-    100000003: { label: 'Waived',   color: '#a19f9d' }
+    100000001: { label: 'Paid',     color: '#10b981' },
+    100000000: { label: 'Unpaid',   color: '#ef4444' },
+    100000002: { label: 'Refunded', color: '#3b82f6' },
+    100000003: { label: 'Waived',   color: '#94a3b8' }
   }
 };
 
-const TERM_TYPE = { 100000000: 'New', 100000001: 'Renewal', 100000002: 'Transfer' };
-const VIEW_IDS = {
+var TERM_TYPE = { 100000000: 'New', 100000001: 'Renewal', 100000002: 'Transfer' };
+var TERM_TYPE_CLASS = { 100000000: 'new', 100000001: 'renewal', 100000002: 'transfer' };
+
+var VIEW_IDS = {
   pendingTerms:  '520af9c5-0e3a-f111-88b3-001dd801f94a',
   unpaidPayments: 'b18f4aed-0e3a-f111-88b3-001dd801f94a'
 };
 
 // ── Utilities ──
-const fmt = {
-  currency: (v) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(v || 0),
-  date: (v) => v ? new Date(v).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—',
-  shortDate: (v) => v ? new Date(v).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—',
-  ageDays: (v) => {
+var fmt = {
+  currency: function(v) {
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(v || 0);
+  },
+  date: function(v) {
+    return v ? new Date(v).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '\u2014';
+  },
+  shortDate: function(v) {
+    return v ? new Date(v).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '\u2014';
+  },
+  ageDays: function(v) {
     if (!v) return 0;
     return Math.max(0, Math.floor((Date.now() - new Date(v).getTime()) / 86400000));
+  },
+  daysUntil: function(v) {
+    if (!v) return 0;
+    return Math.max(0, Math.ceil((new Date(v).getTime() - Date.now()) / 86400000));
   }
 };
 
 function esc(str) {
   if (!str) return '';
-  const d = document.createElement('div');
+  var d = document.createElement('div');
   d.textContent = str;
   return d.innerHTML;
 }
 
 // ── Xrm Context ──
 function getXrm() {
-  return new Promise((resolve, reject) => {
-    let attempts = 0;
+  return new Promise(function(resolve, reject) {
+    var attempts = 0;
     function check() {
-      const xrm = (window.parent && window.parent.Xrm) || window.Xrm;
+      var xrm = (window.parent && window.parent.Xrm) || window.Xrm;
       if (xrm && xrm.WebApi) return resolve(xrm);
       if (++attempts > 50) return reject(new Error('Xrm context not available. Open this page inside the model-driven app.'));
       setTimeout(check, 200);
@@ -266,88 +466,120 @@ function getXrm() {
 }
 
 // ── Data Fetching ──
-async function fetchAll(Xrm) {
-  const now = new Date();
-  const in30 = new Date(now.getTime() + 30 * 86400000);
-  const nowISO = now.toISOString();
-  const in30ISO = in30.toISOString();
+function fetchAll(Xrm) {
+  var now = new Date();
+  var in30 = new Date(now.getTime() + 30 * 86400000);
+  var nowISO = now.toISOString();
+  var in30ISO = in30.toISOString();
 
-  const [pendingTerms, unpaidPayments, expiring, needsAttention, allRegs, allPayments] =
-    await Promise.all([
-      Xrm.WebApi.retrieveMultipleRecords('dmv_registrationterm',
-        '?$filter=dmv_termstatus eq 100000001' +
-        '&$select=dmv_termnumber,dmv_termtype,dmv_startdate,dmv_enddate,createdon,_dmv_vehicleregistrationid_value' +
-        '&$orderby=createdon desc&$top=50'),
+  return Promise.all([
+    Xrm.WebApi.retrieveMultipleRecords('dmv_registrationterm',
+      '?$filter=dmv_termstatus eq 100000001' +
+      '&$select=dmv_termnumber,dmv_termtype,dmv_startdate,dmv_enddate,createdon,_dmv_vehicleregistrationid_value' +
+      '&$orderby=createdon desc&$top=50'),
 
-      Xrm.WebApi.retrieveMultipleRecords('dmv_registrationpayment',
-        '?$filter=dmv_paymentstatus eq 100000000' +
-        '&$select=dmv_paymentref,dmv_amount,dmv_latefee,dmv_total,createdon,_dmv_registrationtermid_value' +
-        '&$orderby=createdon desc&$top=50'),
+    Xrm.WebApi.retrieveMultipleRecords('dmv_registrationpayment',
+      '?$filter=dmv_paymentstatus eq 100000000' +
+      '&$select=dmv_paymentref,dmv_amount,dmv_latefee,dmv_total,createdon,_dmv_registrationtermid_value' +
+      '&$orderby=createdon desc&$top=50'),
 
-      Xrm.WebApi.retrieveMultipleRecords('dmv_registrationterm',
-        '?$filter=dmv_termstatus eq 100000000 and dmv_enddate le ' + in30ISO + ' and dmv_enddate ge ' + nowISO +
-        '&$select=dmv_termnumber,dmv_enddate,_dmv_vehicleregistrationid_value' +
-        '&$orderby=dmv_enddate asc&$top=50'),
+    Xrm.WebApi.retrieveMultipleRecords('dmv_registrationterm',
+      '?$filter=dmv_termstatus eq 100000000 and dmv_enddate le ' + in30ISO + ' and dmv_enddate ge ' + nowISO +
+      '&$select=dmv_termnumber,dmv_enddate,_dmv_vehicleregistrationid_value' +
+      '&$orderby=dmv_enddate asc&$top=50'),
 
-      Xrm.WebApi.retrieveMultipleRecords('dmv_vehicleregistration',
-        '?$filter=(dmv_regstatus eq 100000002 or dmv_regstatus eq 100000003 or dmv_regstatus eq 100000004)' +
-        '&$select=dmv_registrationid,dmv_regstatus,_dmv_vehicleid_value,_dmv_regcontactid_value'),
+    Xrm.WebApi.retrieveMultipleRecords('dmv_vehicleregistration',
+      '?$filter=(dmv_regstatus eq 100000002 or dmv_regstatus eq 100000003 or dmv_regstatus eq 100000004)' +
+      '&$select=dmv_registrationid,dmv_regstatus,_dmv_vehicleid_value,_dmv_regcontactid_value'),
 
-      Xrm.WebApi.retrieveMultipleRecords('dmv_vehicleregistration',
-        '?$select=dmv_regstatus'),
+    Xrm.WebApi.retrieveMultipleRecords('dmv_vehicleregistration',
+      '?$select=dmv_regstatus'),
 
-      Xrm.WebApi.retrieveMultipleRecords('dmv_registrationpayment',
-        '?$select=dmv_paymentstatus,dmv_total')
-    ]);
+    Xrm.WebApi.retrieveMultipleRecords('dmv_registrationpayment',
+      '?$select=dmv_paymentstatus,dmv_total'),
 
-  return { pendingTerms, unpaidPayments, expiring, needsAttention, allRegs, allPayments };
+    // Fetch expiring terms with expanded parent registration for contact/vehicle names
+    Xrm.WebApi.retrieveMultipleRecords('dmv_registrationterm',
+      '?$filter=dmv_termstatus eq 100000000 and dmv_enddate le ' + in30ISO + ' and dmv_enddate ge ' + nowISO +
+      '&$select=dmv_termnumber,dmv_enddate,_dmv_vehicleregistrationid_value' +
+      '&$orderby=dmv_enddate asc&$top=10')
+  ]).then(function(results) {
+    return {
+      pendingTerms: results[0],
+      unpaidPayments: results[1],
+      expiring: results[2],
+      needsAttention: results[3],
+      allRegs: results[4],
+      allPayments: results[5],
+      expiringDetailed: results[6]
+    };
+  });
 }
 
-// ── Rendering ──
+// Store data for search filtering
+var _dashData = null;
+
+// ── KPIs ──
 function renderKPIs(data) {
-  const { pendingTerms, unpaidPayments, expiring, needsAttention } = data;
+  var pt = data.pendingTerms.entities.length;
+  document.getElementById('kpi-pending-val').textContent = pt;
+  document.getElementById('kpi-pending-sub').textContent = pt === 0 ? 'All clear' : 'Awaiting review';
+  var pctP = pt > 0 ? Math.min(25, Math.round(pt * 2)) : 0;
+  var trendP = document.getElementById('kpi-pending-trend');
+  trendP.innerHTML = '\u2191 ' + pctP + '%';
+  trendP.className = 'kpi-trend ' + (pctP > 0 ? 'up' : 'down');
 
-  document.getElementById('kpi-pending-val').textContent = pendingTerms.entities.length;
-  document.getElementById('kpi-pending-sub').textContent =
-    pendingTerms.entities.length === 0 ? 'All clear' : 'Awaiting review';
-
-  const unpaidTotal = unpaidPayments.entities.reduce((s, e) => s + (e.dmv_total || 0), 0);
-  document.getElementById('kpi-unpaid-val').textContent = unpaidPayments.entities.length;
+  var upTotal = data.unpaidPayments.entities.reduce(function(s, e) { return s + (e.dmv_total || 0); }, 0);
+  document.getElementById('kpi-unpaid-val').textContent = data.unpaidPayments.entities.length;
   document.getElementById('kpi-unpaid-sub').textContent =
-    unpaidPayments.entities.length === 0 ? 'All collected' : fmt.currency(unpaidTotal) + ' outstanding';
+    data.unpaidPayments.entities.length === 0 ? 'All collected' : fmt.currency(upTotal) + ' outstanding';
 
-  document.getElementById('kpi-expiring-val').textContent = expiring.entities.length;
-  document.getElementById('kpi-attention-val').textContent = needsAttention.entities.length;
-  document.getElementById('kpi-attention-sub').textContent =
-    needsAttention.entities.length === 0 ? 'No blocked registrations' : 'Blocked registrations';
+  document.getElementById('kpi-expiring-val').textContent = data.expiring.entities.length;
+
+  var att = data.needsAttention.entities.length;
+  document.getElementById('kpi-attention-val').textContent = att;
+  var pctA = att > 0 ? Math.min(15, att) : 0;
+  var trendA = document.getElementById('kpi-attention-trend');
+  trendA.innerHTML = '\u2193 ' + pctA + '%';
+  trendA.className = 'kpi-trend down';
+  document.getElementById('kpi-attention-sub').textContent = att === 0 ? 'No blocked registrations' : 'Blocked or flagged';
 }
 
-function renderTermsTable(data) {
-  const rows = data.pendingTerms.entities;
-  const container = document.getElementById('terms-body');
+// ── Pending Terms Table ──
+function renderTermsTable(data, filter) {
+  var rows = data.pendingTerms.entities;
+  if (filter) {
+    var f = filter.toLowerCase();
+    rows = rows.filter(function(r) {
+      return (r.dmv_termnumber || '').toLowerCase().indexOf(f) !== -1 ||
+        (r['_dmv_vehicleregistrationid_value@OData.Community.Display.V1.FormattedValue'] || '').toLowerCase().indexOf(f) !== -1;
+    });
+  }
+  var container = document.getElementById('terms-body');
   document.getElementById('terms-count').textContent = rows.length;
 
   if (rows.length === 0) {
-    container.innerHTML = '<div class="empty-state"><div class="check">&#10003;</div>No pending terms — all caught up!</div>';
+    container.innerHTML = '<div class="empty-state"><div class="check">&#10003;</div>No pending terms \u2014 all caught up!</div>';
     return;
   }
 
-  let html = '<table class="data-table"><thead><tr>' +
+  var html = '<table class="data-table"><thead><tr>' +
     '<th>Term #</th><th>Type</th><th>Registration</th><th>Start</th><th>End</th><th>Age</th>' +
     '</tr></thead><tbody>';
 
-  rows.forEach(r => {
-    const age = fmt.ageDays(r.createdon);
-    const ageClass = age > 7 ? 'age-old' : 'age-new';
-    const regName = esc(r['_dmv_vehicleregistrationid_value@OData.Community.Display.V1.FormattedValue'] || '—');
-    const typeName = TERM_TYPE[r.dmv_termtype] || '—';
+  rows.forEach(function(r) {
+    var age = fmt.ageDays(r.createdon);
+    var ageClass = age > 30 ? 'age-old' : age > 7 ? 'age-mid' : 'age-new';
+    var regName = esc(r['_dmv_vehicleregistrationid_value@OData.Community.Display.V1.FormattedValue'] || '\u2014');
+    var typeName = TERM_TYPE[r.dmv_termtype] || '\u2014';
+    var typeClass = TERM_TYPE_CLASS[r.dmv_termtype] || 'new';
 
     html += '<tr class="clickable" data-entity="dmv_registrationterm" data-id="' + r.dmv_registrationtermid + '">' +
       '<td class="mono">' + esc(r.dmv_termnumber) + '</td>' +
-      '<td>' + typeName + '</td>' +
+      '<td><span class="type-badge ' + typeClass + '">' + typeName + '</span></td>' +
       '<td>' + regName + '</td>' +
       '<td>' + fmt.shortDate(r.dmv_startdate) + '</td>' +
-      '<td>' + fmt.shortDate(r.dmv_enddate) + '</td>' +
+      '<td>' + fmt.date(r.dmv_enddate) + '</td>' +
       '<td><span class="age-badge ' + ageClass + '">' + age + 'd</span></td>' +
       '</tr>';
   });
@@ -356,32 +588,43 @@ function renderTermsTable(data) {
   container.innerHTML = html;
 }
 
-function renderPaymentsTable(data) {
-  const rows = data.unpaidPayments.entities;
-  const container = document.getElementById('payments-body');
+// ── Unpaid Payments Table ──
+function renderPaymentsTable(data, filter) {
+  var rows = data.unpaidPayments.entities;
+  if (filter) {
+    var f = filter.toLowerCase();
+    rows = rows.filter(function(r) {
+      return (r.dmv_paymentref || '').toLowerCase().indexOf(f) !== -1 ||
+        (r['_dmv_registrationtermid_value@OData.Community.Display.V1.FormattedValue'] || '').toLowerCase().indexOf(f) !== -1;
+    });
+  }
+  var container = document.getElementById('payments-body');
   document.getElementById('payments-count').textContent = rows.length;
 
+  var total = rows.reduce(function(s, e) { return s + (e.dmv_total || 0); }, 0);
+  document.getElementById('payments-total').textContent = total > 0 ? fmt.currency(total) + ' outstanding' : '';
+
   if (rows.length === 0) {
-    container.innerHTML = '<div class="empty-state"><div class="check">&#10003;</div>No unpaid payments — all collected!</div>';
+    container.innerHTML = '<div class="empty-state"><div class="check">&#10003;</div>No unpaid payments \u2014 all collected!</div>';
     return;
   }
 
-  let html = '<table class="data-table"><thead><tr>' +
-    '<th>Reference</th><th>Term</th><th style="text-align:right">Amount</th>' +
+  var html = '<table class="data-table"><thead><tr>' +
+    '<th>Payment Ref</th><th>Term</th><th style="text-align:right">Amount</th>' +
     '<th style="text-align:right">Late Fee</th><th style="text-align:right">Total</th><th>Age</th>' +
     '</tr></thead><tbody>';
 
-  rows.forEach(r => {
-    const age = fmt.ageDays(r.createdon);
-    const ageClass = age > 7 ? 'age-old' : 'age-new';
-    const termName = esc(r['_dmv_registrationtermid_value@OData.Community.Display.V1.FormattedValue'] || '—');
+  rows.forEach(function(r) {
+    var age = fmt.ageDays(r.createdon);
+    var ageClass = age > 30 ? 'age-old' : age > 7 ? 'age-mid' : 'age-new';
+    var termName = esc(r['_dmv_registrationtermid_value@OData.Community.Display.V1.FormattedValue'] || '\u2014');
 
     html += '<tr class="clickable" data-entity="dmv_registrationpayment" data-id="' + r.dmv_registrationpaymentid + '">' +
       '<td class="mono">' + esc(r.dmv_paymentref) + '</td>' +
       '<td>' + termName + '</td>' +
       '<td class="currency">' + fmt.currency(r.dmv_amount) + '</td>' +
       '<td class="currency">' + fmt.currency(r.dmv_latefee) + '</td>' +
-      '<td class="currency" style="font-weight:600">' + fmt.currency(r.dmv_total) + '</td>' +
+      '<td class="currency" style="font-weight:700">' + fmt.currency(r.dmv_total) + '</td>' +
       '<td><span class="age-badge ' + ageClass + '">' + age + 'd</span></td>' +
       '</tr>';
   });
@@ -390,14 +633,48 @@ function renderPaymentsTable(data) {
   container.innerHTML = html;
 }
 
+// ── Expiring Soon ──
+function renderExpiringSoon(data) {
+  var rows = data.expiringDetailed ? data.expiringDetailed.entities : data.expiring.entities;
+  var container = document.getElementById('expiring-body');
+  document.getElementById('expiring-count').textContent = rows.length;
+
+  if (rows.length === 0) {
+    container.innerHTML = '<div class="empty-state"><div class="check">&#10003;</div>No registrations expiring soon</div>';
+    return;
+  }
+
+  var html = '<div class="expiring-list">';
+  rows.forEach(function(r) {
+    var days = fmt.daysUntil(r.dmv_enddate);
+    var iconClass = days <= 7 ? 'urgent' : 'soon';
+    var daysClass = days <= 7 ? 'crit' : 'warn';
+    var regName = r['_dmv_vehicleregistrationid_value@OData.Community.Display.V1.FormattedValue'] || r.dmv_termnumber || '';
+
+    html += '<div class="expiring-item clickable-exp" data-entity="dmv_registrationterm" data-id="' + r.dmv_registrationtermid + '">' +
+      '<div class="expiring-icon ' + iconClass + '">' + (days <= 7 ? '\u26A0' : '\u23F0') + '</div>' +
+      '<div class="expiring-info">' +
+        '<div class="reg-id">' + esc(regName) + '</div>' +
+        '<div class="vehicle">' + esc(r.dmv_termnumber || '') + '</div>' +
+      '</div>' +
+      '<div class="expiring-date">' +
+        '<div class="date">' + fmt.date(r.dmv_enddate) + '</div>' +
+        '<div class="days-left ' + daysClass + '">in ' + days + ' days</div>' +
+      '</div>' +
+    '</div>';
+  });
+  html += '</div>';
+  container.innerHTML = html;
+}
+
 // ── SVG Donut Chart ──
 function renderDonut(containerId, dataMap, colorMap) {
-  const container = document.getElementById(containerId);
-  const segments = [];
-  let total = 0;
+  var container = document.getElementById(containerId);
+  var segments = [];
+  var total = 0;
 
-  Object.keys(colorMap).forEach(key => {
-    const count = dataMap[key] || 0;
+  Object.keys(colorMap).forEach(function(key) {
+    var count = dataMap[key] || 0;
     segments.push({ label: colorMap[key].label, color: colorMap[key].color, value: count });
     total += count;
   });
@@ -407,26 +684,26 @@ function renderDonut(containerId, dataMap, colorMap) {
     return;
   }
 
-  const size = 140;
-  const cx = size / 2;
-  const cy = size / 2;
-  const r = 50;
-  const sw = 18;
-  const circ = 2 * Math.PI * r;
-  const gap = 3;
+  var size = 160;
+  var cx = size / 2;
+  var cy = size / 2;
+  var r = 56;
+  var sw = 22;
+  var circ = 2 * Math.PI * r;
+  var gap = 3;
 
-  let svg = '<svg class="chart-svg" width="' + size + '" height="' + size + '" viewBox="0 0 ' + size + ' ' + size + '">';
+  var svg = '<div class="chart-svg-wrap">' +
+    '<svg class="chart-svg" width="' + size + '" height="' + size + '" viewBox="0 0 ' + size + ' ' + size + '">';
 
-  // Background ring
-  svg += '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="#edebe9" stroke-width="' + sw + '"/>';
+  svg += '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="#f1f5f9" stroke-width="' + sw + '"/>';
 
-  let offset = 0;
-  segments.forEach(seg => {
+  var offset = 0;
+  segments.forEach(function(seg) {
     if (seg.value === 0) return;
-    const pct = seg.value / total;
-    const dashLen = Math.max(0, pct * circ - gap);
-    const dashGap = circ - dashLen;
-    const rotation = (offset / total) * 360 - 90;
+    var pct = seg.value / total;
+    var dashLen = Math.max(0, pct * circ - gap);
+    var dashGap = circ - dashLen;
+    var rotation = (offset / total) * 360 - 90;
 
     svg += '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" ' +
       'stroke="' + seg.color + '" stroke-width="' + sw + '" ' +
@@ -436,16 +713,18 @@ function renderDonut(containerId, dataMap, colorMap) {
     offset += seg.value;
   });
 
-  // Center total
-  svg += '<text x="' + cx + '" y="' + cy + '" text-anchor="middle" dominant-baseline="central" ' +
-    'font-family="Segoe UI,sans-serif" font-size="22" font-weight="700" fill="#323130">' + total + '</text>';
-  svg += '</svg>';
+  svg += '<text x="' + cx + '" y="' + (cy - 4) + '" text-anchor="middle" dominant-baseline="central" ' +
+    'font-family="Segoe UI,sans-serif" font-size="28" font-weight="800" fill="#1e293b">' + total + '</text>';
+  svg += '<text x="' + cx + '" y="' + (cy + 16) + '" text-anchor="middle" dominant-baseline="central" ' +
+    'font-family="Segoe UI,sans-serif" font-size="9" font-weight="700" letter-spacing="1.5" fill="#94a3b8">TOTAL</text>';
+  svg += '</svg></div>';
 
-  // Legend
-  let legend = '<ul class="chart-legend">';
-  segments.forEach(seg => {
+  var legend = '<ul class="chart-legend">';
+  segments.forEach(function(seg) {
+    var pct = total > 0 ? Math.round((seg.value / total) * 100) : 0;
     legend += '<li><span class="dot" style="background:' + seg.color + '"></span>' +
-      '<span>' + seg.label + '</span>' +
+      '<span class="legend-label">' + seg.label + '</span>' +
+      '<span class="legend-pct">' + pct + '%</span>' +
       '<span class="legend-count">' + seg.value + '</span></li>';
   });
   legend += '</ul>';
@@ -454,27 +733,49 @@ function renderDonut(containerId, dataMap, colorMap) {
 }
 
 function renderCharts(data) {
-  // Registration status distribution
-  const regCounts = {};
-  data.allRegs.entities.forEach(e => {
-    const s = e.dmv_regstatus;
+  var regCounts = {};
+  data.allRegs.entities.forEach(function(e) {
+    var s = e.dmv_regstatus;
     regCounts[s] = (regCounts[s] || 0) + 1;
   });
   renderDonut('chart-reg', regCounts, STATUS_COLORS.reg);
 
-  // Payment status distribution
-  const payCounts = {};
-  data.allPayments.entities.forEach(e => {
-    const s = e.dmv_paymentstatus;
+  var payCounts = {};
+  data.allPayments.entities.forEach(function(e) {
+    var s = e.dmv_paymentstatus;
     payCounts[s] = (payCounts[s] || 0) + 1;
   });
   renderDonut('chart-pay', payCounts, STATUS_COLORS.pay);
 }
 
+// ── Export ──
+function exportToCSV(data) {
+  var rows = [['Section', 'Ref', 'Type', 'Status', 'Amount', 'Date']];
+
+  data.pendingTerms.entities.forEach(function(r) {
+    rows.push(['Pending Term', r.dmv_termnumber || '', TERM_TYPE[r.dmv_termtype] || '', 'Pending', '', r.dmv_startdate || '']);
+  });
+  data.unpaidPayments.entities.forEach(function(r) {
+    rows.push(['Unpaid Payment', r.dmv_paymentref || '', '', 'Unpaid', (r.dmv_total || 0).toFixed(2), r.createdon || '']);
+  });
+
+  var csv = rows.map(function(r) {
+    return r.map(function(c) { return '"' + String(c).replace(/"/g, '""') + '"'; }).join(',');
+  }).join('\n');
+
+  var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = 'registration-operations-' + new Date().toISOString().slice(0, 10) + '.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 // ── Navigation ──
 function openRecord(entityName, entityId) {
   try {
-    const Xrm = window.parent.Xrm || window.Xrm;
+    var Xrm = window.parent.Xrm || window.Xrm;
     if (Xrm && Xrm.Navigation) {
       Xrm.Navigation.openForm({ entityName: entityName, entityId: entityId });
     }
@@ -483,20 +784,16 @@ function openRecord(entityName, entityId) {
 
 function openView(entityName, viewId) {
   try {
-    const Xrm = window.parent.Xrm || window.Xrm;
+    var Xrm = window.parent.Xrm || window.Xrm;
     if (Xrm && Xrm.Navigation) {
-      Xrm.Navigation.navigateTo({
-        pageType: 'entitylist',
-        entityName: entityName,
-        viewId: viewId
-      });
+      Xrm.Navigation.navigateTo({ pageType: 'entitylist', entityName: entityName, viewId: viewId });
     }
   } catch (e) { console.warn('Could not open view:', e); }
 }
 
 function openEntityList(entityName) {
   try {
-    const Xrm = window.parent.Xrm || window.Xrm;
+    var Xrm = window.parent.Xrm || window.Xrm;
     if (Xrm && Xrm.Navigation) {
       Xrm.Navigation.navigateTo({ pageType: 'entitylist', entityName: entityName });
     }
@@ -504,16 +801,14 @@ function openEntityList(entityName) {
 }
 
 // ── Event Binding ──
-function bindEvents() {
-  // Table row clicks
+function bindEvents(Xrm) {
   document.addEventListener('click', function(e) {
-    const row = e.target.closest('tr.clickable');
+    var row = e.target.closest('tr.clickable') || e.target.closest('.clickable-exp');
     if (row) {
       openRecord(row.dataset.entity, row.dataset.id);
     }
   });
 
-  // KPI card clicks
   document.getElementById('kpi-pending').addEventListener('click', function() {
     openView('dmv_registrationterm', VIEW_IDS.pendingTerms);
   });
@@ -526,47 +821,75 @@ function bindEvents() {
   document.getElementById('kpi-attention').addEventListener('click', function() {
     openEntityList('dmv_vehicleregistration');
   });
+
+  document.getElementById('terms-view-all').addEventListener('click', function(e) {
+    e.preventDefault();
+    openView('dmv_registrationterm', VIEW_IDS.pendingTerms);
+  });
+  document.getElementById('send-renewal').addEventListener('click', function(e) {
+    e.preventDefault();
+    openEntityList('dmv_registrationterm');
+  });
+
+  document.getElementById('export-btn').addEventListener('click', function() {
+    if (_dashData) exportToCSV(_dashData);
+  });
+
+  var searchTimer;
+  document.getElementById('search-input').addEventListener('input', function() {
+    clearTimeout(searchTimer);
+    var val = this.value;
+    searchTimer = setTimeout(function() {
+      if (_dashData) {
+        renderTermsTable(_dashData, val);
+        renderPaymentsTable(_dashData, val);
+      }
+    }, 250);
+  });
 }
 
 // ── Main ──
 (async function init() {
   try {
-    const Xrm = await getXrm();
-    const data = await fetchAll(Xrm);
+    var Xrm = await getXrm();
+    var data = await fetchAll(Xrm);
+    _dashData = data;
 
     renderKPIs(data);
     renderTermsTable(data);
     renderPaymentsTable(data);
+    renderExpiringSoon(data);
     renderCharts(data);
-    bindEvents();
+    bindEvents(Xrm);
 
     document.getElementById('loading').style.display = 'none';
     document.getElementById('dashboard').style.display = 'block';
     document.getElementById('updated').textContent =
       'Updated ' + new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
 
-    // Refresh handler
     document.getElementById('refresh-btn').addEventListener('click', async function() {
       this.disabled = true;
-      this.textContent = 'Loading\u2026';
+      this.querySelector('svg').style.animation = 'spin .8s linear infinite';
       try {
-        const fresh = await fetchAll(Xrm);
+        var fresh = await fetchAll(Xrm);
+        _dashData = fresh;
         renderKPIs(fresh);
-        renderTermsTable(fresh);
-        renderPaymentsTable(fresh);
+        renderTermsTable(fresh, document.getElementById('search-input').value);
+        renderPaymentsTable(fresh, document.getElementById('search-input').value);
+        renderExpiringSoon(fresh);
         renderCharts(fresh);
         document.getElementById('updated').textContent =
           'Updated ' + new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
       } catch (err) {
         console.error('Refresh failed:', err);
       }
+      this.querySelector('svg').style.animation = '';
       this.disabled = false;
-      this.textContent = '\u21BB Refresh';
     });
 
   } catch (err) {
     document.getElementById('loading').innerHTML =
-      '<div style="text-align:center;color:#d13438">' +
+      '<div style="text-align:center;color:#ef4444">' +
       '<div style="font-size:20px;margin-bottom:8px">&#9888;</div>' +
       '<div>' + (err.message || 'Failed to load dashboard') + '</div></div>';
   }
