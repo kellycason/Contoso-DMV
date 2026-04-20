@@ -227,7 +227,7 @@ body{font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,'Inter',sans-serif;
       </div>
     </div>
     <div class="hero-card green" id="kpi-collected">
-      <div class="hero-label">Collected &middot; 14D</div>
+      <div class="hero-label">Total Collected</div>
       <div class="hero-value" id="kpi-collected-val">$0</div>
       <div class="hero-sub" id="kpi-collected-sub">Across all payment channels</div>
       <div class="hero-icon">
@@ -283,7 +283,7 @@ body{font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,'Inter',sans-serif;
   <div class="middle-row">
     <div class="section">
       <div class="section-header">
-        <div class="header-left">Collections Trend</div>
+        <div class="header-left">Collections Trend <span style="font-size:11px;color:var(--text3);font-weight:400;margin-left:6px">cumulative by month</span></div>
         <div class="header-right">
           <span style="font-size:12px;color:var(--success);font-weight:600">&#9679; Collected</span>
           <span style="font-size:12px;color:var(--danger);font-weight:600">&#9679; Outstanding</span>
@@ -444,21 +444,20 @@ function renderHeroKPIs(data) {
   document.getElementById('kpi-outstanding-val').textContent = fmt.currency(unpaidTotal);
   document.getElementById('kpi-outstanding-sub').textContent = unpaidCount + ' unpaid invoice' + (unpaidCount!==1?'s':'');
 
-  // Collected in last 14 days
-  var now = Date.now();
-  var ago14 = now - 14*86400000;
-  var collected = 0;
+  // Total collected (all time)
+  var totalPaid = 0;
+  var paidCount = 0;
   data.allPayments.entities.forEach(function(e) {
-    if (e.dmv_paymentstatus === 100000001 && e.dmv_paymentdate) {
-      var pd = new Date(e.dmv_paymentdate).getTime();
-      if (pd >= ago14) collected += (e.dmv_total || 0);
+    if (e.dmv_paymentstatus === 100000001) {
+      totalPaid += (e.dmv_total || 0);
+      paidCount++;
     }
   });
-  var totalPaid = data.allPayments.entities.filter(function(e){return e.dmv_paymentstatus===100000001}).reduce(function(s,e){return s+(e.dmv_total||0)},0);
-  document.getElementById('kpi-collected-val').textContent = '$' + new Intl.NumberFormat('en-US').format(Math.round(collected || totalPaid));
-  document.getElementById('kpi-collected-sub').textContent = 'Across all payment channels';
-  var pct = totalPaid > 0 ? Math.round((collected/totalPaid)*100) : 0;
-  document.getElementById('kpi-collected-trend').innerHTML = '&#8599; +' + (pct || 12) + '%';
+  document.getElementById('kpi-collected-val').textContent = fmt.currency(totalPaid);
+  document.getElementById('kpi-collected-sub').textContent = paidCount + ' paid payment' + (paidCount!==1?'s':'') + ' · all time';
+  var totalAll = totalPaid + unpaidTotal;
+  var collPct = totalAll > 0 ? Math.round((totalPaid/totalAll)*100) : 0;
+  document.getElementById('kpi-collected-trend').innerHTML = collPct + '% collected';
 
   // Active registrations
   var activeCount = 0, pendingCount = 0, totalRegs = data.allRegs.entities.length;
@@ -484,41 +483,62 @@ function renderStats(data) {
 /* ── Collections Trend Chart ── */
 function renderTrendChart(data) {
   var container = document.getElementById('trend-chart');
-  var now = new Date();
-  var days = 14;
-  var collected = new Array(days).fill(0);
-  var outstanding = new Array(days).fill(0);
-  var labels = [];
+  var payments = data.allPayments.entities;
 
-  for (var i = days-1; i >= 0; i--) {
-    var d = new Date(now.getTime() - i*86400000);
-    labels.push(d.toLocaleDateString('en-US',{month:'short',day:'numeric'}));
+  // Find the date range from actual data
+  var minDate = null, maxDate = null;
+  payments.forEach(function(e) {
+    var d = e.dmv_paymentdate ? new Date(e.dmv_paymentdate) : new Date(e.createdon);
+    if (!minDate || d < minDate) minDate = d;
+    if (!maxDate || d > maxDate) maxDate = d;
+  });
+
+  if (!minDate || payments.length === 0) {
+    container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#9ca3af;font-size:14px">No payment data to chart</div>';
+    return;
   }
 
-  // Aggregate payment data by day
-  data.allPayments.entities.forEach(function(e) {
-    if (!e.dmv_paymentdate) return;
-    var pd = new Date(e.dmv_paymentdate);
-    var daysAgo = Math.floor((now.getTime()-pd.getTime())/86400000);
-    if (daysAgo >= 0 && daysAgo < days) {
-      var idx = days - 1 - daysAgo;
-      if (e.dmv_paymentstatus === 100000001) collected[idx] += (e.dmv_total||0);
-      else if (e.dmv_paymentstatus === 100000000) outstanding[idx] += (e.dmv_total||0);
+  // Build monthly buckets spanning the full data range
+  var buckets = [];
+  var cur = new Date(minDate.getFullYear(), minDate.getMonth(), 1);
+  var end = new Date(maxDate.getFullYear(), maxDate.getMonth() + 1, 1);
+  while (cur < end) {
+    buckets.push({ date: new Date(cur), collected: 0, outstanding: 0, label: cur.toLocaleDateString('en-US',{month:'short',year:'2-digit'}) });
+    cur = new Date(cur.getFullYear(), cur.getMonth() + 1, 1);
+  }
+  if (buckets.length === 0) buckets.push({ date: new Date(minDate), collected: 0, outstanding: 0, label: minDate.toLocaleDateString('en-US',{month:'short',year:'2-digit'}) });
+
+  // Aggregate payments into monthly buckets
+  payments.forEach(function(e) {
+    var d = e.dmv_paymentdate ? new Date(e.dmv_paymentdate) : new Date(e.createdon);
+    var key = d.getFullYear() * 12 + d.getMonth();
+    for (var bi = 0; bi < buckets.length; bi++) {
+      var bk = buckets[bi].date.getFullYear() * 12 + buckets[bi].date.getMonth();
+      if (bk === key) {
+        if (e.dmv_paymentstatus === 100000001) buckets[bi].collected += (e.dmv_total || 0);
+        else if (e.dmv_paymentstatus === 100000000) buckets[bi].outstanding += (e.dmv_total || 0);
+        break;
+      }
     }
   });
 
-  // Cumulate for a nice growing line
-  for (var j=1;j<days;j++) { collected[j]+=collected[j-1]; outstanding[j]+=outstanding[j-1]; }
-  // If no real data, show demo curve
-  if (collected[days-1]===0) {
-    for(var k=0;k<days;k++){collected[k]=500+k*180+Math.sin(k*.7)*200;outstanding[k]=200+k*30+Math.cos(k*.5)*80}
+  // Build cumulative arrays
+  var days = buckets.length;
+  var collected = [], outstanding = [], labels = [];
+  var cSum = 0, oSum = 0;
+  for (var bi2 = 0; bi2 < days; bi2++) {
+    cSum += buckets[bi2].collected;
+    oSum += buckets[bi2].outstanding;
+    collected.push(cSum);
+    outstanding.push(oSum);
+    labels.push(buckets[bi2].label);
   }
 
   var w=540,h=200,pad=40,padR=20,padB=30;
   var maxVal = Math.max.apply(null, collected.concat(outstanding)) * 1.1 || 1;
   var chartW=w-pad-padR, chartH=h-padB-10;
 
-  function x(i){return pad+i*(chartW/(days-1))}
+  function x(i){return pad+(days>1?i*(chartW/(days-1)):chartW/2)}
   function y(v){return 10+chartH-((v/maxVal)*chartH)}
 
   var svg='<svg viewBox="0 0 '+w+' '+h+'" style="width:100%;height:100%">';
@@ -530,8 +550,9 @@ function renderTrendChart(data) {
     svg+='<line x1="'+pad+'" y1="'+gy+'" x2="'+(w-padR)+'" y2="'+gy+'" stroke="#f1f5f9" stroke-width="1"/>';
     svg+='<text x="'+(pad-6)+'" y="'+(gy+4)+'" text-anchor="end" font-size="10" fill="#9ca3af" font-family="Segoe UI">'+lbl+'</text>';
   }
-  // X labels
-  for(var xi=0;xi<days;xi+=2){
+  // X labels — show every label if few, or skip for many
+  var xStep = days <= 12 ? 1 : Math.ceil(days/7);
+  for(var xi=0;xi<days;xi+=xStep){
     svg+='<text x="'+x(xi)+'" y="'+(h-4)+'" text-anchor="middle" font-size="10" fill="#9ca3af" font-family="Segoe UI">'+labels[xi]+'</text>';
   }
 
