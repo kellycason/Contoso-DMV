@@ -113,45 +113,45 @@ function Make-Row($id,$lbl,$cid,$fld) {
 }
 
 # Tab 1: Review and Decision (Action section)
-$secAction = (Make-Row "{g1010001-0001-0001-0001-000000000001}" "Renewal Status" $pick "dmv_renewalstatus") +
-             (Make-Row "{g1010001-0001-0001-0001-000000000002}" "Approved Date" $dt "dmv_approveddate") +
-             (Make-Row "{g1010001-0001-0001-0001-000000000003}" "New Expiration Date" $dt "dmv_newexpirationdate") +
-             (Make-Row "{g1010001-0001-0001-0001-000000000004}" "Vehicle" $lkp "dmv_vehicleid") +
-             (Make-Row "{g1010001-0001-0001-0001-000000000005}" "Registration" $lkp "dmv_registrationid")
+$secAction = (Make-Row "{b1010001-0001-0001-0001-000000000001}" "Renewal Status" $pick "dmv_renewalstatus") +
+             (Make-Row "{b1010001-0001-0001-0001-000000000002}" "Approved Date" $dt "dmv_approveddate") +
+             (Make-Row "{b1010001-0001-0001-0001-000000000003}" "New Expiration Date" $dt "dmv_newexpirationdate") +
+             (Make-Row "{b1010001-0001-0001-0001-000000000004}" "Vehicle" $lkp "dmv_vehicleid") +
+             (Make-Row "{b1010001-0001-0001-0001-000000000005}" "Registration" $lkp "dmv_registrationid")
 
 # Tab 2: Request Info
-$sec1 = (Make-Row "{g1010001-0001-0001-0001-000000000006}" "Renewal ID" $txt "dmv_renewalid") +
-        (Make-Row "{g1010001-0001-0001-0001-000000000007}" "Contact" $lkp "dmv_contactid") +
-        (Make-Row "{g1010001-0001-0001-0001-000000000008}" "Submitted" $dt "dmv_submitteddate") +
-        (Make-Row "{g1010001-0001-0001-0001-000000000009}" "Channel" $pick "dmv_channel")
+$sec1 = (Make-Row "{b1010001-0001-0001-0001-000000000006}" "Renewal ID" $txt "dmv_renewalid") +
+        (Make-Row "{b1010001-0001-0001-0001-000000000007}" "Contact" $lkp "dmv_contactid") +
+        (Make-Row "{b1010001-0001-0001-0001-000000000008}" "Submitted" $dt "dmv_submitteddate") +
+        (Make-Row "{b1010001-0001-0001-0001-000000000009}" "Channel" $pick "dmv_channel")
 
 # Vehicle section
-$sec2 = (Make-Row "{g1010001-0001-0001-0001-00000000000a}" "Plate Number" $txt "dmv_platenumber") +
-        (Make-Row "{g1010001-0001-0001-0001-00000000000b}" "VIN" $txt "dmv_vin") +
-        (Make-Row "{g1010001-0001-0001-0001-00000000000c}" "Year" $txt "dmv_vehicleyear") +
-        (Make-Row "{g1010001-0001-0001-0001-00000000000d}" "Make" $txt "dmv_vehiclemake") +
-        (Make-Row "{g1010001-0001-0001-0001-00000000000e}" "Model" $txt "dmv_vehiclemodel") +
-        (Make-Row "{g1010001-0001-0001-0001-00000000000f}" "Color" $txt "dmv_vehiclecolor")
+$sec2 = (Make-Row "{b1010001-0001-0001-0001-00000000000a}" "Plate Number" $txt "dmv_platenumber") +
+        (Make-Row "{b1010001-0001-0001-0001-00000000000b}" "VIN" $txt "dmv_vin") +
+        (Make-Row "{b1010001-0001-0001-0001-00000000000c}" "Year" $txt "dmv_vehicleyear") +
+        (Make-Row "{b1010001-0001-0001-0001-00000000000d}" "Make" $txt "dmv_vehiclemake") +
+        (Make-Row "{b1010001-0001-0001-0001-00000000000e}" "Model" $txt "dmv_vehiclemodel") +
+        (Make-Row "{b1010001-0001-0001-0001-00000000000f}" "Color" $txt "dmv_vehiclecolor")
 
 # Owner section
-$sec3 = (Make-Row "{g1010001-0001-0001-0001-000000000010}" "First Name" $txt "dmv_firstname") +
-        (Make-Row "{g1010001-0001-0001-0001-000000000011}" "Last Name" $txt "dmv_lastname") +
-        (Make-Row "{g1010001-0001-0001-0001-000000000012}" "Email" $email "dmv_email") +
-        (Make-Row "{g1010001-0001-0001-0001-000000000013}" "Phone" $phone "dmv_phone") +
-        (Make-Row "{g1010001-0001-0001-0001-000000000014}" "Street Address" $txt "dmv_streetaddress") +
-        (Make-Row "{g1010001-0001-0001-0001-000000000015}" "City" $txt "dmv_city") +
-        (Make-Row "{g1010001-0001-0001-0001-000000000016}" "State" $txt "dmv_state") +
-        (Make-Row "{g1010001-0001-0001-0001-000000000017}" "ZIP Code" $txt "dmv_zipcode")
+$sec3 = (Make-Row "{b1010001-0001-0001-0001-000000000010}" "First Name" $txt "dmv_firstname") +
+        (Make-Row "{b1010001-0001-0001-0001-000000000011}" "Last Name" $txt "dmv_lastname") +
+        (Make-Row "{b1010001-0001-0001-0001-000000000012}" "Email" $email "dmv_email") +
+        (Make-Row "{b1010001-0001-0001-0001-000000000013}" "Phone" $phone "dmv_phone") +
+        (Make-Row "{b1010001-0001-0001-0001-000000000014}" "Street Address" $txt "dmv_streetaddress") +
+        (Make-Row "{b1010001-0001-0001-0001-000000000015}" "City" $txt "dmv_city") +
+        (Make-Row "{b1010001-0001-0001-0001-000000000016}" "State" $txt "dmv_state") +
+        (Make-Row "{b1010001-0001-0001-0001-000000000017}" "ZIP Code" $txt "dmv_zipcode")
 
 # Insurance section
-$sec4 = (Make-Row "{g1010001-0001-0001-0001-000000000018}" "Insurance Carrier" $txt "dmv_insurancecarrier") +
-        (Make-Row "{g1010001-0001-0001-0001-000000000019}" "Policy Number" $txt "dmv_insurancepolicy") +
-        (Make-Row "{g1010001-0001-0001-0001-00000000001a}" "Policy Expiration" $dt "dmv_insuranceexpiration")
+$sec4 = (Make-Row "{b1010001-0001-0001-0001-000000000018}" "Insurance Carrier" $txt "dmv_insurancecarrier") +
+        (Make-Row "{b1010001-0001-0001-0001-000000000019}" "Policy Number" $txt "dmv_insurancepolicy") +
+        (Make-Row "{b1010001-0001-0001-0001-00000000001a}" "Policy Expiration" $dt "dmv_insuranceexpiration")
 
 # Payment section
-$sec5 = (Make-Row "{g1010001-0001-0001-0001-00000000001b}" "Renewal Fee" $money "dmv_renewalfee") +
-        (Make-Row "{g1010001-0001-0001-0001-00000000001c}" "Payment Method" $pick "dmv_paymentmethod") +
-        (Make-Row "{g1010001-0001-0001-0001-00000000001d}" "Payment Confirmation" $txt "dmv_paymentconfirmation")
+$sec5 = (Make-Row "{b1010001-0001-0001-0001-00000000001b}" "Renewal Fee" $money "dmv_renewalfee") +
+        (Make-Row "{b1010001-0001-0001-0001-00000000001c}" "Payment Method" $pick "dmv_paymentmethod") +
+        (Make-Row "{b1010001-0001-0001-0001-00000000001d}" "Payment Confirmation" $txt "dmv_paymentconfirmation")
 
 $formXml = '<form showImage="true">' +
   '<formLibraries>' +
@@ -165,38 +165,38 @@ $formXml = '<form showImage="true">' +
     '</event>' +
   '</events>' +
   '<tabs>' +
-    '<tab name="ACTION" id="{g2000001-0001-0001-0001-000000000000}" showlabel="true" expanded="true">' +
+    '<tab name="ACTION" id="{b2000001-0001-0001-0001-000000000000}" showlabel="true" expanded="true">' +
       '<labels><label description="Review and Decision" languagecode="1033" /></labels>' +
       '<columns><column width="100%"><sections>' +
-        '<section name="SEC_ACTION" showlabel="true" showbar="false" id="{g3000001-0001-0001-0001-000000000000}" columns="2" labelwidth="150" celllabelposition="Left">' +
+        '<section name="SEC_ACTION" showlabel="true" showbar="false" id="{b3000001-0001-0001-0001-000000000000}" columns="2" labelwidth="150" celllabelposition="Left">' +
           '<labels><label description="Approval Action" languagecode="1033" /></labels>' +
           "<rows>$secAction</rows>" +
         '</section>' +
       '</sections></column></columns>' +
     '</tab>' +
-    '<tab name="DETAILS" id="{g2000001-0001-0001-0001-000000000001}" showlabel="true" expanded="true">' +
+    '<tab name="DETAILS" id="{b2000001-0001-0001-0001-000000000001}" showlabel="true" expanded="true">' +
       '<labels><label description="Request Details" languagecode="1033" /></labels>' +
       '<columns>' +
         '<column width="50%"><sections>' +
-          '<section name="SEC_REQUEST" showlabel="true" showbar="false" id="{g3000001-0001-0001-0001-000000000001}" columns="1" labelwidth="150" celllabelposition="Left">' +
+          '<section name="SEC_REQUEST" showlabel="true" showbar="false" id="{b3000001-0001-0001-0001-000000000001}" columns="1" labelwidth="150" celllabelposition="Left">' +
             '<labels><label description="Request Information" languagecode="1033" /></labels>' +
             "<rows>$sec1</rows>" +
           '</section>' +
-          '<section name="SEC_VEHICLE" showlabel="true" showbar="false" id="{g3000001-0001-0001-0001-000000000002}" columns="1" labelwidth="150" celllabelposition="Left">' +
+          '<section name="SEC_VEHICLE" showlabel="true" showbar="false" id="{b3000001-0001-0001-0001-000000000002}" columns="1" labelwidth="150" celllabelposition="Left">' +
             '<labels><label description="Vehicle Details" languagecode="1033" /></labels>' +
             "<rows>$sec2</rows>" +
           '</section>' +
-          '<section name="SEC_INSURANCE" showlabel="true" showbar="false" id="{g3000001-0001-0001-0001-000000000005}" columns="1" labelwidth="150" celllabelposition="Left">' +
+          '<section name="SEC_INSURANCE" showlabel="true" showbar="false" id="{b3000001-0001-0001-0001-000000000005}" columns="1" labelwidth="150" celllabelposition="Left">' +
             '<labels><label description="Insurance" languagecode="1033" /></labels>' +
             "<rows>$sec4</rows>" +
           '</section>' +
         '</sections></column>' +
         '<column width="50%"><sections>' +
-          '<section name="SEC_OWNER" showlabel="true" showbar="false" id="{g3000001-0001-0001-0001-000000000003}" columns="1" labelwidth="150" celllabelposition="Left">' +
+          '<section name="SEC_OWNER" showlabel="true" showbar="false" id="{b3000001-0001-0001-0001-000000000003}" columns="1" labelwidth="150" celllabelposition="Left">' +
             '<labels><label description="Owner Details" languagecode="1033" /></labels>' +
             "<rows>$sec3</rows>" +
           '</section>' +
-          '<section name="SEC_PAYMENT" showlabel="true" showbar="false" id="{g3000001-0001-0001-0001-000000000004}" columns="1" labelwidth="150" celllabelposition="Left">' +
+          '<section name="SEC_PAYMENT" showlabel="true" showbar="false" id="{b3000001-0001-0001-0001-000000000004}" columns="1" labelwidth="150" celllabelposition="Left">' +
             '<labels><label description="Payment" languagecode="1033" /></labels>' +
             "<rows>$sec5</rows>" +
           '</section>' +
@@ -238,3 +238,4 @@ Write-Host "`nDone! When you change Renewal Status to 'Approved':"
 Write-Host "  - Approved Date auto-fills to today"
 Write-Host "  - New Expiration Date auto-fills to 1 year from today"
 Write-Host "  - Only fills if the fields are currently empty (won't overwrite)"
+
