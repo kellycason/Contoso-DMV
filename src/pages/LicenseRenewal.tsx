@@ -154,7 +154,7 @@ export default function LicenseRenewal() {
         </div>
       </div>
 
-      <div className="section-sm">
+      <div style={{ padding: '24px 0 48px' }}>
         <div className="container" style={{ maxWidth: '760px' }}>
           {/* ── Progress stepper ── */}
           <div style={stepperWrap}>
