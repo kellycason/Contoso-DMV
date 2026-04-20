@@ -630,102 +630,179 @@ function drawPlaceholder(doc: any, x: number, y: number, w: number, h: number) {
 
 /* ════════════════════════════════════════════════════════════
    PDF Generator — Temporary Registration Tag
+   Styled to match the HTML template: green header (#1a3d2b),
+   gold accent (#e8c84b), cream body (#f7f9f6), center plate display.
    ════════════════════════════════════════════════════════════ */
 async function downloadTempRegTag(r: Record<string, any>) {
   const { jsPDF } = await import('jspdf')
   const plate = (r.dmv_platenumber || '').toUpperCase()
   const vin = (r.dmv_vin || '').toUpperCase()
   const vehicle = `${r.dmv_vehicleyear || ''} ${r.dmv_vehiclemake || ''} ${r.dmv_vehiclemodel || ''}`.trim()
-  const color = r.dmv_vehiclecolor || ''
   const owner = `${r.dmv_firstname || ''} ${r.dmv_lastname || ''}`.trim()
-  const address1 = r.dmv_streetaddress || ''
-  const cityStateZip = `${r.dmv_city || ''}, ${r.dmv_state || ''} ${r.dmv_zipcode || ''}`
   const ref = r.dmv_renewalid || ''
   const approvedDate = r.dmv_approveddate ? new Date(r.dmv_approveddate) : new Date()
   const expiry = new Date(approvedDate); expiry.setDate(expiry.getDate() + 30)
   const issuedStr = approvedDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
   const expiryStr = expiry.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
-  const expiryMo = expiry.toLocaleDateString('en-US', { month: 'short' }).toUpperCase()
-  const expiryYr = String(expiry.getFullYear())
 
-  // Portrait tag layout (like a registration sticker document)
-  const W = 460, H = 650
-  const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: [W, H] })
+  // Landscape layout matching the HTML template's 680px-wide card proportions
+  const W = 760, H = 546
+  const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: [W, H] })
 
-  // Background
-  doc.setFillColor(255, 255, 255); doc.rect(0, 0, W, H, 'F')
-  // Border
-  doc.setDrawColor(15, 39, 68); doc.setLineWidth(3); doc.rect(8, 8, W - 16, H - 16, 'S')
-  doc.setDrawColor(200, 168, 75); doc.setLineWidth(1); doc.rect(12, 12, W - 24, H - 24, 'S')
+  // ── Palette (from HTML template) ──
+  const green: [number, number, number] = [26, 61, 43]      // #1a3d2b
+  const gold: [number, number, number] = [232, 200, 75]     // #e8c84b
+  const cream: [number, number, number] = [247, 249, 246]   // #f7f9f6
+  const bg: [number, number, number] = [221, 227, 224]      // #dde3e0 page bg
+  const textDark: [number, number, number] = [26, 26, 24]   // #1a1a18
+  const textMuted: [number, number, number] = [122, 138, 125] // #7a8a7d
+  const divider: [number, number, number] = [230, 230, 225]
 
-  // Header
-  const hY = 24
-  doc.setFillColor(15, 39, 68); doc.rect(16, hY, W - 32, 60, 'F')
-  doc.setFontSize(9); doc.setFont('helvetica', 'bold'); doc.setTextColor(200, 168, 75)
-  doc.text('CONTOSO COUNTY \u2014 DEPARTMENT OF MOTOR VEHICLES', W / 2, hY + 22, { align: 'center' })
-  doc.setFontSize(20); doc.setTextColor(255, 255, 255)
-  doc.text('TEMPORARY REGISTRATION', W / 2, hY + 48, { align: 'center' })
+  // ── Page background ──
+  doc.setFillColor(...bg); doc.rect(0, 0, W, H, 'F')
 
-  // Gold accent
-  doc.setFillColor(200, 168, 75); doc.rect(16, hY + 60, W - 32, 4, 'F')
+  // ── Card ──
+  const cardX = 40, cardY = 30, cardW = W - 80, cardH = H - 60
+  doc.setFillColor(...cream)
+  doc.roundedRect(cardX, cardY, cardW, cardH, 12, 12, 'F')
 
-  // Sticker box — large month/year display
-  const sY = hY + 82
-  doc.setFillColor(245, 243, 239); doc.setDrawColor(200, 168, 75); doc.setLineWidth(2)
-  doc.roundedRect(W / 2 - 80, sY, 160, 80, 8, 8, 'FD')
-  doc.setFontSize(36); doc.setFont('helvetica', 'bold'); doc.setTextColor(15, 39, 68)
-  doc.text(expiryMo, W / 2, sY + 36, { align: 'center' })
-  doc.setFontSize(20); doc.setTextColor(138, 138, 130)
-  doc.text(expiryYr, W / 2, sY + 60, { align: 'center' })
-  doc.setFontSize(8); doc.setFont('helvetica', 'normal'); doc.setTextColor(138, 138, 130)
-  doc.text('VALID THROUGH', W / 2, sY + 74, { align: 'center' })
+  // ── Watermark "TEMPORARY" (diagonal, very faint) ──
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(90)
+  doc.setTextColor(0, 0, 0)
+  doc.saveGraphicsState()
+  // jsPDF doesn't expose alpha easily without GState; use very light gray instead
+  doc.setTextColor(235, 235, 230)
+  doc.text('TEMPORARY', W / 2, H / 2 + 20, { align: 'center', angle: 25 })
+  doc.restoreGraphicsState()
 
-  // Status strip
-  const stripY = sY + 96
-  doc.setFillColor(200, 168, 75); doc.rect(16, stripY, W - 32, 18, 'F')
-  doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor(15, 39, 68)
-  doc.text('TEMPORARY \u2014 VALID FOR 30 DAYS FROM DATE OF ISSUE', W / 2, stripY + 12, { align: 'center' })
+  // ── Header bar (green with gold accent strip on left) ──
+  const hY = cardY, hH = 68
+  // Gold accent (8px wide left strip inside card)
+  doc.setFillColor(...gold)
+  doc.rect(cardX, hY, 8, hH, 'F')
+  // Green header
+  doc.setFillColor(...green)
+  doc.rect(cardX + 8, hY, cardW - 8, hH, 'F')
+  // Round the top corners by drawing corner fills over bg
+  doc.setFillColor(...bg)
+  // top-left rounded corner cover
+  doc.triangle(cardX, cardY, cardX, cardY + 12, cardX + 12, cardY, 'F')
+  doc.triangle(cardX + cardW, cardY, cardX + cardW, cardY + 12, cardX + cardW - 12, cardY, 'F')
+  // Redraw card rounded top corners
+  doc.setFillColor(...gold); doc.circle(cardX + 8, cardY + 12, 0, 'F') // no-op placeholder
 
-  // Fields
-  const fieldX = 40, valueX = 170, bodyY = stripY + 36
-  const rowH = 36
-  const fields = [
-    { label: 'PLATE NUMBER', value: plate, mono: true, large: true },
-    { label: 'VEHICLE', value: vehicle },
-    { label: 'COLOR', value: color },
-    { label: 'VIN', value: vin, mono: true },
-    { label: 'OWNER', value: owner },
-    { label: 'ADDRESS', value: `${address1}\n${cityStateZip}` },
-    { label: 'ISSUED', value: issuedStr },
-    { label: 'EXPIRES', value: expiryStr },
-    { label: 'REFERENCE', value: ref, mono: true },
-  ]
-  let fy = bodyY
-  for (const f of fields) {
-    if (fy > bodyY) { doc.setDrawColor(230, 228, 222); doc.setLineWidth(0.4); doc.line(fieldX, fy, W - 40, fy) }
-    doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor(138, 138, 130); doc.text(f.label, fieldX, fy + 16)
-    if (f.large) { doc.setFontSize(18); doc.setFont('helvetica', 'bold') }
-    else if (f.mono) { doc.setFontSize(11); doc.setFont('courier', 'bold') }
-    else { doc.setFontSize(12); doc.setFont('helvetica', 'normal') }
-    doc.setTextColor(26, 26, 24)
-    if (f.value.includes('\n')) {
-      const lines = f.value.split('\n')
-      doc.text(lines[0], valueX, fy + 15); doc.text(lines[1], valueX, fy + 28); fy += rowH + 12
-    } else { doc.text(f.value, valueX, fy + 16); fy += rowH }
+  // Header text — left side
+  doc.setFontSize(9)
+  doc.setFont('helvetica', 'bold')
+  doc.setTextColor(...gold)
+  doc.text('CONTOSO COUNTY \u2014 DEPARTMENT OF MOTOR VEHICLES', cardX + 32, hY + 28)
+
+  doc.setFontSize(22)
+  doc.setFont('helvetica', 'bold')
+  doc.setTextColor(255, 255, 255)
+  doc.text('TEMPORARY REGISTRATION TAG', cardX + 32, hY + 54)
+
+  // Header badge — right side ("VALID FOR 30 DAYS")
+  const bW = 110, bH = 44, bX = cardX + cardW - bW - 24, bY = hY + 12
+  doc.setFillColor(40, 75, 55)  // slightly lighter green
+  doc.setDrawColor(...gold); doc.setLineWidth(1)
+  doc.roundedRect(bX, bY, bW, bH, 5, 5, 'FD')
+  doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor(...gold)
+  doc.text('VALID FOR', bX + bW / 2, bY + 15, { align: 'center' })
+  doc.setFontSize(18); doc.setTextColor(255, 255, 255)
+  doc.text('30 DAYS', bX + bW / 2, bY + 35, { align: 'center' })
+
+  // ── Gold status strip ──
+  const sY = hY + hH, sH = 22
+  doc.setFillColor(...gold); doc.rect(cardX, sY, cardW, sH, 'F')
+  doc.setFillColor(...green); doc.circle(cardX + 32, sY + sH / 2, 3, 'F')
+  doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor(...green)
+  doc.text('OFFICIAL DOCUMENT \u2014 DISPLAY ON VEHICLE UNTIL PLATES ARRIVE', cardX + 42, sY + sH / 2 + 3)
+
+  // ── Plate display section (green background with centered plate) ──
+  const pY = sY + sH, pH = 96
+  doc.setFillColor(...green); doc.rect(cardX, pY, cardW, pH, 'F')
+  // License plate
+  const plW = 260, plH = 76, plX = cardX + (cardW - plW) / 2, plY = pY + (pH - plH) / 2
+  doc.setFillColor(...cream)
+  doc.setDrawColor(...gold); doc.setLineWidth(3)
+  doc.roundedRect(plX, plY, plW, plH, 6, 6, 'FD')
+  // "CONTOSO" top
+  doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor(...green)
+  doc.text('CONTOSO', plX + plW / 2, plY + 14, { align: 'center' })
+  // Plate number (large)
+  doc.setFontSize(38); doc.setFont('helvetica', 'bold'); doc.setTextColor(...green)
+  doc.text(plate || 'ABC-1234', plX + plW / 2, plY + 50, { align: 'center' })
+  // "REGISTERED PLATE" bottom
+  doc.setFontSize(7); doc.setFont('helvetica', 'bold'); doc.setTextColor(90, 122, 101)
+  doc.text('REGISTERED PLATE', plX + plW / 2, plY + 68, { align: 'center' })
+
+  // ── Body fields (two columns) ──
+  const fieldsY = pY + pH + 18
+  const col1X = cardX + 32, col2X = cardX + cardW / 2 + 10
+  const labelToValue = 14
+  const rowH = 46
+
+  const drawField = (x: number, y: number, label: string, value: string, opts?: { mono?: boolean; large?: boolean }) => {
+    doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor(...textMuted)
+    doc.text(label.toUpperCase(), x, y)
+    if (opts?.large) {
+      doc.setFontSize(15); doc.setFont('helvetica', 'bold')
+    } else if (opts?.mono) {
+      doc.setFontSize(12); doc.setFont('courier', 'bold')
+    } else {
+      doc.setFontSize(12); doc.setFont('helvetica', 'normal')
+    }
+    doc.setTextColor(...textDark)
+    doc.text(value || '\u2014', x, y + labelToValue)
+    // divider under each field
+    doc.setDrawColor(...divider); doc.setLineWidth(0.5)
+    doc.line(x, y + labelToValue + 14, x + (cardW / 2) - 56, y + labelToValue + 14)
   }
 
-  // Footer
-  const footerY = H - 56
-  doc.setDrawColor(220, 218, 212); doc.setLineWidth(0.5); doc.line(40, footerY, W - 40, footerY)
-  doc.setFontSize(8); doc.setFont('helvetica', 'normal'); doc.setTextColor(138, 138, 130)
-  doc.text('This temporary registration is valid for 30 days from the date of issue.', W / 2, footerY + 16, { align: 'center' })
-  doc.text('Must be displayed in the rear window of the vehicle at all times.', W / 2, footerY + 28, { align: 'center' })
+  // Row 1
+  drawField(col1X, fieldsY, 'Registered Owner', owner, { large: true })
+  drawField(col2X, fieldsY, 'Transaction No.', ref, { mono: true })
+  // Row 2
+  drawField(col1X, fieldsY + rowH, 'Year / Make / Model', vehicle)
+  drawField(col2X, fieldsY + rowH, 'VIN', vin, { mono: true })
+  // Row 3 (no divider lines for the last row — handled below)
+  drawField(col1X, fieldsY + rowH * 2, 'Issued', issuedStr)
+  drawField(col2X, fieldsY + rowH * 2, 'Valid Through', expiryStr)
 
-  // Barcode
-  const bcX = W / 2 - 30, bcY = footerY + 34
-  const bars = [2,1,3,1,2,1,1,2,3,1,2,1,1,3,2], barHt = [16,12,16,10,16,14,16,11,16,12,16,10,16,14,16]
-  let bcOff = bcX; doc.setFillColor(26, 26, 24)
-  for (let i = 0; i < bars.length; i++) { doc.rect(bcOff, bcY + (16 - barHt[i]), bars[i], barHt[i], 'F'); bcOff += bars[i] + 2 }
+  // ── Footer ──
+  const fY = cardY + cardH - 58
+  doc.setDrawColor(...divider); doc.setLineWidth(0.5)
+  doc.line(cardX + 32, fY, cardX + cardW - 32, fY)
+
+  // Footer note (left)
+  doc.setFontSize(9); doc.setFont('helvetica', 'normal'); doc.setTextColor(...textMuted)
+  doc.text(
+    'This tag must be displayed in the rear window until permanent plates arrive.',
+    cardX + 32, fY + 18
+  )
+  doc.text(
+    'Permanent registration will be mailed within 7\u201310 business days.',
+    cardX + 32, fY + 32
+  )
+
+  // Barcode (right)
+  const bars = [2,1,3,1,2,1,1,2,3,1,2,1,1,3,2,1,1,2,3,1]
+  const barHts = [100,80,100,60,100,90,100,70,100,80,100,50,100,90,100,65,100,80,100,100]
+  const bcH = 26
+  const bcTotalW = bars.reduce((a, b) => a + b + 2, 0)
+  const bcX = cardX + cardW - 32 - bcTotalW
+  const bcY = fY + 12
+  doc.setFillColor(...textDark)
+  let off = bcX
+  for (let i = 0; i < bars.length; i++) {
+    const h = (barHts[i] / 100) * bcH
+    doc.rect(off, bcY + (bcH - h), bars[i], h, 'F')
+    off += bars[i] + 2
+  }
+  doc.setFontSize(7); doc.setFont('courier', 'normal'); doc.setTextColor(...textMuted)
+  doc.text(`${plate} \u00B7 ${ref}`, cardX + cardW - 32, bcY + bcH + 10, { align: 'right' })
 
   doc.save(`Temp-Tag-${plate}-${ref}.pdf`)
 }

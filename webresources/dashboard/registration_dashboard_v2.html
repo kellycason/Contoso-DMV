@@ -16,6 +16,7 @@
   --warning: #ca5010;
   --danger: #d13438;
   --amber: #986f0b;
+  --purple: #8764b8;
   --shadow: 0 1.6px 3.6px rgba(0,0,0,.13), 0 .3px .9px rgba(0,0,0,.1);
 }
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -26,7 +27,6 @@ body {
   overflow-y: auto;
 }
 
-/* ── Loading ── */
 #loading {
   display: flex; align-items: center; justify-content: center;
   height: 100%; gap: 12px; color: var(--text2);
@@ -38,10 +38,8 @@ body {
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* ── Dashboard ── */
 #dashboard { display: none; padding: 20px 24px 32px; max-width: 1400px; margin: 0 auto; }
 
-/* ── Header ── */
 .dash-header {
   display: flex; align-items: center; justify-content: space-between;
   margin-bottom: 20px;
@@ -55,7 +53,7 @@ body {
 }
 .refresh-btn:hover { background: #f3f2f1; border-color: var(--primary); }
 
-/* ── KPI Cards ── */
+/* KPI Cards */
 .kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
 .kpi-card {
   background: var(--card); border-radius: 6px; padding: 18px 20px;
@@ -66,16 +64,16 @@ body {
 .kpi-label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; color: var(--text2); margin-bottom: 4px; }
 .kpi-value { font-size: 32px; font-weight: 700; line-height: 1.1; }
 .kpi-sub { font-size: 12px; color: var(--text2); margin-top: 4px; }
-.kpi-card.pending { border-left-color: var(--warning); }
-.kpi-card.pending .kpi-value { color: var(--warning); }
-.kpi-card.unpaid { border-left-color: var(--danger); }
-.kpi-card.unpaid .kpi-value { color: var(--danger); }
-.kpi-card.expiring { border-left-color: var(--amber); }
-.kpi-card.expiring .kpi-value { color: var(--amber); }
-.kpi-card.attention { border-left-color: var(--primary); }
-.kpi-card.attention .kpi-value { color: var(--primary); }
+.kpi-card.queue { border-left-color: var(--warning); }
+.kpi-card.queue .kpi-value { color: var(--warning); }
+.kpi-card.review { border-left-color: var(--purple); }
+.kpi-card.review .kpi-value { color: var(--purple); }
+.kpi-card.approved { border-left-color: var(--success); }
+.kpi-card.approved .kpi-value { color: var(--success); }
+.kpi-card.denied { border-left-color: var(--danger); }
+.kpi-card.denied .kpi-value { color: var(--danger); }
 
-/* ── Section ── */
+/* Section */
 .section {
   background: var(--card); border-radius: 6px; box-shadow: var(--shadow);
   margin-bottom: 20px; overflow: hidden;
@@ -89,8 +87,12 @@ body {
   background: #f3f2f1; border-radius: 10px; padding: 2px 10px;
   font-size: 12px; font-weight: 600; color: var(--text2);
 }
+.section-header .badge-urgent {
+  background: #fde7e9; color: #a80000; border-radius: 10px; padding: 2px 10px;
+  font-size: 11px; font-weight: 600;
+}
 
-/* ── Tables ── */
+/* Tables */
 .data-table { width: 100%; border-collapse: collapse; }
 .data-table th {
   text-align: left; padding: 10px 16px; font-size: 12px; font-weight: 600;
@@ -101,16 +103,24 @@ body {
 .data-table tr.clickable { cursor: pointer; }
 .data-table tr.clickable:hover td { background: #f3f2f1; }
 .data-table .mono { font-family: 'Cascadia Code', 'Consolas', monospace; font-size: 12px; }
-.data-table .age-badge {
+.data-table .type-badge {
   display: inline-block; padding: 2px 8px; border-radius: 10px;
   font-size: 11px; font-weight: 600;
 }
+.badge-license { background: #e8f4fd; color: #0063b1; }
+.badge-reg { background: #f3e8fd; color: #5c2d91; }
+.age-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
 .age-new { background: #fff4ce; color: #986f0b; }
 .age-old { background: #fde7e9; color: #a80000; }
+.status-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+.status-submitted { background: #fff4ce; color: #986f0b; }
+.status-review { background: #e8e0f4; color: #5c2d91; }
+.status-approved { background: #dff6dd; color: #107c10; }
+.status-denied { background: #fde7e9; color: #a80000; }
 .empty-state { padding: 32px 20px; text-align: center; color: var(--text2); }
 .empty-state .check { font-size: 28px; margin-bottom: 8px; }
 
-/* ── Charts Row ── */
+/* Charts Row */
 .charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
 .chart-container { display: flex; align-items: center; gap: 24px; padding: 20px; }
 .chart-svg { flex-shrink: 0; }
@@ -119,12 +129,25 @@ body {
   display: flex; align-items: center; gap: 8px;
   padding: 4px 0; font-size: 13px;
 }
-.chart-legend .dot {
-  width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
-}
+.chart-legend .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
 .chart-legend .legend-count { font-weight: 600; margin-left: auto; min-width: 24px; text-align: right; }
 
-/* ── Responsive ── */
+/* Recent activity */
+.activity-list { padding: 12px 20px; }
+.activity-item {
+  display: flex; align-items: center; gap: 12px; padding: 8px 0;
+  border-bottom: 1px solid #f3f2f1; font-size: 13px;
+}
+.activity-item:last-child { border-bottom: none; }
+.activity-icon {
+  width: 28px; height: 28px; border-radius: 50%; display: flex;
+  align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0;
+}
+.activity-icon.approved { background: #dff6dd; color: #107c10; }
+.activity-icon.denied { background: #fde7e9; color: #d13438; }
+.activity-icon.submitted { background: #fff4ce; color: #986f0b; }
+.activity-time { margin-left: auto; font-size: 11px; color: var(--text2); white-space: nowrap; }
+
 @media (max-width: 900px) {
   .kpi-row { grid-template-columns: repeat(2, 1fr); }
   .charts-row { grid-template-columns: 1fr; }
@@ -141,7 +164,7 @@ body {
 
 <div id="dashboard">
   <div class="dash-header">
-    <h1>DMV Operations</h1>
+    <h1>DMV Operations Dashboard</h1>
     <div class="dash-header-right">
       <span id="updated"></span>
       <button class="refresh-btn" id="refresh-btn">&#8635; Refresh</button>
@@ -150,79 +173,89 @@ body {
 
   <!-- KPI Cards -->
   <div class="kpi-row">
-    <div class="kpi-card pending" id="kpi-queue" title="Click to open submitted renewals">
+    <div class="kpi-card queue" id="kpi-queue" title="New requests awaiting review">
       <div class="kpi-label">Awaiting Review</div>
       <div class="kpi-value" id="kpi-queue-val">&mdash;</div>
-      <div class="kpi-sub" id="kpi-queue-sub">Submitted requests in queue</div>
+      <div class="kpi-sub" id="kpi-queue-sub">Submitted renewals in queue</div>
     </div>
-    <div class="kpi-card unpaid" id="kpi-review" title="Click to open renewals under review">
+    <div class="kpi-card review" id="kpi-review" title="Requests currently under review">
       <div class="kpi-label">Under Review</div>
       <div class="kpi-value" id="kpi-review-val">&mdash;</div>
-      <div class="kpi-sub" id="kpi-review-sub">Being processed</div>
+      <div class="kpi-sub">Being processed by agents</div>
     </div>
-    <div class="kpi-card expiring" id="kpi-approved" title="Approved this month">
-      <div class="kpi-label">Approved This Month</div>
+    <div class="kpi-card approved" id="kpi-approved" title="Approved this month">
+      <div class="kpi-label">Approved (This Month)</div>
       <div class="kpi-value" id="kpi-approved-val">&mdash;</div>
       <div class="kpi-sub" id="kpi-approved-sub">Completed renewals</div>
     </div>
-    <div class="kpi-card attention" id="kpi-denied" title="Denied this month">
-      <div class="kpi-label">Denied This Month</div>
+    <div class="kpi-card denied" id="kpi-denied" title="Denied this month">
+      <div class="kpi-label">Denied (This Month)</div>
       <div class="kpi-value" id="kpi-denied-val">&mdash;</div>
       <div class="kpi-sub" id="kpi-denied-sub">Rejected requests</div>
     </div>
   </div>
 
-  <!-- License Renewals Queue -->
-  <div class="section" id="section-license">
+  <!-- Action Queue Table -->
+  <div class="section" id="section-queue">
     <div class="section-header">
-      License Renewals &mdash; Awaiting Action <span class="count" id="license-count">0</span>
+      Renewal Requests Awaiting Action <span class="count" id="queue-count">0</span>
     </div>
-    <div id="license-body"></div>
-  </div>
-
-  <!-- Registration Renewals Queue -->
-  <div class="section" id="section-reg">
-    <div class="section-header">
-      Registration Renewals &mdash; Awaiting Action <span class="count" id="reg-count">0</span>
-    </div>
-    <div id="reg-body"></div>
+    <div id="queue-body"></div>
   </div>
 
   <!-- Charts -->
   <div class="charts-row">
     <div class="section">
-      <div class="section-header">License Renewal Status</div>
+      <div class="section-header">License Renewals by Status</div>
       <div class="chart-container" id="chart-license"></div>
     </div>
     <div class="section">
-      <div class="section-header">Registration Renewal Status</div>
+      <div class="section-header">Registration Renewals by Status</div>
       <div class="chart-container" id="chart-reg"></div>
     </div>
+  </div>
+
+  <!-- Recent Completions -->
+  <div class="section" id="section-recent">
+    <div class="section-header">
+      Recent Decisions <span class="count" id="recent-count">0</span>
+    </div>
+    <div class="activity-list" id="recent-body"></div>
   </div>
 </div>
 
 <script>
 /* ─────────────────────────────────────────────────────
-   DMV Operations Dashboard
-   Focused on renewal workflow throughput:
-   - What needs action (queue)
-   - What's in progress
-   - What's been completed / denied
-   Data sources: dmv_licenserenewal, dmv_registrationrenewal
+   DMV Operations Dashboard v2
+   Focused on renewal request workflow:
+   - What's in the queue (needs action)
+   - What's being worked on
+   - What's been completed
+   Pulls from: dmv_licenserenewal, dmv_registrationrenewal
    ───────────────────────────────────────────────────── */
 
 // Renewal statuses: 100000000=Submitted, 100000001=Under Review, 100000002=Approved, 100000003=Denied, 100000004=Cancelled
-const STATUS_COLORS = {
-  100000000: { label: 'Submitted',    color: '#ca5010' },
-  100000001: { label: 'Under Review', color: '#8764b8' },
-  100000002: { label: 'Approved',     color: '#107c10' },
-  100000003: { label: 'Denied',       color: '#d13438' },
-  100000004: { label: 'Cancelled',    color: '#a19f9d' }
+const RENEWAL_STATUS = {
+  100000000: { label: 'Submitted',    color: '#ca5010', cssClass: 'status-submitted' },
+  100000001: { label: 'Under Review', color: '#8764b8', cssClass: 'status-review' },
+  100000002: { label: 'Approved',     color: '#107c10', cssClass: 'status-approved' },
+  100000003: { label: 'Denied',       color: '#d13438', cssClass: 'status-denied' },
+  100000004: { label: 'Cancelled',    color: '#a19f9d', cssClass: '' }
 };
 
 const fmt = {
   date: (v) => v ? new Date(v).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '\u2014',
   shortDate: (v) => v ? new Date(v).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '\u2014',
+  time: (v) => v ? new Date(v).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : '',
+  relativeTime: (v) => {
+    if (!v) return '';
+    const mins = Math.floor((Date.now() - new Date(v).getTime()) / 60000);
+    if (mins < 60) return mins + 'm ago';
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return hrs + 'h ago';
+    const days = Math.floor(hrs / 24);
+    return days + 'd ago';
+  },
   ageDays: (v) => {
     if (!v) return 0;
     return Math.max(0, Math.floor((Date.now() - new Date(v).getTime()) / 86400000));
@@ -236,7 +269,6 @@ function esc(str) {
   return d.innerHTML;
 }
 
-// ── Xrm Context ──
 function getXrm() {
   return new Promise((resolve, reject) => {
     let attempts = 0;
@@ -250,96 +282,104 @@ function getXrm() {
   });
 }
 
-// ── Data Fetching ──
 async function fetchAll(Xrm) {
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
 
-  const [licQueue, licReview, licApproved, licDenied, licAll,
-         regQueue, regReview, regApproved, regDenied, regAll] =
-    await Promise.all([
-      // License renewal queues
-      Xrm.WebApi.retrieveMultipleRecords('dmv_licenserenewal',
-        '?$filter=dmv_renewalstatus eq 100000000' +
-        '&$select=dmv_renewalid,dmv_firstname,dmv_lastname,dmv_licensenumber,dmv_submitteddate,createdon' +
-        '&$orderby=createdon asc&$top=50'),
-      Xrm.WebApi.retrieveMultipleRecords('dmv_licenserenewal',
-        '?$filter=dmv_renewalstatus eq 100000001&$select=dmv_renewalid&$top=100'),
-      Xrm.WebApi.retrieveMultipleRecords('dmv_licenserenewal',
-        '?$filter=dmv_renewalstatus eq 100000002 and dmv_approveddate ge ' + monthStart +
-        '&$select=dmv_renewalid&$top=200'),
-      Xrm.WebApi.retrieveMultipleRecords('dmv_licenserenewal',
-        '?$filter=dmv_renewalstatus eq 100000003 and createdon ge ' + monthStart +
-        '&$select=dmv_renewalid&$top=200'),
-      Xrm.WebApi.retrieveMultipleRecords('dmv_licenserenewal',
-        '?$select=dmv_renewalstatus'),
+  const [licSubmitted, licReview, licApprovedMonth, licDeniedMonth, licAll,
+         regSubmitted, regReview, regApprovedMonth, regDeniedMonth, regAll,
+         licRecent, regRecent] = await Promise.all([
+    // License renewals by status
+    Xrm.WebApi.retrieveMultipleRecords('dmv_licenserenewal',
+      '?$filter=dmv_renewalstatus eq 100000000&$select=dmv_renewalid,dmv_firstname,dmv_lastname,dmv_licensenumber,dmv_submitteddate,createdon&$orderby=createdon asc&$top=50'),
+    Xrm.WebApi.retrieveMultipleRecords('dmv_licenserenewal',
+      '?$filter=dmv_renewalstatus eq 100000001&$select=dmv_renewalid,dmv_firstname,dmv_lastname,createdon&$top=50'),
+    Xrm.WebApi.retrieveMultipleRecords('dmv_licenserenewal',
+      '?$filter=dmv_renewalstatus eq 100000002 and dmv_approveddate ge ' + monthStart + '&$select=dmv_renewalid&$top=200'),
+    Xrm.WebApi.retrieveMultipleRecords('dmv_licenserenewal',
+      '?$filter=dmv_renewalstatus eq 100000003 and createdon ge ' + monthStart + '&$select=dmv_renewalid&$top=200'),
+    Xrm.WebApi.retrieveMultipleRecords('dmv_licenserenewal',
+      '?$select=dmv_renewalstatus'),
 
-      // Registration renewal queues
-      Xrm.WebApi.retrieveMultipleRecords('dmv_registrationrenewal',
-        '?$filter=dmv_renewalstatus eq 100000000' +
-        '&$select=dmv_renewalid,dmv_firstname,dmv_lastname,dmv_platenumber,dmv_vehiclemake,dmv_vehiclemodel,dmv_submitteddate,createdon' +
-        '&$orderby=createdon asc&$top=50'),
-      Xrm.WebApi.retrieveMultipleRecords('dmv_registrationrenewal',
-        '?$filter=dmv_renewalstatus eq 100000001&$select=dmv_renewalid&$top=100'),
-      Xrm.WebApi.retrieveMultipleRecords('dmv_registrationrenewal',
-        '?$filter=dmv_renewalstatus eq 100000002 and dmv_approveddate ge ' + monthStart +
-        '&$select=dmv_renewalid&$top=200'),
-      Xrm.WebApi.retrieveMultipleRecords('dmv_registrationrenewal',
-        '?$filter=dmv_renewalstatus eq 100000003 and createdon ge ' + monthStart +
-        '&$select=dmv_renewalid&$top=200'),
-      Xrm.WebApi.retrieveMultipleRecords('dmv_registrationrenewal',
-        '?$select=dmv_renewalstatus')
-    ]);
+    // Registration renewals by status
+    Xrm.WebApi.retrieveMultipleRecords('dmv_registrationrenewal',
+      '?$filter=dmv_renewalstatus eq 100000000&$select=dmv_renewalid,dmv_firstname,dmv_lastname,dmv_platenumber,dmv_submitteddate,createdon&$orderby=createdon asc&$top=50'),
+    Xrm.WebApi.retrieveMultipleRecords('dmv_registrationrenewal',
+      '?$filter=dmv_renewalstatus eq 100000001&$select=dmv_renewalid,dmv_firstname,dmv_lastname,createdon&$top=50'),
+    Xrm.WebApi.retrieveMultipleRecords('dmv_registrationrenewal',
+      '?$filter=dmv_renewalstatus eq 100000002 and dmv_approveddate ge ' + monthStart + '&$select=dmv_renewalid&$top=200'),
+    Xrm.WebApi.retrieveMultipleRecords('dmv_registrationrenewal',
+      '?$filter=dmv_renewalstatus eq 100000003 and createdon ge ' + monthStart + '&$select=dmv_renewalid&$top=200'),
+    Xrm.WebApi.retrieveMultipleRecords('dmv_registrationrenewal',
+      '?$select=dmv_renewalstatus'),
 
-  return { licQueue, licReview, licApproved, licDenied, licAll,
-           regQueue, regReview, regApproved, regDenied, regAll };
+    // Recent decisions (approved/denied, last 10 each)
+    Xrm.WebApi.retrieveMultipleRecords('dmv_licenserenewal',
+      '?$filter=dmv_renewalstatus eq 100000002 or dmv_renewalstatus eq 100000003&$select=dmv_renewalid,dmv_renewalstatus,dmv_firstname,dmv_lastname,dmv_approveddate,modifiedon&$orderby=modifiedon desc&$top=10'),
+    Xrm.WebApi.retrieveMultipleRecords('dmv_registrationrenewal',
+      '?$filter=dmv_renewalstatus eq 100000002 or dmv_renewalstatus eq 100000003&$select=dmv_renewalid,dmv_renewalstatus,dmv_firstname,dmv_lastname,dmv_approveddate,modifiedon&$orderby=modifiedon desc&$top=10')
+  ]);
+
+  return {
+    licSubmitted, licReview, licApprovedMonth, licDeniedMonth, licAll,
+    regSubmitted, regReview, regApprovedMonth, regDeniedMonth, regAll,
+    licRecent, regRecent
+  };
 }
 
-// ── Rendering ──
 function renderKPIs(data) {
-  const queueCount = data.licQueue.entities.length + data.regQueue.entities.length;
+  const queueCount = data.licSubmitted.entities.length + data.regSubmitted.entities.length;
   const reviewCount = data.licReview.entities.length + data.regReview.entities.length;
-  const approvedCount = data.licApproved.entities.length + data.regApproved.entities.length;
-  const deniedCount = data.licDenied.entities.length + data.regDenied.entities.length;
+  const approvedCount = data.licApprovedMonth.entities.length + data.regApprovedMonth.entities.length;
+  const deniedCount = data.licDeniedMonth.entities.length + data.regDeniedMonth.entities.length;
 
   document.getElementById('kpi-queue-val').textContent = queueCount;
   document.getElementById('kpi-queue-sub').textContent =
-    queueCount === 0 ? 'All clear \u2014 queue is empty' : queueCount + ' request' + (queueCount !== 1 ? 's' : '') + ' waiting';
+    queueCount === 0 ? 'Queue is clear!' : queueCount + ' request' + (queueCount !== 1 ? 's' : '') + ' waiting';
 
   document.getElementById('kpi-review-val').textContent = reviewCount;
-  document.getElementById('kpi-review-sub').textContent =
-    reviewCount === 0 ? 'No active reviews' : 'Being processed by agents';
-
   document.getElementById('kpi-approved-val').textContent = approvedCount;
   document.getElementById('kpi-approved-sub').textContent = approvedCount + ' completed this month';
-
   document.getElementById('kpi-denied-val').textContent = deniedCount;
   document.getElementById('kpi-denied-sub').textContent = deniedCount + ' rejected this month';
 }
 
-function renderLicenseTable(data) {
-  const rows = data.licQueue.entities;
-  const container = document.getElementById('license-body');
-  document.getElementById('license-count').textContent = rows.length;
+function renderQueueTable(data) {
+  const licRows = data.licSubmitted.entities.map(r => ({
+    type: 'License', entity: 'dmv_licenserenewal', id: r.dmv_licenserenewalid,
+    renewalId: r.dmv_renewalid, name: (r.dmv_firstname || '') + ' ' + (r.dmv_lastname || ''),
+    identifier: r.dmv_licensenumber || '\u2014', created: r.createdon, submitted: r.dmv_submitteddate
+  }));
+  const regRows = data.regSubmitted.entities.map(r => ({
+    type: 'Registration', entity: 'dmv_registrationrenewal', id: r.dmv_registrationrenewalid,
+    renewalId: r.dmv_renewalid, name: (r.dmv_firstname || '') + ' ' + (r.dmv_lastname || ''),
+    identifier: r.dmv_platenumber || '\u2014', created: r.createdon, submitted: r.dmv_submitteddate
+  }));
 
-  if (rows.length === 0) {
-    container.innerHTML = '<div class="empty-state"><div class="check">&#10003;</div>No license renewals pending \u2014 all caught up!</div>';
+  const allRows = [...licRows, ...regRows].sort((a, b) => new Date(a.created) - new Date(b.created));
+  const container = document.getElementById('queue-body');
+  document.getElementById('queue-count').textContent = allRows.length;
+
+  if (allRows.length === 0) {
+    container.innerHTML = '<div class="empty-state"><div class="check">&#10003;</div>No pending requests \u2014 all caught up!</div>';
     return;
   }
 
   let html = '<table class="data-table"><thead><tr>' +
-    '<th>Renewal ID</th><th>Citizen</th><th>License #</th><th>Submitted</th><th>Wait Time</th>' +
+    '<th>Type</th><th>Renewal ID</th><th>Citizen</th><th>License / Plate</th><th>Submitted</th><th>Wait Time</th>' +
     '</tr></thead><tbody>';
 
-  rows.forEach(r => {
-    const age = fmt.ageDays(r.createdon);
+  allRows.forEach(r => {
+    const age = fmt.ageDays(r.created);
     const ageClass = age > 3 ? 'age-old' : 'age-new';
+    const typeClass = r.type === 'License' ? 'badge-license' : 'badge-reg';
 
-    html += '<tr class="clickable" data-entity="dmv_licenserenewal" data-id="' + r.dmv_licenserenewalid + '">' +
-      '<td class="mono">' + esc(r.dmv_renewalid) + '</td>' +
-      '<td>' + esc((r.dmv_firstname || '') + ' ' + (r.dmv_lastname || '')) + '</td>' +
-      '<td>' + esc(r.dmv_licensenumber || '\u2014') + '</td>' +
-      '<td>' + fmt.shortDate(r.dmv_submitteddate || r.createdon) + '</td>' +
+    html += '<tr class="clickable" data-entity="' + r.entity + '" data-id="' + r.id + '">' +
+      '<td><span class="type-badge ' + typeClass + '">' + r.type + '</span></td>' +
+      '<td class="mono">' + esc(r.renewalId) + '</td>' +
+      '<td>' + esc(r.name) + '</td>' +
+      '<td>' + esc(r.identifier) + '</td>' +
+      '<td>' + fmt.shortDate(r.submitted || r.created) + '</td>' +
       '<td><span class="age-badge ' + ageClass + '">' + age + 'd</span></td>' +
       '</tr>';
   });
@@ -348,40 +388,6 @@ function renderLicenseTable(data) {
   container.innerHTML = html;
 }
 
-function renderRegTable(data) {
-  const rows = data.regQueue.entities;
-  const container = document.getElementById('reg-body');
-  document.getElementById('reg-count').textContent = rows.length;
-
-  if (rows.length === 0) {
-    container.innerHTML = '<div class="empty-state"><div class="check">&#10003;</div>No registration renewals pending \u2014 all caught up!</div>';
-    return;
-  }
-
-  let html = '<table class="data-table"><thead><tr>' +
-    '<th>Renewal ID</th><th>Citizen</th><th>Plate</th><th>Vehicle</th><th>Submitted</th><th>Wait Time</th>' +
-    '</tr></thead><tbody>';
-
-  rows.forEach(r => {
-    const age = fmt.ageDays(r.createdon);
-    const ageClass = age > 3 ? 'age-old' : 'age-new';
-    const vehicle = [r.dmv_vehiclemake, r.dmv_vehiclemodel].filter(Boolean).join(' ') || '\u2014';
-
-    html += '<tr class="clickable" data-entity="dmv_registrationrenewal" data-id="' + r.dmv_registrationrenewalid + '">' +
-      '<td class="mono">' + esc(r.dmv_renewalid) + '</td>' +
-      '<td>' + esc((r.dmv_firstname || '') + ' ' + (r.dmv_lastname || '')) + '</td>' +
-      '<td class="mono">' + esc(r.dmv_platenumber || '\u2014') + '</td>' +
-      '<td>' + esc(vehicle) + '</td>' +
-      '<td>' + fmt.shortDate(r.dmv_submitteddate || r.createdon) + '</td>' +
-      '<td><span class="age-badge ' + ageClass + '">' + age + 'd</span></td>' +
-      '</tr>';
-  });
-
-  html += '</tbody></table>';
-  container.innerHTML = html;
-}
-
-// ── SVG Donut Chart ──
 function renderDonut(containerId, dataMap, colorMap) {
   const container = document.getElementById(containerId);
   const segments = [];
@@ -398,11 +404,7 @@ function renderDonut(containerId, dataMap, colorMap) {
     return;
   }
 
-  const size = 140;
-  const cx = size / 2;
-  const cy = size / 2;
-  const r = 50;
-  const sw = 18;
+  const size = 140, cx = size / 2, cy = size / 2, r = 50, sw = 18;
   const circ = 2 * Math.PI * r;
   const gap = 3;
 
@@ -416,12 +418,10 @@ function renderDonut(containerId, dataMap, colorMap) {
     const dashLen = Math.max(0, pct * circ - gap);
     const dashGap = circ - dashLen;
     const rotation = (offset / total) * 360 - 90;
-
     svg += '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" ' +
       'stroke="' + seg.color + '" stroke-width="' + sw + '" ' +
       'stroke-dasharray="' + dashLen.toFixed(1) + ' ' + dashGap.toFixed(1) + '" ' +
-      'stroke-linecap="round" ' +
-      'transform="rotate(' + rotation.toFixed(1) + ' ' + cx + ' ' + cy + ')" />';
+      'stroke-linecap="round" transform="rotate(' + rotation.toFixed(1) + ' ' + cx + ' ' + cy + ')" />';
     offset += seg.value;
   });
 
@@ -433,8 +433,7 @@ function renderDonut(containerId, dataMap, colorMap) {
   segments.forEach(seg => {
     if (seg.value === 0) return;
     legend += '<li><span class="dot" style="background:' + seg.color + '"></span>' +
-      '<span>' + seg.label + '</span>' +
-      '<span class="legend-count">' + seg.value + '</span></li>';
+      '<span>' + seg.label + '</span><span class="legend-count">' + seg.value + '</span></li>';
   });
   legend += '</ul>';
 
@@ -447,17 +446,59 @@ function renderCharts(data) {
     const s = e.dmv_renewalstatus;
     licCounts[s] = (licCounts[s] || 0) + 1;
   });
-  renderDonut('chart-license', licCounts, STATUS_COLORS);
+  renderDonut('chart-license', licCounts, RENEWAL_STATUS);
 
   const regCounts = {};
   data.regAll.entities.forEach(e => {
     const s = e.dmv_renewalstatus;
     regCounts[s] = (regCounts[s] || 0) + 1;
   });
-  renderDonut('chart-reg', regCounts, STATUS_COLORS);
+  renderDonut('chart-reg', regCounts, RENEWAL_STATUS);
 }
 
-// ── Navigation ──
+function renderRecentActivity(data) {
+  const licItems = data.licRecent.entities.map(r => ({
+    type: 'License', status: r.dmv_renewalstatus,
+    name: (r.dmv_firstname || '') + ' ' + (r.dmv_lastname || ''),
+    renewalId: r.dmv_renewalid, time: r.modifiedon || r.dmv_approveddate
+  }));
+  const regItems = data.regRecent.entities.map(r => ({
+    type: 'Registration', status: r.dmv_renewalstatus,
+    name: (r.dmv_firstname || '') + ' ' + (r.dmv_lastname || ''),
+    renewalId: r.dmv_renewalid, time: r.modifiedon || r.dmv_approveddate
+  }));
+
+  const all = [...licItems, ...regItems]
+    .sort((a, b) => new Date(b.time) - new Date(a.time))
+    .slice(0, 12);
+
+  document.getElementById('recent-count').textContent = all.length;
+  const container = document.getElementById('recent-body');
+
+  if (all.length === 0) {
+    container.innerHTML = '<div class="empty-state">No recent decisions</div>';
+    return;
+  }
+
+  let html = '';
+  all.forEach(item => {
+    const isApproved = item.status === 100000002;
+    const icon = isApproved ? '&#10003;' : '&#10007;';
+    const iconClass = isApproved ? 'approved' : 'denied';
+    const action = isApproved ? 'Approved' : 'Denied';
+
+    html += '<div class="activity-item">' +
+      '<div class="activity-icon ' + iconClass + '">' + icon + '</div>' +
+      '<div><strong>' + action + '</strong> ' + esc(item.type) + ' renewal for ' + esc(item.name) +
+      ' <span class="mono" style="color:var(--text2);font-size:11px">' + esc(item.renewalId) + '</span></div>' +
+      '<div class="activity-time">' + fmt.relativeTime(item.time) + '</div>' +
+      '</div>';
+  });
+
+  container.innerHTML = html;
+}
+
+// Navigation
 function openRecord(entityName, entityId) {
   try {
     const Xrm = window.parent.Xrm || window.Xrm;
@@ -476,13 +517,10 @@ function openEntityList(entityName) {
   } catch (e) { console.warn('Could not open entity list:', e); }
 }
 
-// ── Event Binding ──
 function bindEvents() {
   document.addEventListener('click', function(e) {
     const row = e.target.closest('tr.clickable');
-    if (row) {
-      openRecord(row.dataset.entity, row.dataset.id);
-    }
+    if (row) openRecord(row.dataset.entity, row.dataset.id);
   });
 
   document.getElementById('kpi-queue').addEventListener('click', function() {
@@ -499,16 +537,16 @@ function bindEvents() {
   });
 }
 
-// ── Main ──
+// Main
 (async function init() {
   try {
     const Xrm = await getXrm();
     const data = await fetchAll(Xrm);
 
     renderKPIs(data);
-    renderLicenseTable(data);
-    renderRegTable(data);
+    renderQueueTable(data);
     renderCharts(data);
+    renderRecentActivity(data);
     bindEvents();
 
     document.getElementById('loading').style.display = 'none';
@@ -516,21 +554,18 @@ function bindEvents() {
     document.getElementById('updated').textContent =
       'Updated ' + new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
 
-    // Refresh handler
     document.getElementById('refresh-btn').addEventListener('click', async function() {
       this.disabled = true;
       this.textContent = 'Loading\u2026';
       try {
         const fresh = await fetchAll(Xrm);
         renderKPIs(fresh);
-        renderLicenseTable(fresh);
-        renderRegTable(fresh);
+        renderQueueTable(fresh);
         renderCharts(fresh);
+        renderRecentActivity(fresh);
         document.getElementById('updated').textContent =
           'Updated ' + new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-      } catch (err) {
-        console.error('Refresh failed:', err);
-      }
+      } catch (err) { console.error('Refresh failed:', err); }
       this.disabled = false;
       this.textContent = '\u21BB Refresh';
     });
