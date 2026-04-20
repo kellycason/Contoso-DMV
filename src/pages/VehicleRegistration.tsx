@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { dvCreate, dvQuery, dvUpdate } from '../hooks/useDataverse'
 import { useAuth } from '../hooks/useAuth'
+import { useMyDMVData } from '../hooks/useMyDMVData'
 
 /* ── constants ── */
 const plateTypeMap: Record<string, number> = {
@@ -42,15 +43,46 @@ type TermRow = {
 }
 type VehicleWithReg = VehicleRow & { reg?: RegRow; term?: TermRow; daysLeft?: number }
 
+/* ── Renewal wizard steps ── */
+const RENEW_STEPS = ['Vehicle Info', 'Owner Details', 'Insurance', 'Pay Renewal Fee', 'Confirmation']
+
+interface RenewForm {
+  /* Step 1 – Vehicle (auto-filled) */
+  plateNumber: string; vin: string; year: string; make: string; model: string; color: string
+  /* Step 2 – Owner */
+  firstName: string; lastName: string; email: string; phone: string
+  address: string; city: string; state: string; zip: string
+  /* Step 3 – Insurance */
+  insurer: string; policyNumber: string; policyExp: string
+  /* Step 4 – Payment */
+  payMethod: string; cardName: string; cardNumber: string; cardExp: string; cardCvv: string
+}
+
+const DEMO_CARD = { cardName: 'Maria Jennings', cardNumber: '4111 1111 1111 1234', cardExp: '09 / 28', cardCvv: '427' }
+
+const RENEW_INIT: RenewForm = {
+  plateNumber: '', vin: '', year: '', make: '', model: '', color: '',
+  firstName: '', lastName: '', email: '', phone: '', address: '', city: '', state: 'CA', zip: '',
+  insurer: '', policyNumber: '', policyExp: '',
+  payMethod: 'credit', ...DEMO_CARD,
+}
+
 export default function VehicleRegistration() {
   useEffect(() => { document.title = 'Vehicle Registration — Contoso DMV' }, [])
-  const { userId, isAuthenticated } = useAuth()
+  const { userId, isAuthenticated, userName } = useAuth()
+  const dmv = useMyDMVData(userId)
 
   /* ── view state ── */
   const [view, setView] = useState<'list' | 'new' | 'renew' | 'success'>('list')
   const [vehicles, setVehicles] = useState<VehicleWithReg[]>([])
   const [loading, setLoading] = useState(true)
   const [renewTarget, setRenewTarget] = useState<VehicleWithReg | null>(null)
+
+  /* ── renewal wizard state ── */
+  const [rnStep, setRnStep] = useState(0)
+  const [rnForm, setRnForm] = useState<RenewForm>(RENEW_INIT)
+  const [rnAutofilled, setRnAutofilled] = useState(false)
+  const [rnRefNumber, setRnRefNumber] = useState('')
 
   /* ── form state (new registration) ── */
   const [submitting, setSubmitting] = useState(false)
@@ -169,51 +201,84 @@ export default function VehicleRegistration() {
     } finally { setSubmitting(false) }
   }
 
-  /* ── renewal ── */
+  /* ── autofill renewal form when target or profile changes ── */
+  useEffect(() => {
+    if (!renewTarget || rnAutofilled || dmv.loading) return
+    const parts = (userName ?? '').split(' ')
+    setRnForm(f => ({
+      ...f,
+      plateNumber: f.plateNumber || renewTarget.dmv_platenumber || '',
+      vin: f.vin || renewTarget.dmv_vin || '',
+      year: f.year || String(renewTarget.dmv_year || ''),
+      make: f.make || renewTarget.dmv_make || '',
+      model: f.model || renewTarget.dmv_model || '',
+      color: f.color || renewTarget.dmv_color || '',
+      firstName: f.firstName || parts[0] || '',
+      lastName: f.lastName || parts.slice(1).join(' ') || '',
+      email: f.email || dmv.citizen?.email || '',
+      phone: f.phone || dmv.citizen?.phone || '(555) 867-5309',
+      address: f.address || dmv.citizen?.address || '742 Evergreen Terrace',
+      city: f.city || 'Contoso', zip: f.zip || '90210',
+      insurer: f.insurer || renewTarget.dmv_insurancecarrier || 'Contoso Insurance',
+      policyNumber: f.policyNumber || renewTarget.dmv_insurancepolicy || 'POL-2024-88712',
+      policyExp: f.policyExp || '2027-06-30',
+    }))
+    setRnAutofilled(true)
+  }, [renewTarget, dmv.loading, userName])
+
+  const rnHandle = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
+    setRnForm(f => ({ ...f, [e.target.name]: e.target.value }))
+
+  /* ── renewal wizard submit ── */
   const handleRenew = async () => {
-    if (!renewTarget?.reg) return; setSubmitting(true); setSubmitError('')
+    setSubmitting(true); setSubmitError('')
     try {
-      const today = new Date()
-      const expDate = new Date(today); expDate.setFullYear(expDate.getFullYear() + 1)
-      const regId = renewTarget.reg.dmv_vehicleregistrationid
-
-      // 1. Create new term (Renewal)
-      const termNum = `TERM-${today.getFullYear()}-${String(Math.floor(Math.random() * 99999)).padStart(5, '0')}`
-      const termId = await dvCreate('dmv_registrationterms', {
-        dmv_termnumber: termNum,
-        dmv_termtype: 100000001,   // Renewal
-        dmv_termstatus: 100000001, // Pending
-        dmv_startdate: today.toISOString().split('T')[0] + 'T00:00:00Z',
-        dmv_enddate: expDate.toISOString().split('T')[0] + 'T00:00:00Z',
-        dmv_issuedate: today.toISOString().split('T')[0] + 'T00:00:00Z',
-        'dmv_vehicleregistrationid@odata.bind': `/dmv_vehicleregistrations(${regId})`,
+      const ref = `REGRN-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 9999)).padStart(4, '0')}`
+      const payConf = `PAY-${Date.now().toString(36).toUpperCase()}`
+      await dvCreate('dmv_registrationrenewals', {
+        dmv_renewalid: ref,
+        dmv_renewalstatus: 100000000, // Submitted
+        dmv_platenumber: rnForm.plateNumber,
+        dmv_vin: rnForm.vin,
+        dmv_vehicleyear: parseInt(rnForm.year) || 0,
+        dmv_vehiclemake: rnForm.make,
+        dmv_vehiclemodel: rnForm.model,
+        dmv_vehiclecolor: rnForm.color,
+        dmv_firstname: rnForm.firstName,
+        dmv_lastname: rnForm.lastName,
+        dmv_email: rnForm.email,
+        dmv_phone: rnForm.phone,
+        dmv_streetaddress: rnForm.address,
+        dmv_city: rnForm.city,
+        dmv_state: rnForm.state,
+        dmv_zipcode: rnForm.zip,
+        dmv_insurancecarrier: rnForm.insurer,
+        dmv_insurancepolicy: rnForm.policyNumber,
+        dmv_insuranceexpiration: rnForm.policyExp ? `${rnForm.policyExp}T00:00:00Z` : undefined,
+        dmv_renewalfee: 50.00,
+        dmv_paymentmethod: rnForm.payMethod === 'credit' ? 100000000 : rnForm.payMethod === 'debit' ? 100000001 : 100000002,
+        dmv_paymentconfirmation: payConf,
+        dmv_submitteddate: new Date().toISOString(),
+        dmv_channel: 100000000, // Online Portal
+        ...(userId ? { 'dmv_contactid@odata.bind': `/contacts(${userId})` } : {}),
+        ...(renewTarget?.dmv_vehicleid ? { 'dmv_vehicleid@odata.bind': `/dmv_vehicles(${renewTarget.dmv_vehicleid})` } : {}),
+        ...(renewTarget?.reg?.dmv_vehicleregistrationid ? { 'dmv_registrationid@odata.bind': `/dmv_vehicleregistrations(${renewTarget.reg.dmv_vehicleregistrationid})` } : {}),
       })
-
-      // 2. Create payment for the new term
-      const payRef = `PAY-${today.getFullYear()}-${String(Math.floor(Math.random() * 99999)).padStart(5, '0')}`
-      await dvCreate('dmv_registrationpayments', {
-        dmv_paymentref: payRef,
-        dmv_amount: 50.00, dmv_total: 50.00,
-        dmv_paymentstatus: 100000000, // Unpaid
-        'dmv_registrationtermid@odata.bind': `/dmv_registrationterms(${termId})`,
-      })
-
-      // 3. Mark old term as Expired (if exists)
-      if (renewTarget.term) {
-        await dvUpdate('dmv_registrationterms', renewTarget.term.dmv_registrationtermid, {
-          dmv_termstatus: 100000002, // Expired
-        })
+      // Also log transaction
+      if (userId) {
+        await dvCreate('dmv_transactionlogs', {
+          dmv_transactionid: `TXN-${Math.floor(Math.random() * 9000000 + 1000000)}`,
+          dmv_transactiontype: 100000001, // Registration Renewal
+          dmv_transactiondate: new Date().toISOString(),
+          dmv_status: 100000001, // Completed
+          dmv_channel: 100000000,
+          'dmv_contactid@odata.bind': `/contacts(${userId})`,
+        }).catch(() => {})
       }
-
-      // 4. Update parent: point to new term + mark active
-      await dvUpdate('dmv_vehicleregistrations', regId, {
-        'dmv_currenttermid@odata.bind': `/dmv_registrationterms(${termId})`,
-        dmv_regstatus: 100000000, // Active
-      })
-
-      setRefNumber(renewTarget.reg.dmv_registrationid); setView('success')
+      setRnRefNumber(ref)
+      setRnStep(4) // move to confirmation
     } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : 'Renewal failed.')
+      setSubmitError(err instanceof Error ? err.message : 'Submission failed.')
     } finally { setSubmitting(false) }
   }
 
@@ -390,40 +455,249 @@ export default function VehicleRegistration() {
             </>
           )}
 
-          {/* ══ RENEW VIEW ══ */}
+          {/* ══ RENEW VIEW — Multi-step wizard ══ */}
           {view === 'renew' && renewTarget && (
             <section>
-              <button className="btn btn-ghost" onClick={() => setView('list')} style={{ marginBottom: '16px' }}>← Back to My Vehicles</button>
-              <div style={vehicleCard}>
-                <h2 style={{ ...sectionH, marginBottom: '16px' }}>Renew Registration</h2>
-                <div style={{ background: 'var(--color-surface-alt)', borderRadius: 'var(--radius-md)', padding: '16px', marginBottom: '20px' }}>
-                  <h3 style={{ margin: 0, fontSize: '1rem', color: 'var(--color-primary)' }}>
-                    {renewTarget.dmv_year} {renewTarget.dmv_make} {renewTarget.dmv_model}
-                  </h3>
-                  <p style={{ margin: '4px 0 0', fontSize: '13px', color: 'var(--color-text-muted)' }}>
-                    VIN: <span className="mono">{renewTarget.dmv_vin}</span>
-                    {renewTarget.reg && <> &middot; Reg #: {renewTarget.reg.dmv_registrationid}</>}
-                    {renewTarget.term?.dmv_enddate && <> &middot; Current term expires: {new Date(renewTarget.term.dmv_enddate).toLocaleDateString()}</>}
+
+              {/* ── Circular stepper (matches License Renewal) ── */}
+              <div style={rnStepperWrap}>
+                {RENEW_STEPS.map((label, i) => (
+                  <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 0 }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', minWidth: '80px' }}>
+                      <div style={{
+                        width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: '13px', fontWeight: 700,
+                        background: i < rnStep ? 'var(--color-success)' : i === rnStep ? 'var(--color-accent)' : 'var(--color-surface-alt)',
+                        color: i <= rnStep ? '#fff' : 'var(--color-text-muted)',
+                        border: i === rnStep ? '2px solid var(--color-accent)' : i < rnStep ? '2px solid var(--color-success)' : '2px solid var(--color-border)',
+                        transition: 'all 0.3s ease',
+                      }}>
+                        {i < rnStep ? '✓' : i + 1}
+                      </div>
+                      <span style={{
+                        fontSize: '11px', fontWeight: i === rnStep ? 700 : 500, textAlign: 'center',
+                        color: i === rnStep ? 'var(--color-primary)' : 'var(--color-text-muted)',
+                      }}>{label}</span>
+                    </div>
+                    {i < RENEW_STEPS.length - 1 && (
+                      <div style={{
+                        height: 2, flex: 1, minWidth: 24,
+                        background: i < rnStep ? 'var(--color-success)' : 'var(--color-border)',
+                        margin: '0 4px', marginBottom: '22px',
+                        transition: 'background 0.3s ease',
+                      }} />
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* ── Step content card ── */}
+              <div className="card" style={{ padding: 'var(--space-6)', marginTop: 'var(--space-5)' }}>
+
+                {/* Step 0: Vehicle Info */}
+                {rnStep === 0 && (<>
+                  <h2 style={rnStepTitle}>Step 1: Vehicle Information</h2>
+                  <p style={rnStepDesc}>
+                    Confirm the details for the vehicle you'd like to renew. This information is pre-filled from your registration records.
                   </p>
-                </div>
-                <div style={{ fontSize: '14px', marginBottom: '20px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--color-border)' }}>
-                    <span>Registration Renewal Fee</span><strong>$50.00</strong>
+                  <div style={{ background: 'var(--color-surface-alt)', borderRadius: 'var(--radius-md)', padding: '16px 20px', marginBottom: 28 }}>
+                    <h3 style={{ margin: 0, fontSize: '1rem', color: 'var(--color-primary)' }}>
+                      {renewTarget.dmv_year} {renewTarget.dmv_make} {renewTarget.dmv_model}
+                    </h3>
+                    <p style={{ margin: '4px 0 0', fontSize: '13px', color: 'var(--color-text-muted)' }}>
+                      VIN: <span className="mono">{renewTarget.dmv_vin}</span>
+                      {renewTarget.reg && <> &middot; Reg #: {renewTarget.reg.dmv_registrationid}</>}
+                    </p>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--color-border)' }}>
-                    <span>New Expiration</span><strong>{new Date(Date.now() + 365 * 86400000).toLocaleDateString()}</strong>
+                  <div className="form-row">
+                    <div className="form-group"><label htmlFor="rn-plate">Plate Number *</label><input id="rn-plate" name="plateNumber" type="text" value={rnForm.plateNumber} onChange={rnHandle} required /></div>
+                    <div className="form-group"><label htmlFor="rn-vin">VIN</label><input id="rn-vin" name="vin" type="text" value={rnForm.vin} onChange={rnHandle} style={{ fontFamily: 'var(--font-mono)', letterSpacing: '0.05em' }} /></div>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', fontWeight: 600, fontSize: '15px' }}>
-                    <span>Total Due</span><span style={{ color: 'var(--color-primary)' }}>$50.00</span>
+                  <div className="form-row">
+                    <div className="form-group"><label htmlFor="rn-year">Year</label><input id="rn-year" name="year" type="text" value={rnForm.year} onChange={rnHandle} /></div>
+                    <div className="form-group"><label htmlFor="rn-make">Make</label><input id="rn-make" name="make" type="text" value={rnForm.make} onChange={rnHandle} /></div>
+                    <div className="form-group"><label htmlFor="rn-model">Model</label><input id="rn-model" name="model" type="text" value={rnForm.model} onChange={rnHandle} /></div>
+                    <div className="form-group"><label htmlFor="rn-color">Color</label><input id="rn-color" name="color" type="text" value={rnForm.color} onChange={rnHandle} /></div>
                   </div>
-                </div>
-                <div style={{ display: 'flex', gap: '12px' }}>
-                  <button className="btn btn-primary" onClick={handleRenew} disabled={submitting}>
-                    {submitting ? 'Processing...' : 'Confirm Renewal'}
-                  </button>
-                  <button className="btn btn-outline" onClick={() => setView('list')}>Cancel</button>
-                </div>
-                {submitError && <p style={{ color: 'var(--color-danger)', fontSize: '14px', marginTop: '12px' }}>{submitError}</p>}
+                </>)}
+
+                {/* Step 1: Owner Details */}
+                {rnStep === 1 && (<>
+                  <h2 style={rnStepTitle}>Step 2: Owner Details</h2>
+                  <p style={rnStepDesc}>
+                    Confirm your contact information. This will appear on your registration documents.
+                  </p>
+                  <div className="form-row">
+                    <div className="form-group"><label htmlFor="rn-fn">First Name *</label><input id="rn-fn" name="firstName" type="text" value={rnForm.firstName} onChange={rnHandle} required /></div>
+                    <div className="form-group"><label htmlFor="rn-ln">Last Name *</label><input id="rn-ln" name="lastName" type="text" value={rnForm.lastName} onChange={rnHandle} required /></div>
+                  </div>
+                  <div className="form-row">
+                    <div className="form-group"><label htmlFor="rn-email">Email</label><input id="rn-email" name="email" type="email" value={rnForm.email} onChange={rnHandle} /></div>
+                    <div className="form-group"><label htmlFor="rn-phone">Phone</label><input id="rn-phone" name="phone" type="tel" value={rnForm.phone} onChange={rnHandle} /></div>
+                  </div>
+                  <div className="form-group"><label htmlFor="rn-addr">Street Address</label><input id="rn-addr" name="address" type="text" value={rnForm.address} onChange={rnHandle} /></div>
+                  <div className="form-row" style={{ gridTemplateColumns: '1fr 80px 1fr' }}>
+                    <div className="form-group"><label htmlFor="rn-city">City</label><input id="rn-city" name="city" type="text" value={rnForm.city} onChange={rnHandle} /></div>
+                    <div className="form-group"><label htmlFor="rn-state">State</label><input id="rn-state" name="state" type="text" value={rnForm.state} onChange={rnHandle} maxLength={2} /></div>
+                    <div className="form-group"><label htmlFor="rn-zip">ZIP</label><input id="rn-zip" name="zip" type="text" value={rnForm.zip} onChange={rnHandle} /></div>
+                  </div>
+                </>)}
+
+                {/* Step 2: Insurance */}
+                {rnStep === 2 && (<>
+                  <h2 style={rnStepTitle}>Step 3: Insurance Verification</h2>
+                  <p style={rnStepDesc}>
+                    Your insurance must be current and valid for the full registration period.
+                  </p>
+                  <div className="form-row">
+                    <div className="form-group"><label htmlFor="rn-ins">Insurance Company *</label><input id="rn-ins" name="insurer" type="text" value={rnForm.insurer} onChange={rnHandle} required /></div>
+                    <div className="form-group"><label htmlFor="rn-pol">Policy Number *</label><input id="rn-pol" name="policyNumber" type="text" value={rnForm.policyNumber} onChange={rnHandle} required /></div>
+                  </div>
+                  <div className="form-group" style={{ maxWidth: '240px' }}>
+                    <label htmlFor="rn-pexp">Policy Expiration Date *</label>
+                    <input id="rn-pexp" name="policyExp" type="date" value={rnForm.policyExp} onChange={rnHandle} required />
+                  </div>
+                </>)}
+
+                {/* Step 3: Payment */}
+                {rnStep === 3 && (<>
+                  <h2 style={rnStepTitle}>Step 4: Pay Renewal Fee</h2>
+                  <p style={rnStepDesc}>
+                    The renewal fee is <strong>$50.00</strong>. Payment is processed securely.
+                    Your temporary registration tag will be available once your renewal is approved.
+                  </p>
+
+                  <div style={rnFeeSummary}>
+                    <div style={rnFeeRow}><span>Registration renewal fee</span><span>$50.00</span></div>
+                    <div style={rnFeeRow}><span>Technology fee</span><span>$0.00</span></div>
+                    <div style={{ ...rnFeeRow, fontWeight: 700, borderTop: '2px solid var(--color-border)', paddingTop: '12px', marginTop: '8px' }}>
+                      <span>Total due</span><span style={{ fontSize: '18px', color: 'var(--color-primary)' }}>$50.00</span>
+                    </div>
+                  </div>
+
+                  <h3 style={rnSubHeading}>Payment Method</h3>
+                  <div className="form-group">
+                    <select name="payMethod" value={rnForm.payMethod} onChange={rnHandle}>
+                      <option value="credit">Credit Card</option>
+                      <option value="debit">Debit Card</option>
+                      <option value="echeck">eCheck / ACH</option>
+                    </select>
+                  </div>
+
+                  <div className="form-group">
+                    <label htmlFor="rn-cn">Name on Card *</label>
+                    <input id="rn-cn" name="cardName" type="text" value={rnForm.cardName} onChange={rnHandle} required />
+                  </div>
+
+                  <div className="form-group">
+                    <label htmlFor="rn-cc">Card Number *</label>
+                    <input id="rn-cc" name="cardNumber" type="text" inputMode="numeric" placeholder="•••• •••• •••• ••••" value={rnForm.cardNumber} onChange={rnHandle} required />
+                  </div>
+
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label htmlFor="rn-ce">Expiration *</label>
+                      <input id="rn-ce" name="cardExp" type="text" placeholder="MM / YY" value={rnForm.cardExp} onChange={rnHandle} required />
+                    </div>
+                    <div className="form-group">
+                      <label htmlFor="rn-cv">CVV *</label>
+                      <input id="rn-cv" name="cardCvv" type="text" inputMode="numeric" maxLength={4} placeholder="•••" value={rnForm.cardCvv} onChange={rnHandle} required style={{ WebkitTextSecurity: 'disc' } as React.CSSProperties} />
+                    </div>
+                  </div>
+
+                  <div style={rnSecureNote}>
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ flexShrink: 0 }}>
+                      <path d="M8 1C6.343 1 5 2.343 5 4v2H4a1 1 0 00-1 1v7a1 1 0 001 1h8a1 1 0 001-1V7a1 1 0 00-1-1h-1V4c0-1.657-1.343-3-3-3zm2 5H6V4a2 2 0 114 0v2z" fill="var(--color-success)" />
+                    </svg>
+                    <span>Your payment information is encrypted and transmitted securely.</span>
+                  </div>
+
+                  {submitError && <p style={{ color: 'var(--color-accent)', fontSize: '14px', marginTop: '12px' }}>{submitError}</p>}
+                </>)}
+
+                {/* Step 4: Confirmation */}
+                {rnStep === 4 && (
+                  <div style={{ textAlign: 'center', padding: 'var(--space-6) 0' }}>
+                    <div style={{ fontSize: 56, marginBottom: 12 }} aria-hidden="true">✅</div>
+                    <h2 style={{ color: 'var(--color-success)', marginBottom: 8 }}>Renewal Request Submitted</h2>
+                    <p style={{ color: 'var(--color-text-muted)', fontSize: 15, maxWidth: 520, margin: '0 auto 24px' }}>
+                      Your payment of <strong>$50.00</strong> has been processed and your registration renewal request
+                      is now under review. A DMV representative will evaluate your application.
+                    </p>
+
+                    {/* Receipt card */}
+                    <div style={rnReceiptCard}>
+                      <div style={rnReceiptHeader}>
+                        <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: 1, textTransform: 'uppercase' }}>Renewal Receipt</span>
+                      </div>
+                      <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                        <div style={rnReceiptRow}>
+                          <span style={rnReceiptLabel}>Reference</span>
+                          <span style={{ ...rnReceiptValue, fontFamily: 'var(--font-mono)', fontSize: 14 }}>{rnRefNumber}</span>
+                        </div>
+                        <div style={rnReceiptRow}>
+                          <span style={rnReceiptLabel}>Vehicle</span>
+                          <span style={rnReceiptValue}>{renewTarget.dmv_year} {renewTarget.dmv_make} {renewTarget.dmv_model}</span>
+                        </div>
+                        <div style={rnReceiptRow}>
+                          <span style={rnReceiptLabel}>Plate #</span>
+                          <span style={{ ...rnReceiptValue, fontFamily: 'var(--font-mono)', fontSize: 14 }}>{rnForm.plateNumber.toUpperCase()}</span>
+                        </div>
+                        <div style={rnReceiptRow}>
+                          <span style={rnReceiptLabel}>Status</span>
+                          <span style={{ ...rnReceiptValue, color: 'var(--color-warning)' }}>Under Review</span>
+                        </div>
+                        <div style={rnReceiptRow}>
+                          <span style={rnReceiptLabel}>Amount Paid</span>
+                          <span style={rnReceiptValue}>$50.00</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{ background: 'var(--color-info-bg)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', padding: '14px 18px', fontSize: 13, color: 'var(--color-text-muted)', maxWidth: 520, margin: '20px auto 28px', textAlign: 'left', lineHeight: 1.6 }}>
+                      <strong style={{ color: 'var(--color-primary)' }}>What happens next?</strong>
+                      <ol style={{ margin: '8px 0 0 18px', padding: 0 }}>
+                        <li>A DMV agent will review your renewal request (typically 1–3 business days).</li>
+                        <li>Once approved, your temporary registration tag will be available in your <Link to="/documents" style={{ color: 'var(--color-secondary)', fontWeight: 600 }}>Documents</Link>.</li>
+                        <li>Your updated registration sticker will arrive by mail in 7–10 business days.</li>
+                      </ol>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: 16, justifyContent: 'center', flexWrap: 'wrap' }}>
+                      <button className="btn btn-primary" onClick={() => { setView('list'); setRnStep(0); setRnForm(RENEW_INIT); setRnAutofilled(false); loadData() }}>
+                        Back to My Vehicles
+                      </button>
+                      <Link to="/documents" className="btn btn-outline">View Documents</Link>
+                      <Link to="/" className="btn btn-outline">Return Home</Link>
+                    </div>
+                  </div>
+                )}
+
+                {/* ── Navigation buttons (steps 0–3) ── */}
+                {rnStep < 4 && (
+                  <div style={{ marginTop: 'var(--space-6)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      {rnStep > 0 ? (
+                        <button type="button" className="btn btn-ghost" onClick={() => setRnStep(s => s - 1)}>← Back</button>
+                      ) : (
+                        <button type="button" className="btn btn-ghost" onClick={() => { setView('list'); setRnStep(0); setRnForm(RENEW_INIT); setRnAutofilled(false) }}>← Back to My Vehicles</button>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      style={{ fontSize: '15px', padding: '12px 32px' }}
+                      onClick={() => {
+                        if (rnStep === 3) handleRenew()
+                        else { setRnStep(s => s + 1); window.scrollTo({ top: 0, behavior: 'smooth' }) }
+                      }}
+                      disabled={submitting || (rnStep === 0 && !rnForm.plateNumber) || (rnStep === 1 && (!rnForm.firstName || !rnForm.lastName)) || (rnStep === 2 && (!rnForm.insurer || !rnForm.policyNumber))}
+                    >
+                      {submitting ? 'Processing...' : rnStep === 3 ? 'Pay $50.00 & Submit' : 'Continue →'}
+                    </button>
+                  </div>
+                )}
+
               </div>
             </section>
           )}
@@ -547,4 +821,52 @@ const vehicleIcon: React.CSSProperties = {
   width: '52px', height: '52px', borderRadius: 'var(--radius-md)',
   background: 'var(--color-info-bg)', display: 'flex', alignItems: 'center',
   justifyContent: 'center', color: 'var(--color-secondary)', flexShrink: 0,
+}
+
+/* ── Renewal wizard styles (matching LicenseRenewal) ── */
+const rnStepperWrap: React.CSSProperties = {
+  display: 'flex', alignItems: 'flex-start', justifyContent: 'center', gap: 0,
+  padding: '24px 0 0',
+}
+const rnStepTitle: React.CSSProperties = {
+  fontFamily: 'var(--font-heading)', fontSize: '1.25rem', fontWeight: 600,
+  color: 'var(--color-primary)', marginBottom: 8,
+}
+const rnStepDesc: React.CSSProperties = {
+  color: 'var(--color-text-muted)', fontSize: 14, lineHeight: 1.6,
+  marginBottom: 28,
+}
+const rnSubHeading: React.CSSProperties = {
+  fontFamily: 'var(--font-heading)', fontSize: '1rem', fontWeight: 600,
+  color: 'var(--color-primary)', marginBottom: 16,
+}
+const rnFeeSummary: React.CSSProperties = {
+  background: 'var(--color-surface-alt)', borderRadius: 'var(--radius-md)',
+  padding: '20px 24px', marginBottom: 28,
+}
+const rnFeeRow: React.CSSProperties = {
+  display: 'flex', justifyContent: 'space-between', fontSize: 14,
+  padding: '6px 0', color: 'var(--color-text)',
+}
+const rnSecureNote: React.CSSProperties = {
+  display: 'flex', alignItems: 'center', gap: 8,
+  fontSize: 13, color: 'var(--color-success)', marginTop: 12,
+}
+const rnReceiptCard: React.CSSProperties = {
+  maxWidth: 420, margin: '0 auto', border: '2px solid var(--color-primary)',
+  borderRadius: 'var(--radius-lg)', overflow: 'hidden', textAlign: 'left',
+  background: 'var(--color-surface)',
+}
+const rnReceiptHeader: React.CSSProperties = {
+  background: 'var(--color-primary)', color: '#fff', padding: '12px 24px',
+}
+const rnReceiptRow: React.CSSProperties = {
+  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+  padding: '4px 0', borderBottom: '1px solid var(--color-surface-alt)',
+}
+const rnReceiptLabel: React.CSSProperties = {
+  fontSize: 12, fontWeight: 500, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: 0.5,
+}
+const rnReceiptValue: React.CSSProperties = {
+  fontSize: 14, fontWeight: 600, color: 'var(--color-text)',
 }

@@ -7,7 +7,7 @@ export default defineConfig({
     outDir: 'dist',
     rollupOptions: {
       output: {
-        // Fixed filenames so we can overwrite existing portal web files
+        // Fixed filenames so we can overwrite existing portal web files — DO NOT CHANGE
         entryFileNames: 'assets/index-CcBGzUdW.js',
         assetFileNames: 'assets/index-BksZUihr[extname]',
         inlineDynamicImports: true,

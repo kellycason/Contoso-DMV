@@ -45,6 +45,8 @@ export default function Documents() {
   const [approvedRenewals, setApprovedRenewals] = useState<Record<string, any>[]>([])
   const [loadingRenewals, setLoadingRenewals] = useState(true)
   const [downloadingId, setDownloadingId] = useState<string | null>(null)
+  const [approvedRegRenewals, setApprovedRegRenewals] = useState<Record<string, any>[]>([])
+  const [loadingRegRenewals, setLoadingRegRenewals] = useState(true)
 
   useEffect(() => {
     if (isAuthenticated && userId) {
@@ -55,9 +57,14 @@ export default function Documents() {
       dvQuery('dmv_licenserenewals',
         `$filter=_dmv_contactid_value eq ${userId} and dmv_renewalstatus eq 100000002&$select=dmv_renewalid,dmv_licensenumber,dmv_firstname,dmv_lastname,dmv_dateofbirth,dmv_streetaddress,dmv_city,dmv_state,dmv_zipcode,dmv_approveddate,dmv_newexpirationdate&$top=10`
       ).then(setApprovedRenewals).catch(() => {}).finally(() => setLoadingRenewals(false))
+
+      dvQuery('dmv_registrationrenewals',
+        `$filter=_dmv_contactid_value eq ${userId} and dmv_renewalstatus eq 100000002&$select=dmv_renewalid,dmv_platenumber,dmv_vin,dmv_vehicleyear,dmv_vehiclemake,dmv_vehiclemodel,dmv_vehiclecolor,dmv_firstname,dmv_lastname,dmv_streetaddress,dmv_city,dmv_state,dmv_zipcode,dmv_approveddate,dmv_newexpirationdate&$top=10`
+      ).then(setApprovedRegRenewals).catch(() => {}).finally(() => setLoadingRegRenewals(false))
     } else {
       setLoadingDocs(false)
       setLoadingRenewals(false)
+      setLoadingRegRenewals(false)
     }
   }, [isAuthenticated, userId])
 
@@ -287,6 +294,59 @@ export default function Documents() {
                           }}
                         >
                           {downloadingId === (r.dmv_licenserenewallid || r.dmv_renewalid) ? 'Generating...' : '⬇ Download PDF'}
+                        </button>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </section>
+          )}
+
+          {/* Approved Temporary Registration Tags */}
+          {isAuthenticated && (
+            <section style={{ marginTop: '48px' }}>
+              <h2 style={sectionH}>My Temporary Registration Tags</h2>
+              {loadingRegRenewals ? (
+                <p style={{ color: 'var(--color-text-muted)', fontSize: '14px' }}>Loading...</p>
+              ) : approvedRegRenewals.length === 0 ? (
+                <p style={{ color: 'var(--color-text-muted)', fontSize: '14px' }}>No approved temporary registration tags available. Once your registration renewal is approved, your temporary tag will appear here.</p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  {approvedRegRenewals.map(r => {
+                    const approved = r.dmv_approveddate ? new Date(r.dmv_approveddate).toLocaleDateString() : '—'
+                    const expires = r.dmv_newexpirationdate ? new Date(r.dmv_newexpirationdate).toLocaleDateString() : '—'
+                    const rid = r.dmv_registrationrenewalid || r.dmv_renewalid
+                    return (
+                      <div key={rid} style={{
+                        display: 'flex', alignItems: 'center', gap: 16, background: 'var(--color-surface)',
+                        border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', padding: '16px 20px',
+                      }}>
+                        <div style={{ fontSize: 32, flexShrink: 0 }} aria-hidden="true">🏷️</div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ fontWeight: 600, fontSize: 14, color: 'var(--color-primary)' }}>
+                            Temporary Tag — {r.dmv_vehicleyear} {r.dmv_vehiclemake} {r.dmv_vehiclemodel}
+                          </p>
+                          <p style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 2 }}>
+                            Plate: <span className="mono">{r.dmv_platenumber}</span>
+                            {' · '}Ref: <span className="mono">{r.dmv_renewalid}</span>
+                            {' · '}Approved: {approved}
+                            {' · '}Registration expires: {expires}
+                          </p>
+                        </div>
+                        <span style={{ display: 'inline-block', padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: '#d4edda', color: '#155724', textTransform: 'uppercase', letterSpacing: 0.3, flexShrink: 0 }}>
+                          Approved
+                        </span>
+                        <button
+                          className="btn btn-primary"
+                          style={{ fontSize: 13, padding: '8px 16px', flexShrink: 0 }}
+                          disabled={downloadingId === rid}
+                          onClick={async () => {
+                            setDownloadingId(rid)
+                            try { await downloadTempRegTag(r) } finally { setDownloadingId(null) }
+                          }}
+                        >
+                          {downloadingId === rid ? 'Generating...' : '⬇ Download PDF'}
                         </button>
                       </div>
                     )
@@ -566,4 +626,106 @@ function drawPlaceholder(doc: any, x: number, y: number, w: number, h: number) {
   doc.line(cx - 24, cy + 20, cx - 12, cy + 10); doc.line(cx + 12, cy + 10, cx + 24, cy + 20)
   doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor(138, 138, 130)
   doc.text('PHOTO ID', cx, cy + 40, { align: 'center' })
+}
+
+/* ════════════════════════════════════════════════════════════
+   PDF Generator — Temporary Registration Tag
+   ════════════════════════════════════════════════════════════ */
+async function downloadTempRegTag(r: Record<string, any>) {
+  const { jsPDF } = await import('jspdf')
+  const plate = (r.dmv_platenumber || '').toUpperCase()
+  const vin = (r.dmv_vin || '').toUpperCase()
+  const vehicle = `${r.dmv_vehicleyear || ''} ${r.dmv_vehiclemake || ''} ${r.dmv_vehiclemodel || ''}`.trim()
+  const color = r.dmv_vehiclecolor || ''
+  const owner = `${r.dmv_firstname || ''} ${r.dmv_lastname || ''}`.trim()
+  const address1 = r.dmv_streetaddress || ''
+  const cityStateZip = `${r.dmv_city || ''}, ${r.dmv_state || ''} ${r.dmv_zipcode || ''}`
+  const ref = r.dmv_renewalid || ''
+  const approvedDate = r.dmv_approveddate ? new Date(r.dmv_approveddate) : new Date()
+  const expiry = new Date(approvedDate); expiry.setDate(expiry.getDate() + 30)
+  const issuedStr = approvedDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+  const expiryStr = expiry.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+  const expiryMo = expiry.toLocaleDateString('en-US', { month: 'short' }).toUpperCase()
+  const expiryYr = String(expiry.getFullYear())
+
+  // Portrait tag layout (like a registration sticker document)
+  const W = 460, H = 650
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: [W, H] })
+
+  // Background
+  doc.setFillColor(255, 255, 255); doc.rect(0, 0, W, H, 'F')
+  // Border
+  doc.setDrawColor(15, 39, 68); doc.setLineWidth(3); doc.rect(8, 8, W - 16, H - 16, 'S')
+  doc.setDrawColor(200, 168, 75); doc.setLineWidth(1); doc.rect(12, 12, W - 24, H - 24, 'S')
+
+  // Header
+  const hY = 24
+  doc.setFillColor(15, 39, 68); doc.rect(16, hY, W - 32, 60, 'F')
+  doc.setFontSize(9); doc.setFont('helvetica', 'bold'); doc.setTextColor(200, 168, 75)
+  doc.text('CONTOSO COUNTY \u2014 DEPARTMENT OF MOTOR VEHICLES', W / 2, hY + 22, { align: 'center' })
+  doc.setFontSize(20); doc.setTextColor(255, 255, 255)
+  doc.text('TEMPORARY REGISTRATION', W / 2, hY + 48, { align: 'center' })
+
+  // Gold accent
+  doc.setFillColor(200, 168, 75); doc.rect(16, hY + 60, W - 32, 4, 'F')
+
+  // Sticker box — large month/year display
+  const sY = hY + 82
+  doc.setFillColor(245, 243, 239); doc.setDrawColor(200, 168, 75); doc.setLineWidth(2)
+  doc.roundedRect(W / 2 - 80, sY, 160, 80, 8, 8, 'FD')
+  doc.setFontSize(36); doc.setFont('helvetica', 'bold'); doc.setTextColor(15, 39, 68)
+  doc.text(expiryMo, W / 2, sY + 36, { align: 'center' })
+  doc.setFontSize(20); doc.setTextColor(138, 138, 130)
+  doc.text(expiryYr, W / 2, sY + 60, { align: 'center' })
+  doc.setFontSize(8); doc.setFont('helvetica', 'normal'); doc.setTextColor(138, 138, 130)
+  doc.text('VALID THROUGH', W / 2, sY + 74, { align: 'center' })
+
+  // Status strip
+  const stripY = sY + 96
+  doc.setFillColor(200, 168, 75); doc.rect(16, stripY, W - 32, 18, 'F')
+  doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor(15, 39, 68)
+  doc.text('TEMPORARY \u2014 VALID FOR 30 DAYS FROM DATE OF ISSUE', W / 2, stripY + 12, { align: 'center' })
+
+  // Fields
+  const fieldX = 40, valueX = 170, bodyY = stripY + 36
+  const rowH = 36
+  const fields = [
+    { label: 'PLATE NUMBER', value: plate, mono: true, large: true },
+    { label: 'VEHICLE', value: vehicle },
+    { label: 'COLOR', value: color },
+    { label: 'VIN', value: vin, mono: true },
+    { label: 'OWNER', value: owner },
+    { label: 'ADDRESS', value: `${address1}\n${cityStateZip}` },
+    { label: 'ISSUED', value: issuedStr },
+    { label: 'EXPIRES', value: expiryStr },
+    { label: 'REFERENCE', value: ref, mono: true },
+  ]
+  let fy = bodyY
+  for (const f of fields) {
+    if (fy > bodyY) { doc.setDrawColor(230, 228, 222); doc.setLineWidth(0.4); doc.line(fieldX, fy, W - 40, fy) }
+    doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor(138, 138, 130); doc.text(f.label, fieldX, fy + 16)
+    if (f.large) { doc.setFontSize(18); doc.setFont('helvetica', 'bold') }
+    else if (f.mono) { doc.setFontSize(11); doc.setFont('courier', 'bold') }
+    else { doc.setFontSize(12); doc.setFont('helvetica', 'normal') }
+    doc.setTextColor(26, 26, 24)
+    if (f.value.includes('\n')) {
+      const lines = f.value.split('\n')
+      doc.text(lines[0], valueX, fy + 15); doc.text(lines[1], valueX, fy + 28); fy += rowH + 12
+    } else { doc.text(f.value, valueX, fy + 16); fy += rowH }
+  }
+
+  // Footer
+  const footerY = H - 56
+  doc.setDrawColor(220, 218, 212); doc.setLineWidth(0.5); doc.line(40, footerY, W - 40, footerY)
+  doc.setFontSize(8); doc.setFont('helvetica', 'normal'); doc.setTextColor(138, 138, 130)
+  doc.text('This temporary registration is valid for 30 days from the date of issue.', W / 2, footerY + 16, { align: 'center' })
+  doc.text('Must be displayed in the rear window of the vehicle at all times.', W / 2, footerY + 28, { align: 'center' })
+
+  // Barcode
+  const bcX = W / 2 - 30, bcY = footerY + 34
+  const bars = [2,1,3,1,2,1,1,2,3,1,2,1,1,3,2], barHt = [16,12,16,10,16,14,16,11,16,12,16,10,16,14,16]
+  let bcOff = bcX; doc.setFillColor(26, 26, 24)
+  for (let i = 0; i < bars.length; i++) { doc.rect(bcOff, bcY + (16 - barHt[i]), bars[i], barHt[i], 'F'); bcOff += bars[i] + 2 }
+
+  doc.save(`Temp-Tag-${plate}-${ref}.pdf`)
 }
