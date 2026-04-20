@@ -42,14 +42,22 @@ export default function Documents() {
   const [loadingDocs, setLoadingDocs] = useState(true)
   const [refNum, setRefNum] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
+  const [approvedRenewals, setApprovedRenewals] = useState<Record<string, any>[]>([])
+  const [loadingRenewals, setLoadingRenewals] = useState(true)
+  const [downloadingId, setDownloadingId] = useState<string | null>(null)
 
   useEffect(() => {
     if (isAuthenticated && userId) {
       dvQuery('dmv_documentuploads',
         `$filter=_dmv_contactid_value eq ${userId}&$select=dmv_documentname,dmv_documenttype,dmv_uploaddate,dmv_verificationstatus,dmv_filesize,dmv_filetype&$orderby=dmv_uploaddate desc&$top=50`
       ).then(setExistingDocs).catch(() => {}).finally(() => setLoadingDocs(false))
+
+      dvQuery('dmv_licenserenewals',
+        `$filter=_dmv_contactid_value eq ${userId} and dmv_renewalstatus eq 100000002&$select=dmv_renewalid,dmv_licensenumber,dmv_firstname,dmv_lastname,dmv_dateofbirth,dmv_streetaddress,dmv_city,dmv_state,dmv_zipcode,dmv_approveddate,dmv_newexpirationdate&$top=10`
+      ).then(setApprovedRenewals).catch(() => {}).finally(() => setLoadingRenewals(false))
     } else {
       setLoadingDocs(false)
+      setLoadingRenewals(false)
     }
   }, [isAuthenticated, userId])
 
@@ -231,6 +239,63 @@ export default function Documents() {
             {files.length === 0 && <span style={{ fontSize: '13px', color: 'var(--color-text-muted)' }}>Add at least one file to continue.</span>}
           </div>
 
+          {/* Approved Temporary Licenses */}
+          {isAuthenticated && (
+            <section style={{ marginTop: '48px' }}>
+              <h2 style={sectionH}>My Temporary Licenses</h2>
+              {loadingRenewals ? (
+                <p style={{ color: 'var(--color-text-muted)', fontSize: '14px' }}>Loading...</p>
+              ) : approvedRenewals.length === 0 ? (
+                <p style={{ color: 'var(--color-text-muted)', fontSize: '14px' }}>No approved temporary licenses available. Once your renewal is approved, your temporary license will appear here.</p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  {approvedRenewals.map(r => {
+                    const approved = r.dmv_approveddate ? new Date(r.dmv_approveddate).toLocaleDateString() : '—'
+                    const expires = r.dmv_newexpirationdate ? new Date(r.dmv_newexpirationdate).toLocaleDateString() : '—'
+                    return (
+                      <div key={r.dmv_licenserenewallid || r.dmv_renewalid} style={{
+                        display: 'flex', alignItems: 'center', gap: 16, background: 'var(--color-surface)',
+                        border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', padding: '16px 20px',
+                      }}>
+                        <div style={{ fontSize: 32, flexShrink: 0 }} aria-hidden="true">🪪</div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ fontWeight: 600, fontSize: 14, color: 'var(--color-primary)' }}>
+                            Temporary License — {r.dmv_firstname} {r.dmv_lastname}
+                          </p>
+                          <p style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 2 }}>
+                            <span className="mono">{r.dmv_licensenumber}</span>
+                            {' · '}Ref: <span className="mono">{r.dmv_renewalid}</span>
+                            {' · '}Approved: {approved}
+                            {' · '}License expires: {expires}
+                          </p>
+                        </div>
+                        <span style={{ display: 'inline-block', padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: '#d4edda', color: '#155724', textTransform: 'uppercase', letterSpacing: 0.3, flexShrink: 0 }}>
+                          Approved
+                        </span>
+                        <button
+                          className="btn btn-primary"
+                          style={{ fontSize: 13, padding: '8px 16px', flexShrink: 0 }}
+                          disabled={downloadingId === (r.dmv_licenserenewallid || r.dmv_renewalid)}
+                          onClick={async () => {
+                            const id = r.dmv_licenserenewallid || r.dmv_renewalid
+                            setDownloadingId(id)
+                            try {
+                              await downloadTempLicenseFromRenewal(r, userId!)
+                            } finally {
+                              setDownloadingId(null)
+                            }
+                          }}
+                        >
+                          {downloadingId === (r.dmv_licenserenewallid || r.dmv_renewalid) ? 'Generating...' : '⬇ Download PDF'}
+                        </button>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </section>
+          )}
+
           {/* Previously Submitted Documents */}
           {isAuthenticated && (
             <section style={{ marginTop: '48px' }}>
@@ -350,4 +415,155 @@ const td: React.CSSProperties = {
   padding: '10px 16px',
   borderBottom: '1px solid var(--color-border)',
   fontSize: '14px',
+}
+
+/* ════════════════════════════════════════════════════════════
+   PDF Generator — Temporary License (from approved renewal)
+   ════════════════════════════════════════════════════════════ */
+async function downloadTempLicenseFromRenewal(r: Record<string, any>, userId: string) {
+  const { jsPDF } = await import('jspdf')
+  const firstName = r.dmv_firstname || ''
+  const lastName = r.dmv_lastname || ''
+  const licenseNum = (r.dmv_licensenumber || '').toUpperCase()
+  const refNumber = r.dmv_renewalid || ''
+  const dob = r.dmv_dateofbirth
+    ? new Date(r.dmv_dateofbirth).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+    : ''
+  const address1 = r.dmv_streetaddress || ''
+  const cityStateZip = `${r.dmv_city || ''}, ${r.dmv_state || ''} ${r.dmv_zipcode || ''}`
+  const approvedDate = r.dmv_approveddate
+    ? new Date(r.dmv_approveddate) : new Date()
+  const expiry = new Date(approvedDate)
+  expiry.setDate(expiry.getDate() + 90)
+  const expiryStr = expiry.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+  const issuedStr = approvedDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+
+  // Try to fetch entity image
+  let photoDataUrl: string | null = null
+  if (userId) {
+    try {
+      const resp = await fetch(`/_api/contacts(${userId})?$select=entityimage`)
+      if (resp.ok) { const d = await resp.json(); if (d.entityimage) photoDataUrl = 'data:image/jpeg;base64,' + d.entityimage }
+    } catch {}
+    if (!photoDataUrl) {
+      try {
+        const resp = await fetch(`/_api/contacts(${userId})/entityimage/$value`)
+        if (resp.ok && resp.headers.get('content-type')?.startsWith('image')) {
+          const blob = await resp.blob()
+          photoDataUrl = await new Promise<string>(res => { const rd = new FileReader(); rd.onloadend = () => res(rd.result as string); rd.readAsDataURL(blob) })
+        }
+      } catch {}
+    }
+  }
+
+  const W = 760, H = 546
+  const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: [W, H] })
+
+  // Background
+  doc.setFillColor(245, 243, 239); doc.rect(0, 0, W, H, 'F')
+  // Watermark
+  doc.setFontSize(80); doc.setFont('helvetica', 'bold'); doc.setTextColor(235, 233, 229)
+  doc.text('TEMPORARY', W / 2, H / 2, { align: 'center', angle: 25 })
+  // Header
+  const headerH = 68
+  doc.setFillColor(200, 168, 75); doc.rect(0, 0, 8, headerH, 'F')
+  doc.setFillColor(15, 39, 68); doc.rect(8, 0, W - 8, headerH, 'F')
+  doc.setFontSize(9); doc.setFont('helvetica', 'bold'); doc.setTextColor(200, 168, 75)
+  doc.text('CONTOSO COUNTY \u2014 DEPARTMENT OF MOTOR VEHICLES', 40, 28)
+  doc.setFontSize(26); doc.setTextColor(255, 255, 255)
+  doc.text('TEMPORARY DRIVER LICENSE', 40, 52)
+  // Badge
+  const bx = 620, by = 14, bw = 106, bh = 40
+  doc.setFillColor(30, 50, 75); doc.setDrawColor(200, 168, 75); doc.roundedRect(bx, by, bw, bh, 4, 4, 'FD')
+  doc.setFontSize(8); doc.setTextColor(200, 168, 75); doc.setFont('helvetica', 'normal')
+  doc.text('VALID FOR', bx + bw / 2, by + 15, { align: 'center' })
+  doc.setFontSize(20); doc.setFont('helvetica', 'bold'); doc.setTextColor(255, 255, 255)
+  doc.text('90 DAYS', bx + bw / 2, by + 34, { align: 'center' })
+  // Status strip
+  const stripY = headerH, stripH = 20
+  doc.setFillColor(200, 168, 75); doc.rect(0, stripY, W, stripH, 'F')
+  doc.setFillColor(15, 39, 68); doc.circle(40, stripY + stripH / 2, 3, 'F')
+  doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor(15, 39, 68)
+  doc.text('OFFICIAL DOCUMENT \u2014 CARRY WITH VALID PHOTO ID', 50, stripY + 13)
+
+  // Body fields
+  const bodyY = stripY + stripH + 32, fieldX = 40, valueX = 188, rightX = 528
+  const fields = [
+    { label: 'FULL NAME', value: `${firstName} ${lastName}`, large: true },
+    { label: 'LICENSE NO.', value: licenseNum, mono: true },
+    { label: 'DATE OF BIRTH', value: dob },
+    { label: 'ADDRESS', value: `${address1}\n${cityStateZip}` },
+    { label: 'VALID THROUGH', value: expiryStr },
+    { label: 'ISSUED', value: issuedStr },
+    { label: 'TRANSACTION', value: refNumber, mono: true },
+  ]
+  let fy = bodyY; const rowH = 38
+  for (const f of fields) {
+    if (fy > bodyY) { doc.setDrawColor(230, 228, 222); doc.setLineWidth(0.4); doc.line(fieldX, fy, rightX - 16, fy) }
+    doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor(138, 138, 130); doc.text(f.label, fieldX, fy + 18)
+    if (f.large) { doc.setFontSize(16); doc.setFont('helvetica', 'bold') }
+    else if (f.mono) { doc.setFontSize(12); doc.setFont('courier', 'bold') }
+    else { doc.setFontSize(13); doc.setFont('helvetica', 'normal') }
+    doc.setTextColor(26, 26, 24)
+    if (f.value.includes('\n')) { const lines = f.value.split('\n'); doc.text(lines[0], valueX, fy + 17); doc.text(lines[1], valueX, fy + 30); fy += rowH + 14 }
+    else { doc.text(f.value, valueX, fy + 18); fy += rowH }
+  }
+
+  // Photo
+  const photoX = rightX, photoY = bodyY - 4, photoW = 192, photoH = 192
+  if (photoDataUrl) {
+    try {
+      const cropped = await cropSquare(photoDataUrl)
+      doc.addImage(cropped, 'JPEG', photoX, photoY, photoW, photoH)
+      doc.setDrawColor(200, 200, 195); doc.setLineWidth(1); doc.roundedRect(photoX, photoY, photoW, photoH, 8, 8, 'S')
+    } catch { drawPlaceholder(doc, photoX, photoY, photoW, photoH) }
+  } else { drawPlaceholder(doc, photoX, photoY, photoW, photoH) }
+
+  // Restrictions
+  const rY = photoY + photoH + 14
+  doc.setFillColor(255, 248, 232); doc.setDrawColor(232, 216, 154); doc.roundedRect(photoX, rY, photoW, 50, 6, 6, 'FD')
+  doc.setFontSize(7); doc.setFont('helvetica', 'bold'); doc.setTextColor(160, 124, 32)
+  doc.text('CLASS & RESTRICTIONS', photoX + 10, rY + 16)
+  doc.setFontSize(9); doc.setFont('helvetica', 'normal'); doc.setTextColor(90, 74, 26)
+  doc.text('Class C \u2014 Standard', photoX + 10, rY + 30); doc.text('No restrictions', photoX + 10, rY + 42)
+
+  // Footer
+  const footerY = H - 56
+  doc.setDrawColor(220, 218, 212); doc.setLineWidth(0.5); doc.line(40, footerY, W - 40, footerY)
+  doc.setFontSize(8.5); doc.setFont('helvetica', 'normal'); doc.setTextColor(138, 138, 130)
+  doc.text('This document serves as a valid temporary license for 90 days from the date of issue.', 40, footerY + 18)
+  doc.text('Must be carried alongside a valid government-issued photo ID.', 40, footerY + 32)
+  // Barcode
+  const bcX = W - 140, bcY = footerY + 8
+  const bars = [2,1,3,1,2,1,1,2,3,1,2,1,1,3,2,1,1,2,3,1], barHt = [24,19,24,14,24,22,24,17,24,19,24,12,24,22,24,16,24,19,24,24]
+  let bcOff = bcX; doc.setFillColor(26, 26, 24)
+  for (let i = 0; i < bars.length; i++) { doc.rect(bcOff, bcY + (24 - barHt[i]), bars[i], barHt[i], 'F'); bcOff += bars[i] + 2 }
+  doc.setFontSize(7); doc.setFont('courier', 'normal'); doc.setTextColor(138, 138, 130)
+  doc.text(`${licenseNum} \u00b7 ${refNumber}`, bcX, bcY + 38)
+
+  doc.save(`Temp-License-${licenseNum}-${refNumber}.pdf`)
+}
+
+function cropSquare(dataUrl: string): Promise<string> {
+  return new Promise(res => {
+    const img = new Image()
+    img.onload = () => {
+      const s = Math.min(img.width, img.height), sx = (img.width - s) / 2, sy = (img.height - s) / 2
+      const c = document.createElement('canvas'); c.width = s; c.height = s
+      c.getContext('2d')!.drawImage(img, sx, sy, s, s, 0, 0, s, s)
+      res(c.toDataURL('image/jpeg', 0.92))
+    }
+    img.onerror = () => res(dataUrl)
+    img.src = dataUrl
+  })
+}
+
+function drawPlaceholder(doc: any, x: number, y: number, w: number, h: number) {
+  doc.setFillColor(226, 224, 218); doc.setDrawColor(184, 181, 174); doc.setLineWidth(1)
+  doc.roundedRect(x, y, w, h, 8, 8, 'FD')
+  const cx = x + w / 2, cy = y + h / 2 - 10
+  doc.setDrawColor(160, 158, 150); doc.setLineWidth(1.5); doc.circle(cx, cy - 12, 14, 'S')
+  doc.line(cx - 24, cy + 20, cx - 12, cy + 10); doc.line(cx + 12, cy + 10, cx + 24, cy + 20)
+  doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor(138, 138, 130)
+  doc.text('PHOTO ID', cx, cy + 40, { align: 'center' })
 }

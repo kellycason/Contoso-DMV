@@ -7,11 +7,12 @@ export default defineConfig({
     outDir: 'dist',
     rollupOptions: {
       output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom', 'react-router-dom'],
-        },
+        // Fixed filenames so we can overwrite existing portal web files
+        entryFileNames: 'assets/index-CcBGzUdW.js',
+        assetFileNames: 'assets/index-BksZUihr[extname]',
+        inlineDynamicImports: true,
       },
     },
-    chunkSizeWarningLimit: 200,
+    chunkSizeWarningLimit: 1200,
   },
 })

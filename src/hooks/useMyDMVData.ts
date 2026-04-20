@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react'
 export interface CitizenProfile {
   id: string
   fullName: string
+  email: string
   address: string
   phone: string
 }
