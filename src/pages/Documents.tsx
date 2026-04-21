@@ -3,6 +3,17 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { dvCreate, dvQuery, fmt } from '../hooks/useDataverse'
 
+// Parse a Dataverse date value as *local* calendar date to avoid UTC-shift
+// display bugs for DateOnly fields (e.g. "2027-04-21" rendering as April 20 in
+// negative-offset timezones).
+function parseDvDate(value: string | null | undefined): Date | null {
+  if (!value) return null
+  const m = /^(\d{4})-(\d{2})-(\d{2})(?:[T ]|$)/.exec(String(value))
+  if (m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]))
+  const d = new Date(value)
+  return isNaN(d.getTime()) ? null : d
+}
+
 const docTypeOptions = [
   { label: 'Proof of Identity', value: 100000000 },
   { label: 'Proof of Residency', value: 100000001 },
@@ -59,7 +70,7 @@ export default function Documents() {
       ).then(setApprovedRenewals).catch(() => {}).finally(() => setLoadingRenewals(false))
 
       dvQuery('dmv_registrationrenewals',
-        `$filter=_dmv_contactid_value eq ${userId} and dmv_renewalstatus eq 100000002&$select=dmv_renewalid,dmv_platenumber,dmv_vin,dmv_vehicleyear,dmv_vehiclemake,dmv_vehiclemodel,dmv_vehiclecolor,dmv_firstname,dmv_lastname,dmv_streetaddress,dmv_city,dmv_state,dmv_zipcode,dmv_approveddate,dmv_newexpirationdate&$top=10`
+        `$filter=_dmv_contactid_value eq ${userId} and dmv_renewalstatus eq 100000002&$select=dmv_renewalid,dmv_platenumber,dmv_vin,dmv_vehicleyear,dmv_vehiclemake,dmv_vehiclemodel,dmv_vehiclecolor,dmv_firstname,dmv_lastname,dmv_streetaddress,dmv_city,dmv_state,dmv_zipcode,dmv_approveddate,dmv_newexpirationdate,dmv_temptagnumber,dmv_temptagexpirationdate&$top=10`
       ).then(setApprovedRegRenewals).catch(() => {}).finally(() => setLoadingRegRenewals(false))
     } else {
       setLoadingDocs(false)
@@ -258,7 +269,8 @@ export default function Documents() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                   {approvedRenewals.map(r => {
                     const approved = r.dmv_approveddate ? new Date(r.dmv_approveddate).toLocaleDateString() : '—'
-                    const expires = r.dmv_newexpirationdate ? new Date(r.dmv_newexpirationdate).toLocaleDateString() : '—'
+                    const expiresDate = parseDvDate(r.dmv_newexpirationdate)
+                    const expires = expiresDate ? expiresDate.toLocaleDateString() : '—'
                     return (
                       <div key={r.dmv_licenserenewallid || r.dmv_renewalid} style={{
                         display: 'flex', alignItems: 'center', gap: 16, background: 'var(--color-surface)',
@@ -303,35 +315,37 @@ export default function Documents() {
             </section>
           )}
 
-          {/* Approved Temporary Registration Tags */}
+          {/* Approved Registration Renewals */}
           {isAuthenticated && (
             <section style={{ marginTop: '48px' }}>
-              <h2 style={sectionH}>My Temporary Registration Tags</h2>
+              <h2 style={sectionH}>My Registration Renewals</h2>
               {loadingRegRenewals ? (
                 <p style={{ color: 'var(--color-text-muted)', fontSize: '14px' }}>Loading...</p>
               ) : approvedRegRenewals.length === 0 ? (
-                <p style={{ color: 'var(--color-text-muted)', fontSize: '14px' }}>No approved temporary registration tags available. Once your registration renewal is approved, your temporary tag will appear here.</p>
+                <p style={{ color: 'var(--color-text-muted)', fontSize: '14px' }}>No approved registration renewals available. Once your renewal is approved, your confirmation will appear here.</p>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                   {approvedRegRenewals.map(r => {
                     const approved = r.dmv_approveddate ? new Date(r.dmv_approveddate).toLocaleDateString() : '—'
-                    const expires = r.dmv_newexpirationdate ? new Date(r.dmv_newexpirationdate).toLocaleDateString() : '—'
+                    // Prefer newexpirationdate; fall back to temptagexpirationdate (now repurposed to hold new registration expiration)
+                    const expiresDate = parseDvDate(r.dmv_newexpirationdate || r.dmv_temptagexpirationdate)
+                    const expires = expiresDate ? expiresDate.toLocaleDateString() : '—'
                     const rid = r.dmv_registrationrenewalid || r.dmv_renewalid
                     return (
                       <div key={rid} style={{
                         display: 'flex', alignItems: 'center', gap: 16, background: 'var(--color-surface)',
                         border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', padding: '16px 20px',
                       }}>
-                        <div style={{ fontSize: 32, flexShrink: 0 }} aria-hidden="true">🏷️</div>
+                        <div style={{ fontSize: 32, flexShrink: 0 }} aria-hidden="true">📄</div>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <p style={{ fontWeight: 600, fontSize: 14, color: 'var(--color-primary)' }}>
-                            Temporary Tag — {r.dmv_vehicleyear} {r.dmv_vehiclemake} {r.dmv_vehiclemodel}
+                            Renewal Confirmation — {r.dmv_vehicleyear} {r.dmv_vehiclemake} {r.dmv_vehiclemodel}
                           </p>
                           <p style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 2 }}>
                             Plate: <span className="mono">{r.dmv_platenumber}</span>
-                            {' · '}Ref: <span className="mono">{r.dmv_renewalid}</span>
+                            {' · '}Confirmation: <span className="mono">{r.dmv_temptagnumber || r.dmv_renewalid}</span>
                             {' · '}Approved: {approved}
-                            {' · '}Registration expires: {expires}
+                            {' · '}New registration expires: {expires}
                           </p>
                         </div>
                         <span style={{ display: 'inline-block', padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: '#d4edda', color: '#155724', textTransform: 'uppercase', letterSpacing: 0.3, flexShrink: 0 }}>
@@ -629,9 +643,10 @@ function drawPlaceholder(doc: any, x: number, y: number, w: number, h: number) {
 }
 
 /* ════════════════════════════════════════════════════════════
-   PDF Generator — Temporary Registration Tag
-   Styled to match the HTML template: green header (#1a3d2b),
-   gold accent (#e8c84b), cream body (#f7f9f6), center plate display.
+   PDF Generator — Registration Renewal Confirmation
+   Digital proof of renewal. The physical sticker is mailed to the
+   customer; this document confirms the renewal was processed and
+   shows the new registration period.
    ════════════════════════════════════════════════════════════ */
 async function downloadTempRegTag(r: Record<string, any>) {
   const { jsPDF } = await import('jspdf')
@@ -639,9 +654,14 @@ async function downloadTempRegTag(r: Record<string, any>) {
   const vin = (r.dmv_vin || '').toUpperCase()
   const vehicle = `${r.dmv_vehicleyear || ''} ${r.dmv_vehiclemake || ''} ${r.dmv_vehiclemodel || ''}`.trim()
   const owner = `${r.dmv_firstname || ''} ${r.dmv_lastname || ''}`.trim()
-  const ref = r.dmv_renewalid || ''
+  const ref = r.dmv_temptagnumber || r.dmv_renewalid || ''
+  const txnRef = r.dmv_renewalid || ''
   const approvedDate = r.dmv_approveddate ? new Date(r.dmv_approveddate) : new Date()
-  const expiry = new Date(approvedDate); expiry.setDate(expiry.getDate() + 30)
+  // New registration expiration: prefer newexpirationdate, fall back to temptagexpirationdate
+  // (repurposed under Option A to hold the new registration period end). Parse as
+  // local calendar date to prevent UTC-midnight → previous-day shift.
+  const expiry = parseDvDate(r.dmv_newexpirationdate || r.dmv_temptagexpirationdate)
+    ?? (() => { const d = new Date(approvedDate); d.setFullYear(d.getFullYear() + 1); return d })()
   const issuedStr = approvedDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
   const expiryStr = expiry.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
 
@@ -666,14 +686,14 @@ async function downloadTempRegTag(r: Record<string, any>) {
   doc.setFillColor(...cream)
   doc.roundedRect(cardX, cardY, cardW, cardH, 12, 12, 'F')
 
-  // ── Watermark "TEMPORARY" (diagonal, very faint) ──
+  // ── Watermark "RENEWED" (diagonal, very faint) ──
   doc.setFont('helvetica', 'bold')
-  doc.setFontSize(90)
+  doc.setFontSize(100)
   doc.setTextColor(0, 0, 0)
   doc.saveGraphicsState()
   // jsPDF doesn't expose alpha easily without GState; use very light gray instead
   doc.setTextColor(235, 235, 230)
-  doc.text('TEMPORARY', W / 2, H / 2 + 20, { align: 'center', angle: 25 })
+  doc.text('RENEWED', W / 2, H / 2 + 20, { align: 'center', angle: 25 })
   doc.restoreGraphicsState()
 
   // ── Header bar (green with gold accent strip on left) ──
@@ -701,24 +721,24 @@ async function downloadTempRegTag(r: Record<string, any>) {
   doc.setFontSize(22)
   doc.setFont('helvetica', 'bold')
   doc.setTextColor(255, 255, 255)
-  doc.text('TEMPORARY REGISTRATION TAG', cardX + 32, hY + 54)
+  doc.text('REGISTRATION RENEWAL CONFIRMATION', cardX + 32, hY + 54)
 
-  // Header badge — right side ("VALID FOR 30 DAYS")
-  const bW = 110, bH = 44, bX = cardX + cardW - bW - 24, bY = hY + 12
+  // Header badge — right side ("RENEWAL APPROVED")
+  const bW = 130, bH = 44, bX = cardX + cardW - bW - 24, bY = hY + 12
   doc.setFillColor(40, 75, 55)  // slightly lighter green
   doc.setDrawColor(...gold); doc.setLineWidth(1)
   doc.roundedRect(bX, bY, bW, bH, 5, 5, 'FD')
   doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor(...gold)
-  doc.text('VALID FOR', bX + bW / 2, bY + 15, { align: 'center' })
-  doc.setFontSize(18); doc.setTextColor(255, 255, 255)
-  doc.text('30 DAYS', bX + bW / 2, bY + 35, { align: 'center' })
+  doc.text('RENEWAL', bX + bW / 2, bY + 15, { align: 'center' })
+  doc.setFontSize(16); doc.setTextColor(255, 255, 255)
+  doc.text('APPROVED', bX + bW / 2, bY + 35, { align: 'center' })
 
   // ── Gold status strip ──
   const sY = hY + hH, sH = 22
   doc.setFillColor(...gold); doc.rect(cardX, sY, cardW, sH, 'F')
   doc.setFillColor(...green); doc.circle(cardX + 32, sY + sH / 2, 3, 'F')
   doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor(...green)
-  doc.text('OFFICIAL DOCUMENT \u2014 DISPLAY ON VEHICLE UNTIL PLATES ARRIVE', cardX + 42, sY + sH / 2 + 3)
+  doc.text('OFFICIAL PROOF OF RENEWAL — NEW STICKER ARRIVES BY MAIL', cardX + 42, sY + sH / 2 + 3)
 
   // ── Plate display section (green background with centered plate) ──
   const pY = sY + sH, pH = 96
@@ -763,13 +783,13 @@ async function downloadTempRegTag(r: Record<string, any>) {
 
   // Row 1
   drawField(col1X, fieldsY, 'Registered Owner', owner, { large: true })
-  drawField(col2X, fieldsY, 'Transaction No.', ref, { mono: true })
+  drawField(col2X, fieldsY, 'Confirmation No.', ref, { mono: true })
   // Row 2
   drawField(col1X, fieldsY + rowH, 'Year / Make / Model', vehicle)
   drawField(col2X, fieldsY + rowH, 'VIN', vin, { mono: true })
-  // Row 3 (no divider lines for the last row — handled below)
-  drawField(col1X, fieldsY + rowH * 2, 'Issued', issuedStr)
-  drawField(col2X, fieldsY + rowH * 2, 'Valid Through', expiryStr)
+  // Row 3
+  drawField(col1X, fieldsY + rowH * 2, 'Renewal Approved', issuedStr)
+  drawField(col2X, fieldsY + rowH * 2, 'New Registration Expires', expiryStr)
 
   // ── Footer ──
   const fY = cardY + cardH - 58
@@ -779,11 +799,11 @@ async function downloadTempRegTag(r: Record<string, any>) {
   // Footer note (left)
   doc.setFontSize(9); doc.setFont('helvetica', 'normal'); doc.setTextColor(...textMuted)
   doc.text(
-    'This tag must be displayed in the rear window until permanent plates arrive.',
+    'Your new registration sticker will arrive by mail within 7–10 business days.',
     cardX + 32, fY + 18
   )
   doc.text(
-    'Permanent registration will be mailed within 7\u201310 business days.',
+    'Apply it to your rear license plate when it arrives. Keep this confirmation for your records.',
     cardX + 32, fY + 32
   )
 
@@ -802,7 +822,7 @@ async function downloadTempRegTag(r: Record<string, any>) {
     off += bars[i] + 2
   }
   doc.setFontSize(7); doc.setFont('courier', 'normal'); doc.setTextColor(...textMuted)
-  doc.text(`${plate} \u00B7 ${ref}`, cardX + cardW - 32, bcY + bcH + 10, { align: 'right' })
+  doc.text(`${plate} \u00B7 ${txnRef}`, cardX + cardW - 32, bcY + bcH + 10, { align: 'right' })
 
-  doc.save(`Temp-Tag-${plate}-${ref}.pdf`)
+  doc.save(`Registration-Renewal-Confirmation-${plate}-${txnRef}.pdf`)
 }

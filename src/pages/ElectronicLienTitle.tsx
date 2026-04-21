@@ -44,7 +44,7 @@ export default function ElectronicLienTitle() {
         dmv_vin: formData.vin,
         dmv_make: formData.make || 'Unknown',
         dmv_model: formData.model || 'Unknown',
-        dmv_year: parseInt(formData.year) || new Date().getFullYear(),
+        dmv_year: (formData.year || String(new Date().getFullYear())).toString().trim(),
         ...(userId ? { 'dmv_ownercontactid@odata.bind': `/contacts(${userId})` } : {}),
       })
 
@@ -106,7 +106,7 @@ export default function ElectronicLienTitle() {
         dmv_vin: formData.vin,
         dmv_make: formData.make || 'Unknown',
         dmv_model: formData.model || 'Unknown',
-        dmv_year: parseInt(formData.year) || new Date().getFullYear(),
+        dmv_year: (formData.year || String(new Date().getFullYear())).toString().trim(),
         ...(userId ? { 'dmv_ownercontactid@odata.bind': `/contacts(${userId})` } : {}),
       })
 

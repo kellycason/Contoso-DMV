@@ -26,7 +26,7 @@ const termStatusColors: Record<number, string> = {
 
 type VehicleRow = {
   dmv_vehicleid: string; dmv_vin: string; dmv_make: string; dmv_model: string;
-  dmv_year: number; dmv_color: string; dmv_platenumber: string;
+  dmv_year: string; dmv_color: string; dmv_platenumber: string;
   dmv_insurancecarrier: string; dmv_insurancepolicy: string;
 }
 type RegRow = {
@@ -113,7 +113,7 @@ export default function VehicleRegistration() {
       console.log('[DMV] Injected regs:', injectedRegs.length, 'with expiration:', injExpByRegId.size)
 
       const [vRows, rRows] = await Promise.all([
-        dvQuery('dmv_vehicles', `$filter=_dmv_ownercontactid_value eq ${userId}&$select=dmv_vehicleid,dmv_vin,dmv_make,dmv_model,dmv_year,dmv_color,dmv_platenumber,dmv_insurancecarrier,dmv_insurancepolicy&$orderby=dmv_year desc`),
+        dvQuery('dmv_vehicles', `$filter=_dmv_ownercontactid_value eq ${userId}&$select=dmv_vehicleid,dmv_vin,dmv_make,dmv_model,dmv_year,dmv_color,dmv_platenumber,dmv_insurancecarrier,dmv_insurancepolicy&$orderby=dmv_make asc`),
         dvQuery('dmv_vehicleregistrations', `$filter=_dmv_regcontactid_value eq ${userId}&$select=dmv_vehicleregistrationid,dmv_registrationid,dmv_regstatus,_dmv_vehicleid_value,_dmv_currenttermid_value,dmv_expirationdate`),
       ])
 
@@ -154,7 +154,7 @@ export default function VehicleRegistration() {
       // 1. Create vehicle
       const vehicleId = await dvCreate('dmv_vehicles', {
         dmv_vin: form.vin, dmv_make: form.make, dmv_model: form.model,
-        dmv_year: parseInt(form.year), dmv_color: form.color,
+        dmv_year: (form.year || '').toString().trim(), dmv_color: form.color,
         dmv_platetype: plateTypeMap[form.plateType] ?? 100000000,
         dmv_salvagetitle: false, dmv_outofstate: false,
         dmv_insurancestatus: 100000000,
@@ -162,20 +162,16 @@ export default function VehicleRegistration() {
         dmv_insuranceexp: form.policyExp ? `${form.policyExp}T00:00:00Z` : undefined,
         ...(userId ? { 'dmv_ownercontactid@odata.bind': `/contacts(${userId})` } : {}),
       })
-      // 2. Create parent registration
-      const regId = `REG-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 99999)).padStart(5, '0')}`
+      // 2. Create parent registration (dmv_registrationid is autonumbered by Dataverse)
       const registrationId = await dvCreate('dmv_vehicleregistrations', {
-        dmv_registrationid: regId,
         dmv_regstatus: 100000002, // Pending Payment
         'dmv_vehicleid@odata.bind': `/dmv_vehicles(${vehicleId})`,
         ...(userId ? { 'dmv_regcontactid@odata.bind': `/contacts(${userId})` } : {}),
       })
-      // 3. Create first term
+      // 3. Create first term (dmv_termnumber is autonumbered)
       const today = new Date()
       const expDate = new Date(today); expDate.setFullYear(expDate.getFullYear() + 1)
-      const termNum = `TERM-${today.getFullYear()}-${String(Math.floor(Math.random() * 99999)).padStart(5, '0')}`
       const termId = await dvCreate('dmv_registrationterms', {
-        dmv_termnumber: termNum,
         dmv_termtype: 100000000,   // New
         dmv_termstatus: 100000001, // Pending
         dmv_startdate: today.toISOString().split('T')[0] + 'T00:00:00Z',
@@ -183,19 +179,22 @@ export default function VehicleRegistration() {
         dmv_issuedate: today.toISOString().split('T')[0] + 'T00:00:00Z',
         'dmv_vehicleregistrationid@odata.bind': `/dmv_vehicleregistrations(${registrationId})`,
       })
-      // 4. Create payment
-      const payRef = `PAY-${today.getFullYear()}-${String(Math.floor(Math.random() * 99999)).padStart(5, '0')}`
+      // 4. Create payment (demo: auto-settle as Paid; dmv_paymentref is autonumbered)
       await dvCreate('dmv_registrationpayments', {
-        dmv_paymentref: payRef,
         dmv_amount: 75.00, dmv_total: 75.00,
-        dmv_paymentstatus: 100000000, // Unpaid
+        dmv_paymentstatus: 100000001, // Paid
         'dmv_registrationtermid@odata.bind': `/dmv_registrationterms(${termId})`,
       })
       // 5. Point parent to current term
       await dvUpdate('dmv_vehicleregistrations', registrationId, {
         'dmv_currenttermid@odata.bind': `/dmv_registrationterms(${termId})`,
       })
-      setRefNumber(regId); setView('success')
+      // 6. Fetch the autonumber-assigned registration ref for the success screen
+      const created = await dvQuery<{ value: { dmv_registrationid: string }[] }>(
+        'dmv_vehicleregistrations',
+        `$filter=dmv_vehicleregistrationid eq ${registrationId}&$select=dmv_registrationid`
+      )
+      setRefNumber(created.value[0]?.dmv_registrationid || registrationId); setView('success')
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : 'Submission failed.')
     } finally { setSubmitting(false) }
@@ -224,7 +223,7 @@ export default function VehicleRegistration() {
       policyExp: f.policyExp || '2027-06-30',
     }))
     setRnAutofilled(true)
-  }, [renewTarget, dmv.loading, userName])
+  }, [renewTarget, dmv.loading, dmv.citizen, userName])
 
   const rnHandle = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     setRnForm(f => ({ ...f, [e.target.name]: e.target.value }))
@@ -233,10 +232,9 @@ export default function VehicleRegistration() {
   const handleRenew = async () => {
     setSubmitting(true); setSubmitError('')
     try {
-      const ref = `REGRN-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 9999)).padStart(4, '0')}`
+      // dmv_renewalid is autonumbered by Dataverse; payment confirmation is separate
       const payConf = `PAY-${Date.now().toString(36).toUpperCase()}`
-      await dvCreate('dmv_registrationrenewals', {
-        dmv_renewalid: ref,
+      const renewalId = await dvCreate('dmv_registrationrenewals', {
         dmv_renewalstatus: 100000000, // Submitted
         dmv_platenumber: rnForm.plateNumber,
         dmv_vin: rnForm.vin,
@@ -264,6 +262,17 @@ export default function VehicleRegistration() {
         ...(renewTarget?.dmv_vehicleid ? { 'dmv_vehicleid@odata.bind': `/dmv_vehicles(${renewTarget.dmv_vehicleid})` } : {}),
         ...(renewTarget?.reg?.dmv_vehicleregistrationid ? { 'dmv_registrationid@odata.bind': `/dmv_vehicleregistrations(${renewTarget.reg.dmv_vehicleregistrationid})` } : {}),
       })
+      // Create a paid payment record linked to the renewal (and to the
+      // vehicle registration's current term, if known).
+      if (renewalId) {
+        const currentTermId = renewTarget?.reg?._dmv_currenttermid_value
+        await dvCreate('dmv_registrationpayments', {
+          dmv_amount: 50.00, dmv_total: 50.00,
+          dmv_paymentstatus: 100000001, // Paid
+          'dmv_RenewalId@odata.bind': `/dmv_registrationrenewals(${renewalId})`,
+          ...(currentTermId ? { 'dmv_registrationtermid@odata.bind': `/dmv_registrationterms(${currentTermId})` } : {}),
+        }).catch(() => {})
+      }
       // Also log transaction
       if (userId) {
         await dvCreate('dmv_transactionlogs', {
@@ -275,7 +284,12 @@ export default function VehicleRegistration() {
           'dmv_contactid@odata.bind': `/contacts(${userId})`,
         }).catch(() => {})
       }
-      setRnRefNumber(ref)
+      // Fetch the autonumber-assigned renewal ref for the confirmation screen
+      const createdRenewal = await dvQuery<{ value: { dmv_renewalid: string }[] }>(
+        'dmv_registrationrenewals',
+        `$filter=dmv_registrationrenewalid eq ${renewalId}&$select=dmv_renewalid`
+      )
+      setRnRefNumber(createdRenewal.value[0]?.dmv_renewalid || renewalId)
       setRnStep(4) // move to confirmation
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : 'Submission failed.')
@@ -421,13 +435,13 @@ export default function VehicleRegistration() {
                             <div style={{ width: '140px', textAlign: 'right', flexShrink: 0 }}>
                               {(expired || expiring || status === 100000001 || (v.term && v.term.dmv_termstatus === 100000002)) && (
                                 <button className="btn btn-primary" style={{ fontSize: '12px', padding: '5px 14px' }}
-                                  onClick={() => { setRenewTarget(v); setSubmitError(''); setView('renew') }}>
+                                  onClick={() => { setRnForm(RENEW_INIT); setRnStep(0); setRnAutofilled(false); setRenewTarget(v); setSubmitError(''); setView('renew') }}>
                                   Renew
                                 </button>
                               )}
                               {!v.reg && (
                                 <button className="btn btn-secondary" style={{ fontSize: '12px', padding: '5px 14px' }}
-                                  onClick={() => { setRenewTarget(v); setSubmitError(''); setView('renew') }}>
+                                  onClick={() => { setRnForm(RENEW_INIT); setRnStep(0); setRnAutofilled(false); setRenewTarget(v); setSubmitError(''); setView('renew') }}>
                                   Register
                                 </button>
                               )}
@@ -564,7 +578,7 @@ export default function VehicleRegistration() {
                   <h2 style={rnStepTitle}>Step 4: Pay Renewal Fee</h2>
                   <p style={rnStepDesc}>
                     The renewal fee is <strong>$50.00</strong>. Payment is processed securely.
-                    Your temporary registration tag will be available once your renewal is approved.
+                    Your renewal confirmation will be available once your request is approved.
                   </p>
 
                   <div style={rnFeeSummary}>
@@ -658,8 +672,8 @@ export default function VehicleRegistration() {
                       <strong style={{ color: 'var(--color-primary)' }}>What happens next?</strong>
                       <ol style={{ margin: '8px 0 0 18px', padding: 0 }}>
                         <li>A DMV agent will review your renewal request (typically 1–3 business days).</li>
-                        <li>Once approved, your temporary registration tag will be available in your <Link to="/documents" style={{ color: 'var(--color-secondary)', fontWeight: 600 }}>Documents</Link>.</li>
-                        <li>Your updated registration sticker will arrive by mail in 7–10 business days.</li>
+                        <li>Once approved, your renewal confirmation will be available in your <Link to="/documents" style={{ color: 'var(--color-secondary)', fontWeight: 600 }}>Documents</Link>.</li>
+                        <li>Your new registration sticker will arrive by mail in 7–10 business days.</li>
                       </ol>
                     </div>
 

@@ -23,7 +23,7 @@ export interface DriverLicense {
 export interface VehicleWithReg {
   id: string
   vin: string
-  year: number
+  year: string
   make: string
   model: string
   plateNumber: string
@@ -72,7 +72,7 @@ declare global {
       citizen: CitizenProfile
       license: DriverLicense | null
       vehicles: Array<{
-        id: string; vin: string; year: number; make: string; model: string
+        id: string; vin: string; year: string; make: string; model: string
         plateNumber: string; color: string; insuranceStatus: string; insuranceExpiry: string
       }>
       registrations: Array<{

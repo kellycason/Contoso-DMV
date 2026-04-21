@@ -33,7 +33,7 @@ export default function TempTags() {
         dmv_vin: formData.vin,
         dmv_make: formData.make,
         dmv_model: formData.model,
-        dmv_year: parseInt(formData.year),
+        dmv_year: (formData.year || '').toString().trim(),
         dmv_color: formData.color,
         dmv_platetype: 100000004, // Temporary
         ...(userId ? { 'dmv_ownercontactid@odata.bind': `/contacts(${userId})` } : {}),
