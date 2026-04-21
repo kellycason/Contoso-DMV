@@ -6,7 +6,6 @@ const navLinks = [
   { to: '/my-dmv',                label: 'MyDMV' },
   { to: '/license-renewal',       label: 'License Renewal' },
   { to: '/vehicle-registration',  label: 'Vehicle Registration' },
-  { to: '/real-id',               label: 'REAL ID' },
   { to: '/appointments',          label: 'Appointments' },
   { to: '/documents',             label: 'Documents' },
   { to: '/dealer',                label: 'Dealer Portal' },

@@ -314,3 +314,42 @@ textarea:focus {
   }
 }
 
+
+/* ============================================================
+   Knowledge Article body (rendered from native knowledgearticle.content)
+   ============================================================ */
+.ka-body h3 {
+  font-family: var(--font-heading);
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  margin: 24px 0 6px;
+}
+.ka-body p {
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--color-text);
+  margin: 0 0 12px;
+}
+.ka-body ul {
+  margin: 6px 0 12px 20px;
+  padding: 0;
+}
+.ka-body li {
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--color-text);
+  margin-bottom: 4px;
+}
+
+/* FAQ answer (rendered as HTML) */
+dd[role="region"] h3 {
+  font-family: var(--font-heading);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  margin: 10px 0 4px;
+}
+dd[role="region"] p { margin: 0 0 8px; }
+dd[role="region"] ul { margin: 4px 0 8px 20px; padding: 0; }
+dd[role="region"] li { margin-bottom: 2px; }

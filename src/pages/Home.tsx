@@ -24,11 +24,11 @@ const services = [
     cta: 'Register Vehicle',
   },
   {
-    icon: '🛡️',
-    title: 'REAL ID Readiness',
-    desc: 'Check your eligibility, prepare documents, and schedule your REAL ID appointment.',
-    to: '/real-id',
-    cta: 'Check Readiness',
+    icon: '�',
+    title: 'DMV Process Guides',
+    desc: 'Step-by-step articles explaining license renewal, registration, appointments, fees, and more.',
+    to: '/faq',
+    cta: 'Read Guides',
   },
   {
     icon: '📅',
@@ -50,13 +50,6 @@ const services = [
     desc: 'Dealers: manage registrations, titles, liens, temp tags, and compliance from one portal.',
     to: '/dealer',
     cta: 'Dealer Login',
-  },
-  {
-    icon: '❓',
-    title: 'Frequently Asked Questions',
-    desc: 'Find answers to the most common questions about licenses, registrations, and DMV services.',
-    to: '/faq',
-    cta: 'Browse FAQ',
   },
 ]
 
