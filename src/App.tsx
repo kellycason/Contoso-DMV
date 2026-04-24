@@ -11,6 +11,7 @@ const FAQ = lazy(() => import('./pages/FAQ'))
 const MyDMV = lazy(() => import('./pages/MyDMV'))
 const RealID = lazy(() => import('./pages/RealID'))
 const DealerDashboard = lazy(() => import('./pages/DealerDashboard'))
+const DealerNewRegistration = lazy(() => import('./pages/DealerNewRegistration'))
 const ElectronicLienTitle = lazy(() => import('./pages/ElectronicLienTitle'))
 const BulkRegistration = lazy(() => import('./pages/BulkRegistration'))
 const TempTags = lazy(() => import('./pages/TempTags'))
@@ -29,6 +30,7 @@ export default function App() {
           <Route path="/documents" element={<Documents />} />
           <Route path="/faq" element={<FAQ />} />
           <Route path="/dealer" element={<DealerDashboard />} />
+          <Route path="/dealer/new-registration" element={<DealerNewRegistration />} />
           <Route path="/dealer/elt" element={<ElectronicLienTitle />} />
           <Route path="/dealer/bulk" element={<BulkRegistration />} />
           <Route path="/dealer/temp-tags" element={<TempTags />} />

@@ -153,7 +153,7 @@ export default function RealID() {
 
 const styles: Record<string, React.CSSProperties> = {
   hero: { background: 'linear-gradient(135deg, #1D3557 0%, #264674 100%)', color: '#fff', padding: '48px 0 40px' },
-  heroTitle: { fontSize: '32px', fontFamily: 'var(--font-heading)', margin: '0 0 12px' },
+  heroTitle: { fontSize: '32px', fontFamily: 'var(--font-heading)', margin: '0 0 12px', color: '#fff' },
   heroSub: { fontSize: '16px', opacity: 0.85, margin: '0 0 32px', maxWidth: '700px' },
   stepIndicator: { display: 'flex', gap: '24px', flexWrap: 'wrap' as const },
   step: { display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '12px 16px', borderRadius: '8px', background: 'rgba(255,255,255,0.06)', flex: '1 1 200px', cursor: 'pointer', transition: 'all 0.2s' },

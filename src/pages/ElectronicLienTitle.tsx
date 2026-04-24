@@ -284,8 +284,8 @@ export default function ElectronicLienTitle() {
 }
 
 const styles: Record<string, React.CSSProperties> = {
-  hero: { background: 'linear-gradient(135deg, #264653 0%, #1D3557 100%)', color: '#fff', padding: '48px 0 40px' },
-  heroTitle: { fontSize: '32px', fontFamily: 'var(--font-heading)', margin: '0 0 12px' },
+  hero: { background: 'linear-gradient(135deg, #1D3557 0%, #264674 100%)', color: '#fff', padding: '48px 0 40px' },
+  heroTitle: { fontSize: '32px', fontFamily: 'var(--font-heading)', margin: '0 0 12px', color: '#fff' },
   heroSub: { fontSize: '16px', opacity: 0.85, margin: 0, maxWidth: '600px' },
   tabs: { display: 'flex', gap: '4px', borderBottom: '2px solid #eee', marginBottom: '32px' },
   tab: { padding: '12px 20px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '14px', fontWeight: 500, color: '#666', borderBottom: '2px solid transparent', marginBottom: '-2px', transition: 'all 0.2s' },

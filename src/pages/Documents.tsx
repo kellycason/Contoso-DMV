@@ -70,7 +70,7 @@ export default function Documents() {
       ).then(setApprovedRenewals).catch(() => {}).finally(() => setLoadingRenewals(false))
 
       dvQuery('dmv_registrationrenewals',
-        `$filter=_dmv_contactid_value eq ${userId} and dmv_renewalstatus eq 100000002&$select=dmv_renewalid,dmv_platenumber,dmv_vin,dmv_vehicleyear,dmv_vehiclemake,dmv_vehiclemodel,dmv_vehiclecolor,dmv_firstname,dmv_lastname,dmv_streetaddress,dmv_city,dmv_state,dmv_zipcode,dmv_approveddate,dmv_newexpirationdate,dmv_temptagnumber,dmv_temptagexpirationdate&$top=10`
+        `$filter=_dmv_contactid_value eq ${userId} and dmv_renewalstatus eq 100000002&$select=dmv_renewalid,dmv_platenumber,dmv_vin,dmv_vehicleyear,dmv_vehiclemake,dmv_vehiclemodel,dmv_vehiclecolor,dmv_firstname,dmv_lastname,dmv_streetaddress,dmv_city,dmv_state,dmv_zipcode,dmv_approveddate,dmv_newexpirationdate,dmv_confirmationnumber&$top=10`
       ).then(setApprovedRegRenewals).catch(() => {}).finally(() => setLoadingRegRenewals(false))
     } else {
       setLoadingDocs(false)
@@ -327,8 +327,7 @@ export default function Documents() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                   {approvedRegRenewals.map(r => {
                     const approved = r.dmv_approveddate ? new Date(r.dmv_approveddate).toLocaleDateString() : '—'
-                    // Prefer newexpirationdate; fall back to temptagexpirationdate (now repurposed to hold new registration expiration)
-                    const expiresDate = parseDvDate(r.dmv_newexpirationdate || r.dmv_temptagexpirationdate)
+                    const expiresDate = parseDvDate(r.dmv_newexpirationdate)
                     const expires = expiresDate ? expiresDate.toLocaleDateString() : '—'
                     const rid = r.dmv_registrationrenewalid || r.dmv_renewalid
                     return (
@@ -343,7 +342,7 @@ export default function Documents() {
                           </p>
                           <p style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 2 }}>
                             Plate: <span className="mono">{r.dmv_platenumber}</span>
-                            {' · '}Confirmation: <span className="mono">{r.dmv_temptagnumber || r.dmv_renewalid}</span>
+                            {' · '}Confirmation: <span className="mono">{r.dmv_confirmationnumber || r.dmv_renewalid}</span>
                             {' · '}Approved: {approved}
                             {' · '}New registration expires: {expires}
                           </p>
@@ -654,13 +653,12 @@ async function downloadTempRegTag(r: Record<string, any>) {
   const vin = (r.dmv_vin || '').toUpperCase()
   const vehicle = `${r.dmv_vehicleyear || ''} ${r.dmv_vehiclemake || ''} ${r.dmv_vehiclemodel || ''}`.trim()
   const owner = `${r.dmv_firstname || ''} ${r.dmv_lastname || ''}`.trim()
-  const ref = r.dmv_temptagnumber || r.dmv_renewalid || ''
+  const ref = r.dmv_confirmationnumber || r.dmv_renewalid || ''
   const txnRef = r.dmv_renewalid || ''
   const approvedDate = r.dmv_approveddate ? new Date(r.dmv_approveddate) : new Date()
-  // New registration expiration: prefer newexpirationdate, fall back to temptagexpirationdate
-  // (repurposed under Option A to hold the new registration period end). Parse as
-  // local calendar date to prevent UTC-midnight → previous-day shift.
-  const expiry = parseDvDate(r.dmv_newexpirationdate || r.dmv_temptagexpirationdate)
+  // New registration expiration. Parse as local calendar date to prevent
+  // UTC-midnight → previous-day shift.
+  const expiry = parseDvDate(r.dmv_newexpirationdate)
     ?? (() => { const d = new Date(approvedDate); d.setFullYear(d.getFullYear() + 1); return d })()
   const issuedStr = approvedDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
   const expiryStr = expiry.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })

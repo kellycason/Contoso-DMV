@@ -214,8 +214,8 @@ export default function BulkRegistration() {
 }
 
 const styles: Record<string, React.CSSProperties> = {
-  hero: { background: 'linear-gradient(135deg, #264653 0%, #1D3557 100%)', color: '#fff', padding: '48px 0 40px' },
-  heroTitle: { fontSize: '32px', fontFamily: 'var(--font-heading)', margin: '0 0 12px' },
+  hero: { background: 'linear-gradient(135deg, #1D3557 0%, #264674 100%)', color: '#fff', padding: '48px 0 40px' },
+  heroTitle: { fontSize: '32px', fontFamily: 'var(--font-heading)', margin: '0 0 12px', color: '#fff' },
   heroSub: { fontSize: '16px', opacity: 0.85, margin: 0, maxWidth: '600px' },
   grid: { display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '24px' },
   card: { background: '#fff', borderRadius: '12px', padding: '24px', border: '1px solid #e8e8e8', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' },

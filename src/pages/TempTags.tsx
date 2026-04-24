@@ -1,165 +1,108 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
-import { dvCreate, dvQuery, fmt } from '../hooks/useDataverse'
+import { dvQuery, fmt } from '../hooks/useDataverse'
+
+interface TagRow {
+  dmv_temporarytagid: string
+  dmv_tagnumber: string
+  dmv_buyername: string
+  dmv_issuedate: string
+  dmv_expirationdate: string
+  dmv_tagstatus?: number
+  dmv_vehicleid?: {
+    dmv_vin?: string
+    dmv_year?: string
+    dmv_make?: string
+    dmv_model?: string
+    dmv_color?: string
+  }
+}
 
 export default function TempTags() {
-  const { isAuthenticated, userId } = useAuth()
-  const [formData, setFormData] = useState({ vin: '', make: '', model: '', year: '', color: '', buyer: '', saleDate: '' })
-  const [generated, setGenerated] = useState(false)
-  const [submitting, setSubmitting] = useState(false)
-  const [submitError, setSubmitError] = useState('')
-  const [tagNumber, setTagNumber] = useState('')
-  const [expiryDate, setExpiryDate] = useState('')
-  const [activeTags, setActiveTags] = useState<Record<string, any>[]>([])
-  const [loadingTags, setLoadingTags] = useState(true)
+  const { isAuthenticated } = useAuth()
+  const [tags, setTags] = useState<TagRow[]>([])
+  const [loading, setLoading] = useState(true)
+  const [selected, setSelected] = useState<TagRow | null>(null)
 
   useEffect(() => {
-    if (isAuthenticated && userId) {
-      dvQuery('dmv_temporarytags',
-        `$filter=_dmv_generatedby_value eq ${userId}&$select=dmv_tagnumber,dmv_buyername,dmv_issuedate,dmv_expirationdate,dmv_tagstatus&$orderby=dmv_issuedate desc&$top=20`
-      ).then(setActiveTags).catch(() => {}).finally(() => setLoadingTags(false))
-    } else {
-      setLoadingTags(false)
-    }
-  }, [isAuthenticated, userId])
+    if (!isAuthenticated) { setLoading(false); return }
+    // Demo: show tags issued to "Sam Smith" (the demo buyer persona)
+    const buyerName = 'Sam Smith'
+    dvQuery('dmv_temporarytags',
+      `$filter=dmv_buyername eq '${buyerName}' and dmv_tagstatus eq 100000000` +
+      `&$select=dmv_temporarytagid,dmv_tagnumber,dmv_buyername,dmv_issuedate,dmv_expirationdate,dmv_tagstatus` +
+      `&$expand=dmv_vehicleid($select=dmv_vin,dmv_year,dmv_make,dmv_model,dmv_color)` +
+      `&$orderby=dmv_issuedate desc&$top=20`
+    )
+      .then((rows: TagRow[]) => setTags(rows))
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [isAuthenticated, userName])
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setSubmitting(true)
-    setSubmitError('')
-    try {
-      // Create the vehicle record
-      const vehicleId = await dvCreate('dmv_vehicles', {
-        dmv_vin: formData.vin,
-        dmv_make: formData.make,
-        dmv_model: formData.model,
-        dmv_year: (formData.year || '').toString().trim(),
-        dmv_color: formData.color,
-        dmv_platetype: 100000004, // Temporary
-        ...(userId ? { 'dmv_ownercontactid@odata.bind': `/contacts(${userId})` } : {}),
-      })
+  const handlePrint = () => window.print()
 
-      const tag = `TMP-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 9999)).padStart(4, '0')}`
-      const expiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-
-      // Create the temp tag
-      await dvCreate('dmv_temporarytags', {
-        dmv_tagnumber: tag,
-        dmv_buyername: formData.buyer,
-        dmv_issuedate: new Date().toISOString().split('T')[0],
-        dmv_expirationdate: expiry,
-        dmv_tagstatus: 100000000, // Active
-        dmv_saleprice: 0,
-        dmv_printcount: 0,
-        'dmv_vehicleid@odata.bind': `/dmv_vehicles(${vehicleId})`,
-        ...(userId ? { 'dmv_generatedby@odata.bind': `/contacts(${userId})` } : {}),
-      })
-
-      // Log the transaction
-      if (userId) {
-        await dvCreate('dmv_transactionlogs', {
-          dmv_transactionid: `TXN-${Math.floor(Math.random() * 9000000 + 1000000)}`,
-          dmv_transactiontype: 100000003, // Tag Issued
-          dmv_transactiondate: new Date().toISOString(),
-          dmv_status: 100000001, // Completed
-          dmv_channel: 100000002, // Dealer Portal
-          'dmv_contactid@odata.bind': `/contacts(${userId})`,
-        })
-      }
-
-      setTagNumber(tag)
-      setExpiryDate(expiry)
-      setGenerated(true)
-    } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : 'Tag generation failed. Please try again.')
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  const tagStatusStyle = (val: string) => {
-    if (val === 'Active') return { bg: '#d4edda', color: '#155724' }
-    if (val === 'Expired' || val === 'Voided') return { bg: '#f8d7da', color: '#721c24' }
-    if (val === 'Converted to Plate') return { bg: '#cce5ff', color: '#004085' }
-    return { bg: '#fff3cd', color: '#856404' }
+  if (!isAuthenticated) {
+    return (
+      <div className="section-sm">
+        <div className="container" style={{ maxWidth: 620, textAlign: 'center', padding: '48px 24px' }}>
+          <div style={{ fontSize: 48, marginBottom: 16 }}>🏷️</div>
+          <h2 style={{ color: 'var(--color-primary)', marginBottom: 12 }}>Sign In Required</h2>
+          <p style={{ color: 'var(--color-text-muted)', marginBottom: 24 }}>
+            Please sign in to view your temporary tags.
+          </p>
+          <a href="/Account/Login/ExternalLogin" className="btn btn-primary">Sign In</a>
+        </div>
+      </div>
+    )
   }
 
   return (
     <div>
       <section style={styles.hero}>
         <div className="container">
-          <h1 style={styles.heroTitle}>Temporary Tag Generation</h1>
-          <p style={styles.heroSub}>Generate instant printable temporary tags for newly sold vehicles. Tags are valid for 30 days.</p>
+          <h1 style={styles.heroTitle}>My Temporary Tags</h1>
+          <p style={styles.heroSub}>
+            Active temporary tags issued through your dealer registrations. Tags appear here
+            once the DMV has approved your new registration and are valid for 30 days from issue date.
+          </p>
         </div>
       </section>
 
       <section className="container" style={{ padding: '40px 24px' }}>
-        {!generated ? (
-          <div style={styles.grid}>
-            <div style={styles.card}>
-              <h2 style={styles.cardTitle}>Generate New Temp Tag</h2>
-              <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                <div style={styles.formGrid}>
-                  <div style={styles.field}><label style={styles.label}>VIN</label><input style={styles.input} maxLength={17} placeholder="17-character VIN" required value={formData.vin} onChange={e => setFormData(p => ({ ...p, vin: e.target.value }))} /></div>
-                  <div style={styles.field}><label style={styles.label}>Make</label><input style={styles.input} placeholder="e.g. Toyota" required value={formData.make} onChange={e => setFormData(p => ({ ...p, make: e.target.value }))} /></div>
-                  <div style={styles.field}><label style={styles.label}>Model</label><input style={styles.input} placeholder="e.g. Camry" required value={formData.model} onChange={e => setFormData(p => ({ ...p, model: e.target.value }))} /></div>
-                  <div style={styles.field}><label style={styles.label}>Year</label><input style={styles.input} type="number" min="1900" max="2027" required value={formData.year} onChange={e => setFormData(p => ({ ...p, year: e.target.value }))} /></div>
-                  <div style={styles.field}><label style={styles.label}>Color</label><input style={styles.input} placeholder="e.g. Silver" required value={formData.color} onChange={e => setFormData(p => ({ ...p, color: e.target.value }))} /></div>
-                  <div style={styles.field}><label style={styles.label}>Buyer Name</label><input style={styles.input} placeholder="Full legal name" required value={formData.buyer} onChange={e => setFormData(p => ({ ...p, buyer: e.target.value }))} /></div>
-                  <div style={styles.field}><label style={styles.label}>Sale Date</label><input style={styles.input} type="date" required value={formData.saleDate} onChange={e => setFormData(p => ({ ...p, saleDate: e.target.value }))} /></div>
-                </div>
-                {submitError && <p style={{ color: '#E63946', fontSize: '14px', margin: 0 }}>{submitError}</p>}
-                <button type="submit" className="btn btn-primary" disabled={submitting} style={{ alignSelf: 'flex-start', padding: '12px 32px' }}>
-                  {submitting ? '⏳ Generating...' : '🏷️ Generate Temporary Tag'}
-                </button>
-              </form>
-            </div>
-
-            <div style={styles.card}>
-              <h3 style={styles.cardTitle}>Active Temporary Tags</h3>
-              {loadingTags ? (
-                <p style={{ color: '#888', fontSize: '14px' }}>Loading tags...</p>
-              ) : activeTags.length === 0 ? (
-                <p style={{ color: '#888', fontSize: '14px' }}>No temporary tags issued yet.</p>
-              ) : (
-                activeTags.map(t => {
-                  const status = fmt(t, 'dmv_tagstatus') || 'Active'
-                  const sc = tagStatusStyle(status)
-                  return (
-                    <div key={t.dmv_temporarytagid} style={styles.tagRow}>
-                      <div>
-                        <strong style={{ fontFamily: 'var(--font-mono)' }}>{t.dmv_tagnumber}</strong>
-                        <div style={{ fontSize: '12px', color: '#888' }}>{t.dmv_buyername}</div>
-                      </div>
-                      <div style={{ textAlign: 'right' as const }}>
-                        <span style={{ ...styles.badge, background: sc.bg, color: sc.color }}>{status}</span>
-                        <div style={{ fontSize: '11px', color: '#888', marginTop: '2px' }}>Exp: {fmt(t, 'dmv_expirationdate')}</div>
-                      </div>
-                    </div>
-                  )
-                })
-              )}
-            </div>
+        {loading ? (
+          <p style={{ color: '#888' }}>Loading your temporary tags…</p>
+        ) : tags.length === 0 ? (
+          <div style={{ ...styles.card, textAlign: 'center', padding: '48px 24px' }}>
+            <div style={{ fontSize: 48, marginBottom: 16 }}>🏷️</div>
+            <h3 style={{ color: 'var(--color-primary)', margin: '0 0 8px' }}>No active temporary tags</h3>
+            <p style={{ color: '#666', margin: 0 }}>
+              When a dealer submits a new registration for you and the DMV approves it,
+              your temporary tag will appear here for download &amp; printing.
+            </p>
           </div>
+        ) : selected ? (
+          <TagPreview tag={selected} onBack={() => setSelected(null)} onPrint={handlePrint} />
         ) : (
-          <div style={{ ...styles.card, textAlign: 'center', maxWidth: '600px', margin: '0 auto' }}>
-            <div style={styles.tagPreview}>
-              <div style={styles.tagHeader}>TEMPORARY TAG</div>
-              <div style={styles.tagNum}>{tagNumber}</div>
-              <div style={styles.tagGrid}>
-                <div><span style={styles.tagLabel}>VIN</span><span>{formData.vin || 'N/A'}</span></div>
-                <div><span style={styles.tagLabel}>Vehicle</span><span>{formData.year} {formData.make} {formData.model}</span></div>
-                <div><span style={styles.tagLabel}>Color</span><span>{formData.color || 'N/A'}</span></div>
-                <div><span style={styles.tagLabel}>Buyer</span><span>{formData.buyer || 'N/A'}</span></div>
-                <div><span style={styles.tagLabel}>Sale Date</span><span>{formData.saleDate || 'N/A'}</span></div>
-                <div><span style={styles.tagLabel}>Expires</span><span style={{ color: '#E63946', fontWeight: 600 }}>{expiryDate}</span></div>
-              </div>
-              <div style={styles.tagFooter}>Contoso DMV · Department of Motor Vehicles · Dealer #DLR-2024-0156</div>
-            </div>
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', marginTop: '24px' }}>
-              <button className="btn btn-primary">🖨️ Print Tag</button>
-              <button className="btn" style={{ border: '1px solid #ccc' }} onClick={() => { setGenerated(false); setSubmitError(''); setFormData({ vin: '', make: '', model: '', year: '', color: '', buyer: '', saleDate: '' }) }}>Generate Another</button>
-            </div>
+          <div style={styles.listCard}>
+            <h2 style={styles.cardTitle}>Approved Tags ({tags.length})</h2>
+            {tags.map(t => {
+              const v = t.dmv_vehicleid
+              const vehicle = v ? `${v.dmv_year || ''} ${v.dmv_make || ''} ${v.dmv_model || ''}`.trim() : '—'
+              return (
+                <div key={t.dmv_temporarytagid} style={styles.tagRow}>
+                  <div style={{ flex: 1 }}>
+                    <strong style={{ fontFamily: 'var(--font-mono)', fontSize: 15 }}>{t.dmv_tagnumber}</strong>
+                    <div style={{ fontSize: 13, color: '#555', marginTop: 2 }}>{vehicle}</div>
+                    <div style={{ fontSize: 12, color: '#888', marginTop: 2 }}>
+                      Issued {fmt(t, 'dmv_issuedate')} · Expires {fmt(t, 'dmv_expirationdate')}
+                    </div>
+                  </div>
+                  <button className="btn btn-primary" onClick={() => setSelected(t)} style={{ padding: '8px 16px' }}>
+                    View &amp; Print
+                  </button>
+                </div>
+              )
+            })}
           </div>
         )}
       </section>
@@ -167,23 +110,51 @@ export default function TempTags() {
   )
 }
 
+/* ──────────────────────────────────────────────────────────
+   Printable tag preview. The markup inside #temp-tag can be
+   copy-pasted into an email template or reused for a Power
+   Automate "convert to PDF" action.
+   ────────────────────────────────────────────────────────── */
+function TagPreview({ tag, onBack, onPrint }: { tag: TagRow; onBack: () => void; onPrint: () => void }) {
+  const v = tag.dmv_vehicleid
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: 12, marginBottom: 16 }} className="no-print">
+        <button className="btn" style={{ border: '1px solid #ccc' }} onClick={onBack}>← Back to list</button>
+        <button className="btn btn-primary" onClick={onPrint}>🖨️ Print Tag</button>
+      </div>
+
+      <div id="temp-tag" style={styles.tagPreview}>
+        <div style={styles.tagHeader}>TEMPORARY REGISTRATION PERMIT</div>
+        <div style={styles.tagNum}>{tag.dmv_tagnumber}</div>
+        <div style={styles.tagGrid}>
+          <div><span style={styles.tagLabel}>VIN</span><span>{v?.dmv_vin || '—'}</span></div>
+          <div><span style={styles.tagLabel}>Vehicle</span><span>{`${v?.dmv_year || ''} ${v?.dmv_make || ''} ${v?.dmv_model || ''}`.trim() || '—'}</span></div>
+          <div><span style={styles.tagLabel}>Color</span><span>{v?.dmv_color || '—'}</span></div>
+          <div><span style={styles.tagLabel}>Registrant</span><span>{tag.dmv_buyername || '—'}</span></div>
+          <div><span style={styles.tagLabel}>Issued</span><span>{fmt(tag, 'dmv_issuedate')}</span></div>
+          <div><span style={styles.tagLabel}>Expires</span><span style={{ color: '#E63946', fontWeight: 600 }}>{fmt(tag, 'dmv_expirationdate')}</span></div>
+        </div>
+        <div style={styles.tagFooter}>Contoso DMV · Department of Motor Vehicles · Display in lower-right corner of rear windshield</div>
+      </div>
+
+      <style>{`@media print { .no-print { display: none !important; } body { background: #fff !important; } }`}</style>
+    </div>
+  )
+}
+
 const styles: Record<string, React.CSSProperties> = {
-  hero: { background: 'linear-gradient(135deg, #264653 0%, #1D3557 100%)', color: '#fff', padding: '48px 0 40px' },
-  heroTitle: { fontSize: '32px', fontFamily: 'var(--font-heading)', margin: '0 0 12px' },
-  heroSub: { fontSize: '16px', opacity: 0.85, margin: 0, maxWidth: '600px' },
-  grid: { display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '24px' },
+  hero: { background: 'linear-gradient(135deg, #1D3557 0%, #264674 100%)', color: '#fff', padding: '48px 0 40px' },
+  heroTitle: { fontSize: '32px', fontFamily: 'var(--font-heading)', margin: '0 0 12px', color: '#fff' },
+  heroSub: { fontSize: '16px', opacity: 0.85, margin: 0, maxWidth: '680px', lineHeight: 1.5 },
   card: { background: '#fff', borderRadius: '12px', padding: '24px', border: '1px solid #e8e8e8', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' },
+  listCard: { background: '#fff', borderRadius: '12px', padding: '24px', border: '1px solid #e8e8e8', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', maxWidth: 760 },
   cardTitle: { fontSize: '18px', fontWeight: 600, color: '#1D3557', margin: '0 0 16px', paddingBottom: '12px', borderBottom: '1px solid #eee' },
-  formGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' },
-  field: { display: 'flex', flexDirection: 'column' as const, gap: '6px' },
-  label: { fontSize: '13px', fontWeight: 600, color: '#1D3557' },
-  input: { padding: '10px 14px', border: '1px solid #d0d5dd', borderRadius: '6px', fontSize: '14px' },
-  tagRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 0', borderBottom: '1px solid #f0f0f0' },
-  badge: { display: 'inline-block', padding: '2px 10px', borderRadius: '12px', fontSize: '11px', fontWeight: 600 },
-  tagPreview: { background: '#1D3557', color: '#fff', borderRadius: '12px', padding: '32px', border: '3px solid #E63946' },
-  tagHeader: { fontSize: '14px', letterSpacing: '0.15em', fontWeight: 600, opacity: 0.7 },
-  tagNum: { fontSize: '36px', fontFamily: 'var(--font-mono)', fontWeight: 700, margin: '8px 0 20px', letterSpacing: '0.05em' },
-  tagGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', textAlign: 'left' as const, fontSize: '14px' },
+  tagRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, padding: '16px 0', borderBottom: '1px solid #f0f0f0' },
+  tagPreview: { background: '#1D3557', color: '#fff', borderRadius: '12px', padding: '32px', border: '3px solid #E63946', maxWidth: 640, margin: '0 auto' },
+  tagHeader: { fontSize: '14px', letterSpacing: '0.15em', fontWeight: 600, opacity: 0.7, textAlign: 'center' as const },
+  tagNum: { fontSize: '42px', fontFamily: 'var(--font-mono)', fontWeight: 700, margin: '12px 0 24px', letterSpacing: '0.05em', textAlign: 'center' as const },
+  tagGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', textAlign: 'left' as const, fontSize: '14px' },
   tagLabel: { display: 'block', fontSize: '10px', textTransform: 'uppercase' as const, letterSpacing: '0.08em', opacity: 0.6, marginBottom: '2px' },
-  tagFooter: { marginTop: '20px', paddingTop: '12px', borderTop: '1px solid rgba(255,255,255,0.2)', fontSize: '11px', opacity: 0.5 },
+  tagFooter: { marginTop: '24px', paddingTop: '16px', borderTop: '1px solid rgba(255,255,255,0.2)', fontSize: '11px', opacity: 0.6, textAlign: 'center' as const },
 }

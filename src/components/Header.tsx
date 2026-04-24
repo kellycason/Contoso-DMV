@@ -1,20 +1,30 @@
 import { useState } from 'react'
 import { NavLink, Link } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
+import { usePersona, DEMO_DEALER } from '../hooks/usePersona'
 
-const navLinks = [
+const citizenNav = [
   { to: '/my-dmv',                label: 'MyDMV' },
   { to: '/license-renewal',       label: 'License Renewal' },
   { to: '/vehicle-registration',  label: 'Vehicle Registration' },
   { to: '/appointments',          label: 'Appointments' },
   { to: '/documents',             label: 'Documents' },
-  { to: '/dealer',                label: 'Dealer Portal' },
   { to: '/faq',                   label: 'FAQ' },
+]
+
+const dealerNav = [
+  { to: '/dealer',                     label: 'Dashboard' },
+  { to: '/dealer/new-registration',    label: 'Registrations' },
+  { to: '/dealer/bulk',                label: 'Bulk Upload' },
+  { to: '/dealer/elt',                 label: 'Electronic Titles' },
+  { to: '/faq',                        label: 'FAQ' },
 ]
 
 export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false)
   const { isAuthenticated, userName } = useAuth()
+  const { persona, toggle } = usePersona()
+  const navLinks = persona === 'dealer' ? dealerNav : citizenNav
 
   return (
     <header style={styles.header}>
@@ -23,6 +33,20 @@ export default function Header() {
           <span>Official Contoso DMV Government Portal</span>
           <div style={styles.topBarRight}>
             <span>Mon–Fri 8:00 AM – 5:00 PM</span>
+            <button
+              type="button"
+              onClick={toggle}
+              title={persona === 'dealer'
+                ? `Demo persona: Dealer (${DEMO_DEALER.contactName} @ ${DEMO_DEALER.accountName}). Click to switch to Citizen view.`
+                : 'Demo persona: Citizen. Click to switch to Dealer view.'}
+              style={styles.personaBtn}
+            >
+              <span aria-hidden="true" style={{ fontSize: 11 }}>
+                {persona === 'dealer' ? '🏢' : '👤'}
+              </span>
+              <span>{persona === 'dealer' ? 'Dealer' : 'Citizen'}</span>
+              <span style={styles.personaSwitch} aria-hidden="true">⇄</span>
+            </button>
             {isAuthenticated ? (
               <>
                 <span style={styles.userName}>Welcome, {userName}</span>
@@ -55,6 +79,7 @@ export default function Header() {
               <li key={link.to}>
                 <NavLink
                   to={link.to}
+                  end={link.to === '/' || link.to === '/dealer'}
                   style={({ isActive }) => ({
                     ...styles.navLink,
                     ...(isActive ? styles.navLinkActive : {}),
@@ -120,6 +145,28 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 500,
     borderLeft: '1px solid rgba(255,255,255,0.25)',
     paddingLeft: '16px',
+  },
+  personaBtn: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '6px',
+    padding: '3px 10px',
+    background: 'rgba(255,255,255,0.12)',
+    color: '#fff',
+    border: '1px solid rgba(255,255,255,0.25)',
+    borderRadius: '999px',
+    fontSize: '11px',
+    fontFamily: 'var(--font-body)',
+    fontWeight: 600,
+    letterSpacing: '0.05em',
+    textTransform: 'uppercase' as const,
+    cursor: 'pointer',
+    transition: 'background 0.15s',
+  },
+  personaSwitch: {
+    opacity: 0.7,
+    fontSize: '11px',
+    marginLeft: '2px',
   },
   nav: {
     background: 'var(--color-primary)',

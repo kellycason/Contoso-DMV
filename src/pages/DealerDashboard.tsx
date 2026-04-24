@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
+import { DEMO_DEALER } from '../hooks/usePersona'
 import { dvQuery, fmt } from '../hooks/useDataverse'
 
 export default function DealerDashboard() {
-  const { isAuthenticated, userName, userId } = useAuth()
+  const { isAuthenticated, userId } = useAuth()
   const [activeTab, setActiveTab] = useState<'overview' | 'submissions' | 'compliance'>('overview')
   const [loading, setLoading] = useState(true)
   const [transactions, setTransactions] = useState<Record<string, any>[]>([])
@@ -13,11 +14,12 @@ export default function DealerDashboard() {
 
   useEffect(() => {
     if (!isAuthenticated || !userId) { setLoading(false); return }
+    const dealerFilter = `$filter=_dmv_dealeracctid_value eq ${DEMO_DEALER.accountId}`
     Promise.all([
-      dvQuery('dmv_transactionlogs', `$select=dmv_transactionid,dmv_transactiontype,dmv_transactiondate,dmv_status,dmv_amount,dmv_channel&$orderby=dmv_transactiondate desc&$top=50`).catch(() => []),
-      dvQuery('dmv_vehicleregistrations', `$select=dmv_registrationid,dmv_regstatus,dmv_regtype,dmv_expirationdate,dmv_totaldue,dmv_paymentstatus&$orderby=dmv_expirationdate desc&$top=50`).catch(() => []),
-      dvQuery('dmv_temporarytags', `$select=dmv_tagnumber,dmv_buyername,dmv_tagstatus,dmv_issuedate,dmv_expirationdate&$orderby=dmv_issuedate desc&$top=50`).catch(() => []),
-      dvQuery('dmv_vehicletitles', `$select=dmv_titlenumber,dmv_titlestatus,dmv_titletype,dmv_issuedate,dmv_processingstatus&$orderby=dmv_issuedate desc&$top=50`).catch(() => []),
+      dvQuery('dmv_transactionlogs', `${dealerFilter}&$select=dmv_transactionid,dmv_transactiontype,dmv_transactiondate,dmv_status,dmv_amount,dmv_channel&$orderby=dmv_transactiondate desc&$top=50`).catch(() => []),
+      dvQuery('dmv_vehicleregistrations', `${dealerFilter}&$select=dmv_registrationid,dmv_regstatus,dmv_regtype,dmv_expirationdate,dmv_totaldue,dmv_paymentstatus&$orderby=dmv_expirationdate desc&$top=50`).catch(() => []),
+      dvQuery('dmv_temporarytags', `${dealerFilter}&$select=dmv_tagnumber,dmv_buyername,dmv_tagstatus,dmv_issuedate,dmv_expirationdate&$orderby=dmv_issuedate desc&$top=50`).catch(() => []),
+      dvQuery('dmv_vehicletitles', `${dealerFilter}&$select=dmv_titlenumber,dmv_titlestatus,dmv_titletype,dmv_issuedate,dmv_processingstatus&$orderby=dmv_issuedate desc&$top=50`).catch(() => []),
     ]).then(([txn, reg, tags, ttl]) => {
       setTransactions(txn)
       setRegistrations(reg)
@@ -91,8 +93,8 @@ export default function DealerDashboard() {
           <div style={styles.heroContent}>
             <div>
               <span style={styles.dealerBadge}>🏢 Dealer Portal</span>
-              <h1 style={styles.heroTitle}>{userName || 'Dealer Dashboard'}</h1>
-              <p style={styles.heroSub}>Dealer Operations · {transactions.length} total transactions</p>
+              <h1 style={styles.heroTitle}>{DEMO_DEALER.contactName}</h1>
+              <p style={styles.heroSub}>{DEMO_DEALER.jobTitle} · {DEMO_DEALER.accountName} · {transactions.length} total transactions</p>
             </div>
             <div style={styles.statGrid}>
               <div style={styles.statCard}><div style={styles.statValue}>{pendingRegs}</div><div style={styles.statLabel}>Pending Registrations</div></div>
@@ -134,10 +136,10 @@ export default function DealerDashboard() {
             <div style={styles.card}>
               <h3 style={styles.cardTitle}>Quick Actions</h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                <a href="/dealer/registration" className="btn btn-primary" style={styles.quickBtn}>Submit New Registration</a>
+                <a href="/dealer/new-registration" className="btn btn-primary" style={styles.quickBtn}>Submit New Registration</a>
                 <a href="/dealer/elt" className="btn btn-primary" style={styles.quickBtn}>File Lien / Title</a>
                 <a href="/dealer/bulk" className="btn btn-primary" style={styles.quickBtn}>Bulk Registration Upload</a>
-                <a href="/dealer/temp-tags" className="btn btn-primary" style={styles.quickBtn}>Generate Temp Tag</a>
+                <a href="/faq" className="btn btn-primary" style={styles.quickBtn}>FAQ</a>
               </div>
             </div>
             <div style={{ ...styles.card, gridColumn: 'span 2' }}>
@@ -180,7 +182,7 @@ export default function DealerDashboard() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
               <h2 style={{ margin: 0 }}>All Submissions</h2>
               <div style={{ display: 'flex', gap: '8px' }}>
-                <a href="/vehicle-registration" className="btn btn-primary">+ New Registration</a>
+                <a href="/dealer/new-registration" className="btn btn-primary">+ New Registration</a>
                 <a href="/dealer/bulk" className="btn" style={{ border: '1px solid #ccc' }}>📁 Bulk Upload</a>
               </div>
             </div>
@@ -251,10 +253,10 @@ export default function DealerDashboard() {
 }
 
 const styles: Record<string, React.CSSProperties> = {
-  hero: { background: 'linear-gradient(135deg, #264653 0%, #1D3557 100%)', color: '#fff', padding: '48px 0 40px' },
+  hero: { background: 'linear-gradient(135deg, #1D3557 0%, #264674 100%)', color: '#fff', padding: '48px 0 40px' },
   heroContent: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '32px', flexWrap: 'wrap' as const },
-  heroTitle: { fontSize: '32px', fontFamily: 'var(--font-heading)', margin: '0 0 4px' },
-  heroSub: { fontSize: '14px', opacity: 0.7, margin: 0 },
+  heroTitle: { fontSize: '32px', fontFamily: 'var(--font-heading)', margin: '0 0 4px', color: '#fff' },
+  heroSub: { fontSize: '14px', opacity: 0.85, margin: 0, color: '#fff' },
   dealerBadge: { display: 'inline-block', background: 'rgba(255,255,255,0.15)', padding: '4px 12px', borderRadius: '4px', fontSize: '12px', marginBottom: '8px', letterSpacing: '0.05em' },
   statGrid: { display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' },
   statCard: { background: 'rgba(255,255,255,0.1)', borderRadius: '8px', padding: '16px 20px', textAlign: 'center' as const, backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.1)', minWidth: '130px' },
