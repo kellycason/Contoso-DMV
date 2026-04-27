@@ -137,7 +137,6 @@ export default function DealerDashboard() {
               <h3 style={styles.cardTitle}>Quick Actions</h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 <a href="/dealer/new-registration" className="btn btn-primary" style={styles.quickBtn}>Submit New Registration</a>
-                <a href="/dealer/elt" className="btn btn-primary" style={styles.quickBtn}>File Lien / Title</a>
                 <a href="/dealer/bulk" className="btn btn-primary" style={styles.quickBtn}>Bulk Registration Upload</a>
                 <a href="/faq" className="btn btn-primary" style={styles.quickBtn}>FAQ</a>
               </div>

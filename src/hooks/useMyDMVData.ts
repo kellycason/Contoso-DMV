@@ -7,6 +7,9 @@ export interface CitizenProfile {
   fullName: string
   email: string
   address: string
+  city?: string
+  state?: string
+  zip?: string
   phone: string
 }
 
@@ -107,6 +110,38 @@ export function useMyDMVData(contactId: string | null): MyDMVData {
       return
     }
 
+    // Liquid injects picklist values as their underlying integer. Translate to labels the UI expects.
+    const regStatusLabel = (s: string | number): string => {
+      const code = String(s ?? '').trim()
+      switch (code) {
+        case '100000000': return 'Active'
+        case '100000001': return 'Expired'
+        case '100000002': return 'Suspended'
+        case '100000003': return 'Cancelled'
+        case '100000004': return 'Pending'
+        case '100000005': return 'Rejected'
+        case '100000006': return 'Submitted'
+      }
+      // Already a label? Pass through.
+      if (/^(Active|Expired|Suspended|Cancelled|Pending|Rejected|Submitted)$/i.test(code)) {
+        return code.charAt(0).toUpperCase() + code.slice(1).toLowerCase()
+      }
+      return code || 'Unknown'
+    }
+    const insStatusLabel = (s: string | number): string => {
+      const code = String(s ?? '').trim()
+      switch (code) {
+        case '100000000': return 'Verified'
+        case '100000001': return 'Unverified'
+        case '100000002': return 'Lapsed'
+        case '100000003': return 'Expired'
+      }
+      if (/^(Verified|Unverified|Lapsed|Expired)$/i.test(code)) {
+        return code.charAt(0).toUpperCase() + code.slice(1).toLowerCase()
+      }
+      return code || 'Unverified'
+    }
+
     // Build registration lookup by vehicleId
     const regMap: Record<string, typeof raw.registrations[0]> = {}
     for (const r of raw.registrations) {
@@ -116,10 +151,19 @@ export function useMyDMVData(contactId: string | null): MyDMVData {
     // Map vehicles with their registrations
     const vehicles: VehicleWithReg[] = raw.vehicles.map((v) => {
       const reg = regMap[v.id]
+      let regStatus = reg ? regStatusLabel(reg.status) : null
+      // Fallback: if status came through blank/Unknown but we have a future expiration, assume Active
+      if (reg && (!regStatus || regStatus === 'Unknown') && reg.expirationDate) {
+        const exp = new Date(reg.expirationDate)
+        if (!isNaN(exp.getTime())) {
+          regStatus = exp.getTime() > Date.now() ? 'Active' : 'Expired'
+        }
+      }
       return {
         ...v,
+        insuranceStatus: insStatusLabel(v.insuranceStatus),
         registration: reg
-          ? { id: reg.id, status: reg.status, expirationDate: reg.expirationDate, totalDue: reg.totalDue, paymentStatus: reg.paymentStatus }
+          ? { id: reg.id, status: regStatus || 'Active', expirationDate: reg.expirationDate, totalDue: reg.totalDue, paymentStatus: reg.paymentStatus }
           : null,
       }
     })
@@ -135,9 +179,6 @@ export function useMyDMVData(contactId: string | null): MyDMVData {
         if (days > 0 && days <= 60) {
           actions.push({ id: aid++, type: 'Registration Renewal', detail: `${v.year} ${v.make} ${v.model}`, due: v.registration.expirationDate, urgency: days <= 30 ? 'high' : 'medium' })
         }
-      }
-      if (v.insuranceStatus === 'Unverified' || v.insuranceStatus === 'Lapsed') {
-        actions.push({ id: aid++, type: 'Insurance Verification', detail: `${v.year} ${v.make} ${v.model}`, due: v.insuranceExpiry || 'ASAP', urgency: v.insuranceStatus === 'Lapsed' ? 'high' : 'medium' })
       }
     }
 

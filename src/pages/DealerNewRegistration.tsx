@@ -221,10 +221,11 @@ export default function DealerNewRegistration() {
         })
       }
 
-      // 1. Create vehicle
-      step = 'create-vehicle'
-      const vehicleId = await dvCreate('dmv_vehicles', {
-        dmv_vin: form.vin,
+      // 1. Upsert vehicle by VIN (VIN is the federal unique identifier)
+      step = 'find-vehicle'
+      const vinClean = form.vin.trim().toUpperCase()
+      const vehicleFields = {
+        dmv_vin: vinClean,
         dmv_year: form.year,
         dmv_make: form.make,
         dmv_model: form.model,
@@ -241,7 +242,19 @@ export default function DealerNewRegistration() {
         dmv_insurancecarrier: form.insCarrier,
         dmv_insurancepolicy: form.insPolicy,
         dmv_insuranceexp: form.insExp ? `${form.insExp}T00:00:00Z` : undefined,
-      })
+        'dmv_ownercontactid@odata.bind': `/contacts(${contactId})`,
+      }
+      const existingVeh = await dvQuery('dmv_vehicles',
+        `$filter=dmv_vin eq '${vinClean.replace(/'/g, "''")}'&$select=dmv_vehicleid&$top=1`)
+      let vehicleId: string
+      if (existingVeh[0]?.dmv_vehicleid) {
+        vehicleId = existingVeh[0].dmv_vehicleid
+        step = 'update-vehicle'
+        await dvUpdate('dmv_vehicles', vehicleId, vehicleFields)
+      } else {
+        step = 'create-vehicle'
+        vehicleId = await dvCreate('dmv_vehicles', vehicleFields)
+      }
 
       // 2. Create registration (status=Submitted, channel=Dealer)
       step = 'create-registration'
@@ -255,6 +268,7 @@ export default function DealerNewRegistration() {
         dmv_expirationdate: expDate.toISOString().split('T')[0] + 'T00:00:00Z',
         dmv_fee: fees.base,
         dmv_totaldue: fees.total,
+        dmv_county: 'Travis',
         dmv_paymentstatus: 100000001,                  // Paid (dealer pays at sale)
         dmv_paymentdate: today.toISOString(),
         dmv_paymentmethod: 100000000,                  // Credit Card
@@ -262,6 +276,21 @@ export default function DealerNewRegistration() {
         'dmv_vehicleid@odata.bind': `/dmv_vehicles(${vehicleId})`,
         'dmv_dealeracctid@odata.bind': `/accounts(${DEMO_DEALER.accountId})`,
         'dmv_regcontactid@odata.bind': `/contacts(${contactId})`,
+      })
+
+      // 2b. Create initial registration term + link as current term
+      step = 'create-term'
+      const termId = await dvCreate('dmv_registrationterms', {
+        dmv_termtype: 100000000,   // New
+        dmv_termstatus: 100000001, // Pending (flips with registration on approval)
+        dmv_startdate: today.toISOString().split('T')[0] + 'T00:00:00Z',
+        dmv_enddate: expDate.toISOString().split('T')[0] + 'T00:00:00Z',
+        dmv_issuedate: today.toISOString().split('T')[0] + 'T00:00:00Z',
+        'dmv_vehicleregistrationid@odata.bind': `/dmv_vehicleregistrations(${regId})`,
+      })
+      step = 'link-current-term'
+      await dvUpdate('dmv_vehicleregistrations', regId, {
+        'dmv_currenttermid@odata.bind': `/dmv_registrationterms(${termId})`,
       })
 
       // 3. Issue temporary tag (Pending — becomes Active on DMV approval; only then visible on citizen portal)

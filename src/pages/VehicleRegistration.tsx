@@ -62,7 +62,7 @@ const DEMO_CARD = { cardName: 'Maria Jennings', cardNumber: '4111 1111 1111 1234
 
 const RENEW_INIT: RenewForm = {
   plateNumber: '', vin: '', year: '', make: '', model: '', color: '',
-  firstName: '', lastName: '', email: '', phone: '', address: '', city: '', state: 'CA', zip: '',
+  firstName: '', lastName: '', email: '', phone: '', address: '', city: '', state: 'TX', zip: '',
   insurer: '', policyNumber: '', policyExp: '',
   payMethod: 'credit', ...DEMO_CARD,
 }
@@ -147,6 +147,21 @@ export default function VehicleRegistration() {
   }
   useEffect(() => { loadData() }, [userId])
 
+  /* ── auto-start renewal from ?renew=<vehicleId> query param ── */
+  useEffect(() => {
+    if (loading || view !== 'list' || !vehicles.length) return
+    const params = new URLSearchParams(window.location.search)
+    const renewId = params.get('renew')
+    if (!renewId) return
+    const target = vehicles.find(v => v.dmv_vehicleid === renewId)
+    if (target) {
+      setRnForm(RENEW_INIT); setRnStep(0); setRnAutofilled(false)
+      setRenewTarget(target); setSubmitError(''); setView('renew')
+      // Clear param so refresh/back doesn't re-trigger
+      window.history.replaceState({}, '', '/vehicle-registration')
+    }
+  }, [loading, vehicles, view])
+
   /* ── new vehicle registration ── */
   const handleNewSubmit = async (e: React.FormEvent) => {
     e.preventDefault(); setSubmitting(true); setSubmitError('')
@@ -190,11 +205,11 @@ export default function VehicleRegistration() {
         'dmv_currenttermid@odata.bind': `/dmv_registrationterms(${termId})`,
       })
       // 6. Fetch the autonumber-assigned registration ref for the success screen
-      const created = await dvQuery<{ value: { dmv_registrationid: string }[] }>(
+      const created = await dvQuery(
         'dmv_vehicleregistrations',
         `$filter=dmv_vehicleregistrationid eq ${registrationId}&$select=dmv_registrationid`
       )
-      setRefNumber(created.value[0]?.dmv_registrationid || registrationId); setView('success')
+      setRefNumber(created[0]?.dmv_registrationid || registrationId); setView('success')
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : 'Submission failed.')
     } finally { setSubmitting(false) }
@@ -215,9 +230,11 @@ export default function VehicleRegistration() {
       firstName: f.firstName || parts[0] || '',
       lastName: f.lastName || parts.slice(1).join(' ') || '',
       email: f.email || dmv.citizen?.email || '',
-      phone: f.phone || dmv.citizen?.phone || '(555) 867-5309',
-      address: f.address || dmv.citizen?.address || '742 Evergreen Terrace',
-      city: f.city || 'Contoso', zip: f.zip || '90210',
+      phone: f.phone || dmv.citizen?.phone || '',
+      address: f.address || dmv.citizen?.address || '',
+      city: f.city || dmv.citizen?.city || '',
+      state: f.state || dmv.citizen?.state || 'TX',
+      zip: f.zip || dmv.citizen?.zip || '',
       insurer: f.insurer || renewTarget.dmv_insurancecarrier || 'Contoso Insurance',
       policyNumber: f.policyNumber || renewTarget.dmv_insurancepolicy || 'POL-2024-88712',
       policyExp: f.policyExp || '2027-06-30',
@@ -238,7 +255,7 @@ export default function VehicleRegistration() {
         dmv_renewalstatus: 100000000, // Submitted
         dmv_platenumber: rnForm.plateNumber,
         dmv_vin: rnForm.vin,
-        dmv_vehicleyear: parseInt(rnForm.year) || 0,
+        dmv_vehicleyear: rnForm.year || '',
         dmv_vehiclemake: rnForm.make,
         dmv_vehiclemodel: rnForm.model,
         dmv_vehiclecolor: rnForm.color,
@@ -285,11 +302,11 @@ export default function VehicleRegistration() {
         }).catch(() => {})
       }
       // Fetch the autonumber-assigned renewal ref for the confirmation screen
-      const createdRenewal = await dvQuery<{ value: { dmv_renewalid: string }[] }>(
+      const createdRenewal = await dvQuery(
         'dmv_registrationrenewals',
         `$filter=dmv_registrationrenewalid eq ${renewalId}&$select=dmv_renewalid`
       )
-      setRnRefNumber(createdRenewal.value[0]?.dmv_renewalid || renewalId)
+      setRnRefNumber(createdRenewal[0]?.dmv_renewalid || renewalId)
       setRnStep(4) // move to confirmation
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : 'Submission failed.')

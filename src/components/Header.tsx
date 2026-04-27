@@ -16,7 +16,6 @@ const dealerNav = [
   { to: '/dealer',                     label: 'Dashboard' },
   { to: '/dealer/new-registration',    label: 'Registrations' },
   { to: '/dealer/bulk',                label: 'Bulk Upload' },
-  { to: '/dealer/elt',                 label: 'Electronic Titles' },
   { to: '/faq',                        label: 'FAQ' },
 ]
 

@@ -68,23 +68,6 @@ export default function MyDMV() {
         </div>
       </section>
 
-      {actions.length > 0 && (
-        <section style={styles.alertBanner}>
-          <div className="container">
-            <h3 style={{ margin: '0 0 12px', fontSize: '15px' }}>⚠️ Action Required ({actions.length})</h3>
-            <div style={styles.alertGrid}>
-              {actions.map(a => (
-                <div key={a.id} style={{ ...styles.alertCard, borderLeftColor: a.urgency === 'high' ? '#E63946' : '#E9C46A' }}>
-                  <strong>{a.type}</strong>
-                  <span style={{ fontSize: '13px', color: '#555' }}>{a.detail}</span>
-                  <span style={{ fontSize: '12px', color: a.urgency === 'high' ? '#E63946' : '#888' }}>Due: {a.due}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
       <section className="container" style={{ padding: '40px 24px' }}>
         <div style={styles.tabs}>
           {(['overview', 'vehicles', 'history'] as const).map(tab => (
@@ -124,15 +107,32 @@ export default function MyDMV() {
             </div>
             <div style={styles.card}>
               <h3 style={styles.cardTitle}>Registered Vehicles</h3>
-              {vehicles.length > 0 ? vehicles.map(v => (
-                <div key={v.id} style={styles.vehicleMini}>
-                  <div><strong>{v.year} {v.make} {v.model}</strong></div>
-                  <div style={{ fontSize: '12px', color: '#666' }}>Plate: {v.plateNumber} · Reg: {v.registration?.expirationDate ?? 'N/A'}</div>
-                  <span style={{ ...styles.statusBadge, background: v.registration?.status === 'Active' ? '#d4edda' : '#fff3cd', color: v.registration?.status === 'Active' ? '#155724' : '#856404' }}>
-                    {v.registration?.status ?? 'Unknown'}
-                  </span>
-                </div>
-              )) : (
+              {vehicles.length > 0 ? vehicles.map(v => {
+                const expStr = v.registration?.expirationDate
+                const exp = expStr ? new Date(expStr) : null
+                const daysToExp = exp && !isNaN(exp.getTime()) ? Math.ceil((exp.getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : null
+                const nearingExpiry = daysToExp !== null && daysToExp > 0 && daysToExp <= 60
+                const regStatus = v.registration?.status ?? 'Unknown'
+                return (
+                  <div key={v.id} style={styles.vehicleMini}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div><strong>{v.year} {v.make} {v.model}</strong></div>
+                        <div style={{ fontSize: '12px', color: '#666' }}>Plate: {v.plateNumber} · Reg: {expStr ?? 'N/A'}</div>
+                        <span style={{ ...styles.statusBadge, background: regStatus === 'Active' ? '#d4edda' : '#fff3cd', color: regStatus === 'Active' ? '#155724' : '#856404' }}>
+                          {regStatus}
+                        </span>
+                        {nearingExpiry && (
+                          <span style={{ marginLeft: 8, fontSize: 11, color: '#E63946', fontWeight: 600 }}>Expires in {daysToExp} days</span>
+                        )}
+                      </div>
+                      {nearingExpiry && (
+                        <Link to={`/vehicle-registration?renew=${v.id}`} className="btn btn-primary" style={{ fontSize: 12, padding: '6px 14px', whiteSpace: 'nowrap' }}>Renew</Link>
+                      )}
+                    </div>
+                  </div>
+                )
+              }) : (
                 <p style={{ color: '#888', fontSize: '14px' }}>No vehicles registered.</p>
               )}
             </div>
