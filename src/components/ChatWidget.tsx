@@ -59,12 +59,20 @@ export default function ChatWidget() {
 
       const u = window.__PORTAL_USER__
       const citizen = window.__DMV_DATA__?.citizen
+      const isSignedIn = Boolean(u?.id || u?.name)
       const customContext: Record<string, { value: string; isDisplayable: boolean }> = {}
-      if (u?.name) customContext['contactName'] = { value: u.name, isDisplayable: true }
-      if (u?.id) customContext['portalContactId'] = { value: u.id, isDisplayable: false }
-      if (citizen?.email) customContext['email'] = { value: citizen.email, isDisplayable: true }
-      if (citizen?.phone) customContext['phone'] = { value: citizen.phone, isDisplayable: false }
-      if (Object.keys(customContext).length > 0) optionalParams.customContext = customContext
+      if (isSignedIn) {
+        customContext['ContactName'] = { value: u?.name || '', isDisplayable: true }
+        customContext['PortalContactId'] = { value: u?.id || '', isDisplayable: false }
+        if (citizen?.email) customContext['Email'] = { value: citizen.email, isDisplayable: true }
+        if (citizen?.phone) customContext['Phone'] = { value: citizen.phone, isDisplayable: false }
+      } else {
+        // Anonymous visitor - explicitly tell the bot so it does not greet by name or hallucinate identity
+        customContext['ContactName'] = { value: 'not signed in', isDisplayable: false }
+        customContext['PortalContactId'] = { value: 'not signed in', isDisplayable: false }
+        customContext['Email'] = { value: 'not signed in', isDisplayable: false }
+      }
+      optionalParams.customContext = customContext
 
       try {
         const reconnectCtx = await chatSDK.getChatReconnectContext?.()
