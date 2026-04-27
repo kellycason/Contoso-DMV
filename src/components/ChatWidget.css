@@ -1,0 +1,305 @@
+/* ─── DMV Assist chat widget ─── */
+:root {
+  --dmv-navy: #1e3a5f;
+  --dmv-navy-deep: #152d4a;
+  --dmv-red: #C42230;
+  --dmv-red-hover: #a31c28;
+  --dmv-shadow-chat: 0 24px 60px -12px rgba(21, 45, 74, 0.35), 0 8px 20px -8px rgba(0, 0, 0, 0.2);
+  --dmv-gradient-header: linear-gradient(135deg, var(--dmv-navy-deep), var(--dmv-navy));
+}
+
+/* ─── Launcher FAB ─── */
+.dmv-chat-fab {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--dmv-red);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--dmv-shadow-chat);
+  z-index: 2147483000;
+  transition: transform 0.2s ease, background 0.2s ease;
+  padding: 0;
+  font-family: inherit;
+}
+.dmv-chat-fab:hover {
+  transform: scale(1.1);
+  background: var(--dmv-red-hover);
+}
+.dmv-chat-fab:active { transform: scale(0.95); }
+.dmv-chat-fab:focus-visible { outline: 3px solid var(--dmv-navy); outline-offset: 3px; }
+.dmv-chat-fab svg { width: 24px; height: 24px; position: relative; }
+.dmv-chat-fab .dmv-chat-close-icon { display: none; }
+
+.dmv-chat-fab__ping {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: var(--dmv-red);
+  opacity: 0.2;
+  animation: dmvChatPing 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+  pointer-events: none;
+}
+@keyframes dmvChatPing {
+  75%, 100% { transform: scale(1.6); opacity: 0; }
+}
+
+.dmv-chat-fab__badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  background: var(--dmv-navy-deep);
+  color: #fff;
+  border: 2px solid #fff;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+/* Open state — switch icon + color */
+.dmv-chat-fab.is-open {
+  background: var(--dmv-navy-deep);
+}
+.dmv-chat-fab.is-open:hover { background: var(--dmv-navy); }
+.dmv-chat-fab.is-open .dmv-chat-icon { display: none; }
+.dmv-chat-fab.is-open .dmv-chat-close-icon { display: block; }
+.dmv-chat-fab.is-open .dmv-chat-fab__ping { display: none; }
+
+@media (max-width: 480px) {
+  .dmv-chat-fab { bottom: 16px; right: 16px; }
+}
+
+/* ─── Panel ─── */
+.dmv-chat-panel {
+  position: fixed;
+  bottom: 96px;
+  right: 24px;
+  width: 380px;
+  max-width: calc(100vw - 32px);
+  height: 680px;
+  max-height: calc(100vh - 128px);
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  box-shadow: var(--dmv-shadow-chat);
+  overflow: hidden;
+  z-index: 2147482999;
+  display: flex;
+  flex-direction: column;
+  transform-origin: bottom right;
+  transform: scale(0.95) translateY(16px);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+  font-family: "Inter", "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif;
+}
+.dmv-chat-panel.is-open {
+  transform: scale(1) translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+@media (max-width: 480px) {
+  .dmv-chat-panel {
+    bottom: 0;
+    right: 0;
+    left: 0;
+    width: 100vw;
+    max-width: 100vw;
+    height: 100vh;
+    max-height: 100vh;
+    border-radius: 0;
+    border: none;
+  }
+}
+
+/* Header */
+.dmv-chat-panel__header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 14px 14px 16px;
+  background: var(--dmv-gradient-header);
+  color: #fff;
+}
+.dmv-chat-panel__avatar {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.dmv-chat-panel__avatar svg { width: 20px; height: 20px; color: #fff; }
+.dmv-chat-panel__avatar-status {
+  position: absolute;
+  bottom: -1px;
+  right: -1px;
+  width: 12px;
+  height: 12px;
+  background: #34d399;
+  border-radius: 50%;
+  border: 2px solid var(--dmv-navy-deep);
+}
+.dmv-chat-panel__title {
+  flex: 1;
+  min-width: 0;
+}
+.dmv-chat-panel__title-main {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+.dmv-chat-panel__title-sub {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.3;
+  margin-top: 2px;
+}
+.dmv-chat-panel__icon-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease;
+  flex-shrink: 0;
+}
+.dmv-chat-panel__icon-btn:hover { background: rgba(255, 255, 255, 0.12); }
+.dmv-chat-panel__icon-btn svg { width: 16px; height: 16px; }
+
+/* Body */
+.dmv-chat-panel__body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: #f8fafc;
+  overflow: hidden;
+}
+
+/* Loading / Error */
+.dmv-chat-loading {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 32px;
+  text-align: center;
+  color: #64748b;
+  font-size: 13px;
+  gap: 16px;
+}
+.dmv-chat-loading p { margin: 0; line-height: 1.5; }
+.dmv-chat-loading__spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #e2e8f0;
+  border-top-color: var(--dmv-navy);
+  border-radius: 50%;
+  animation: dmvChatSpin 0.85s linear infinite;
+}
+@keyframes dmvChatSpin { to { transform: rotate(360deg); } }
+.dmv-chat-error-icon {
+  width: 48px;
+  height: 48px;
+  color: var(--dmv-red);
+}
+.dmv-chat-error-icon svg { width: 100%; height: 100%; }
+.dmv-chat-loading__error-text {
+  color: var(--dmv-red) !important;
+  font-weight: 600;
+}
+.dmv-chat-retry-btn {
+  padding: 9px 20px;
+  border: 1px solid var(--dmv-navy);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--dmv-navy);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+  font-family: inherit;
+}
+.dmv-chat-retry-btn:hover {
+  background: var(--dmv-navy);
+  color: #fff;
+}
+
+/* WebChat container */
+.dmv-chat-webchat {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: #f8fafc;
+}
+.dmv-chat-webchat > * {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Polish webchat internals */
+.dmv-chat-webchat .webchat__basic-transcript { background: transparent !important; }
+.dmv-chat-webchat .webchat__basic-transcript__transcript {
+  padding: 12px !important;
+}
+.dmv-chat-webchat .webchat__send-box-text-box {
+  font-family: inherit !important;
+  font-size: 14px !important;
+}
+.dmv-chat-webchat .webchat__bubble__content {
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04) !important;
+}
+/* Suggested actions: pill-style, tighter */
+.dmv-chat-webchat .webchat__suggested-action {
+  margin: 2px 4px !important;
+}
+.dmv-chat-webchat .webchat__suggested-action__button {
+  font-size: 12px !important;
+  padding: 6px 12px !important;
+  font-family: inherit !important;
+  transition: border-color 0.15s ease, color 0.15s ease !important;
+}
+.dmv-chat-webchat .webchat__suggested-action__button:hover {
+  border-color: var(--dmv-navy) !important;
+  color: var(--dmv-navy) !important;
+}
+
+/* Footer */
+.dmv-chat-panel__footer {
+  padding: 8px 16px;
+  background: #fff;
+  border-top: 1px solid #f1f5f9;
+  font-size: 10px;
+  color: #94a3b8;
+  text-align: center;
+  letter-spacing: 0.02em;
+}

@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react'
 import { Routes, Route } from 'react-router-dom'
 import Layout from './components/Layout'
+import ChatWidget from './components/ChatWidget'
 
 const Home = lazy(() => import('./pages/Home'))
 const LicenseRenewal = lazy(() => import('./pages/LicenseRenewal'))
@@ -34,6 +35,7 @@ export default function App() {
           <Route path="/dealer/temp-tags" element={<TempTags />} />
         </Routes>
       </Suspense>
+      <ChatWidget />
     </Layout>
   )
 }
