@@ -127,7 +127,57 @@ beginDialog:
         variable: Topic.CreatedRenewal
       connectionReference: dmv_sharedcommondataserviceforapps_2ca64
       connectionProperties:
+        name: dmv_sharedcommondataserviceforapps_2ca64
         mode: Maker
+      dynamicInputSchema:
+        properties:
+          entityName:
+            displayName: Table name
+            isRequired: true
+            order: 0
+            type: String
+          organization:
+            displayName: Environment
+            isRequired: true
+            order: 1
+            type: String
+          item:
+            displayName: Row
+            order: 2
+            type:
+              kind: Record
+              properties:
+                dmv_channel:
+                  displayName: Channel
+                  order: 0
+                  type: Number
+                dmv_contactid@odata.bind:
+                  displayName: Contact
+                  order: 1
+                  type: String
+                dmv_renewalstatus:
+                  displayName: Renewal Status
+                  order: 2
+                  type: Number
+                dmv_submitteddate:
+                  displayName: Submitted Date
+                  order: 3
+                  type: DateTime
+                dmv_renewalfee:
+                  displayName: Renewal Fee
+                  order: 4
+                  type: Number
+                dmv_email:
+                  displayName: Email
+                  order: 5
+                  type: String
+      dynamicOutputSchema:
+        kind: Record
+        properties:
+          dmv_registrationrenewalid:
+            displayName: Registration Renewal
+            order: 0
+            type: String
       operationId: CreateRecord
 
     - kind: SendActivity
