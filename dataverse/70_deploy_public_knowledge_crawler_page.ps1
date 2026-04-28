@@ -31,14 +31,14 @@ $writeH = @{
     "If-Match"                 = "*"
     "MSCRM.SolutionUniqueName" = "DMVDigitalServicesPortal"
 }
-  $postH = @{
+$postH = @{
     Authorization              = "Bearer $token"
     "Content-Type"             = "application/json; charset=utf-8"
     "OData-MaxVersion"         = "4.0"
     "OData-Version"            = "4.0"
     Accept                     = "application/json"
     "MSCRM.SolutionUniqueName" = "DMVDigitalServicesPortal"
-  }
+}
 
 function Get-EntityIdFromResponse($response) {
     $entityId = $response.Headers["OData-EntityId"] | Select-Object -First 1
@@ -60,6 +60,20 @@ $templateName = "DMV Knowledge Crawler"
 $pageTemplateName = "DMV Knowledge Crawler Template"
 $pageName = "Knowledge Base"
 $partialUrl = "knowledge-base"
+
+$crawlerLinkHtml = @'
+<nav id="contoso-dmv-crawler-links" aria-label="Public DMV knowledge" style="padding: 8px 16px; font: 14px Segoe UI, Arial, sans-serif; background: #ffffff;">
+  <a href="/knowledge-base">Contoso DMV Knowledge Base</a>
+</nav>
+'@
+
+function Add-CrawlerLinkToHtml($html) {
+    if ($html -match 'href=["'']/knowledge-base["'']') { return $html }
+    if ($html -match '<body[^>]*>') {
+        return [regex]::Replace($html, '<body[^>]*>', { param($match) "$($match.Value)`r`n$crawlerLinkHtml" }, 1)
+    }
+    return "$crawlerLinkHtml`r`n$html"
+}
 
 $source = @'
 <!doctype html>
@@ -233,6 +247,44 @@ if ($existingContent.value.Count -gt 0) {
     $contentId = Get-EntityIdFromResponse $resp
     Write-Host "Created content page: $contentId"
 }
+
+  Write-Host "`n=== Ensuring root crawler link ===" -ForegroundColor Cyan
+  $shellPages = Invoke-RestMethod -Uri "$envUrl/api/data/v9.2/powerpagecomponents?`$filter=powerpagecomponenttype eq 2 and name eq 'Home'&`$select=powerpagecomponentid,name,content&`$top=10" -Headers $readH
+  $linkUpdated = $false
+  foreach ($shellPage in $shellPages.value) {
+    try {
+      $componentContent = $shellPage.content | ConvertFrom-Json
+    } catch {
+      Write-Host "Skipped Home component with unreadable content: $($shellPage.powerpagecomponentid)" -ForegroundColor Yellow
+      continue
+    }
+
+    if (-not $componentContent.copy -or $componentContent.copy -notmatch 'index-CcBGzUdW\.js') { continue }
+
+    $newCopy = Add-CrawlerLinkToHtml $componentContent.copy
+    if ($newCopy -eq $componentContent.copy) {
+      Write-Host "Root page already links to /$partialUrl"
+      continue
+    }
+
+    $componentContent.copy = $newCopy
+    $contentJson = $componentContent | ConvertTo-Json -Depth 20 -Compress
+    Invoke-JsonPatch "$envUrl/api/data/v9.2/powerpagecomponents($($shellPage.powerpagecomponentid))" @{ content = $contentJson }
+    $linkUpdated = $true
+    Write-Host "Updated root page crawler link: $($shellPage.powerpagecomponentid)"
+  }
+
+  if (-not $linkUpdated -and $shellPages.value.Count -eq 0) {
+    Write-Host "No Home powerpagecomponent found to patch." -ForegroundColor Yellow
+  }
+
+  Write-Host "`n=== PublishAllXml ===" -ForegroundColor Cyan
+  try {
+    Invoke-RestMethod -Uri "$envUrl/api/data/v9.2/PublishAllXml" -Headers $writeH -Method Post | Out-Null
+    Write-Host "Published."
+  } catch {
+    Write-Host "Publish warning: $($_.Exception.Message)" -ForegroundColor Yellow
+  }
 
 Write-Host "`nDone. Public crawler URL: https://site-y5jzr.powerappsportals.us/$partialUrl" -ForegroundColor Green
 Write-Host "Power Pages may take a few minutes to refresh metadata/cache."
