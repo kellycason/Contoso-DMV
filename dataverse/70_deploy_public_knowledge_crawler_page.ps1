@@ -248,23 +248,23 @@ if ($existingContent.value.Count -gt 0) {
     Write-Host "Created content page: $contentId"
 }
 
-  Write-Host "`n=== Ensuring root crawler link ===" -ForegroundColor Cyan
-  $shellPages = Invoke-RestMethod -Uri "$envUrl/api/data/v9.2/powerpagecomponents?`$filter=powerpagecomponenttype eq 2 and name eq 'Home'&`$select=powerpagecomponentid,name,content&`$top=10" -Headers $readH
-  $linkUpdated = $false
-  foreach ($shellPage in $shellPages.value) {
+Write-Host "`n=== Ensuring root crawler link ===" -ForegroundColor Cyan
+$shellPages = Invoke-RestMethod -Uri "$envUrl/api/data/v9.2/powerpagecomponents?`$filter=powerpagecomponenttype eq 2 and name eq 'Home'&`$select=powerpagecomponentid,name,content&`$top=10" -Headers $readH
+$linkUpdated = $false
+foreach ($shellPage in $shellPages.value) {
     try {
-      $componentContent = $shellPage.content | ConvertFrom-Json
+        $componentContent = $shellPage.content | ConvertFrom-Json
     } catch {
-      Write-Host "Skipped Home component with unreadable content: $($shellPage.powerpagecomponentid)" -ForegroundColor Yellow
-      continue
+        Write-Host "Skipped Home component with unreadable content: $($shellPage.powerpagecomponentid)" -ForegroundColor Yellow
+        continue
     }
 
     if (-not $componentContent.copy -or $componentContent.copy -notmatch 'index-CcBGzUdW\.js') { continue }
 
     $newCopy = Add-CrawlerLinkToHtml $componentContent.copy
     if ($newCopy -eq $componentContent.copy) {
-      Write-Host "Root page already links to /$partialUrl"
-      continue
+        Write-Host "Root page already links to /$partialUrl"
+        continue
     }
 
     $componentContent.copy = $newCopy
@@ -272,19 +272,19 @@ if ($existingContent.value.Count -gt 0) {
     Invoke-JsonPatch "$envUrl/api/data/v9.2/powerpagecomponents($($shellPage.powerpagecomponentid))" @{ content = $contentJson }
     $linkUpdated = $true
     Write-Host "Updated root page crawler link: $($shellPage.powerpagecomponentid)"
-  }
+}
 
-  if (-not $linkUpdated -and $shellPages.value.Count -eq 0) {
+if (-not $linkUpdated -and $shellPages.value.Count -eq 0) {
     Write-Host "No Home powerpagecomponent found to patch." -ForegroundColor Yellow
-  }
+}
 
-  Write-Host "`n=== PublishAllXml ===" -ForegroundColor Cyan
-  try {
+Write-Host "`n=== PublishAllXml ===" -ForegroundColor Cyan
+try {
     Invoke-RestMethod -Uri "$envUrl/api/data/v9.2/PublishAllXml" -Headers $writeH -Method Post | Out-Null
     Write-Host "Published."
-  } catch {
+} catch {
     Write-Host "Publish warning: $($_.Exception.Message)" -ForegroundColor Yellow
-  }
+}
 
 Write-Host "`nDone. Public crawler URL: https://site-y5jzr.powerappsportals.us/$partialUrl" -ForegroundColor Green
 Write-Host "Power Pages may take a few minutes to refresh metadata/cache."
