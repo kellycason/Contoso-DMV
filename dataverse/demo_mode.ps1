@@ -129,6 +129,10 @@ Write-Host "=== Resetting Maria's Tesla near-expiration state ===" -ForegroundCo
 & "$PSScriptRoot\demo_reset_maria_tesla.ps1"
 
 Write-Host ""
+Write-Host "=== Reseeding appointment calendar demo data ===" -ForegroundColor Cyan
+& "$PSScriptRoot\72_seed_appointment_demo_data.ps1"
+
+Write-Host ""
 Write-Host "=== DEMO MODE READY ===" -ForegroundColor Green
 Write-Host "  Sam Smith: clean slate (no vehicles/regs/tags)"
 Write-Host "  Contoso Motors: clean slate (no dealer submissions)"

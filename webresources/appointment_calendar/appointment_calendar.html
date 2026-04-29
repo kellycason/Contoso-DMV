@@ -1,0 +1,1288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Appointment Calendar</title>
+<style>
+:root {
+  --bg: #f5f7fa;
+  --card: #ffffff;
+  --border: #e5e7eb;
+  --border-strong: #d1d5db;
+  --text: #1a1d23;
+  --text2: #5b6472;
+  --text3: #9ca3af;
+  --primary: #3b82f6;
+  --primary-dark: #2563eb;
+  --shadow: 0 1px 3px rgba(0,0,0,.04), 0 1px 2px rgba(0,0,0,.06);
+  --shadow-md: 0 4px 12px rgba(0,0,0,.08), 0 2px 4px rgba(0,0,0,.04);
+  --shadow-lg: 0 12px 32px rgba(0,0,0,.16);
+  --radius: 12px;
+  --radius-sm: 8px;
+
+  /* Service type palette (pastel pill backgrounds + saturated dots) */
+  --svc-realid-bg:    #fce7f3;  --svc-realid-fg:    #be185d;  --svc-realid-dot:    #ec4899;
+  --svc-license-bg:   #dbeafe;  --svc-license-fg:   #1e40af;  --svc-license-dot:   #3b82f6;
+  --svc-inspection-bg:#fef3c7;  --svc-inspection-fg:#92400e;  --svc-inspection-dot:#f59e0b;
+  --svc-road-bg:      #d1fae5;  --svc-road-fg:      #065f46;  --svc-road-dot:      #10b981;
+  --svc-title-bg:     #ede9fe;  --svc-title-fg:     #5b21b6;  --svc-title-dot:     #8b5cf6;
+  --svc-general-bg:   #e0e7ff;  --svc-general-fg:   #3730a3;  --svc-general-dot:   #6366f1;
+
+  /* Status stripe colors */
+  --st-scheduled:  #94a3b8;
+  --st-confirmed:  #3b82f6;
+  --st-checkedin:  #f59e0b;
+  --st-completed:  #10b981;
+  --st-noshow:     #6b7280;
+  --st-cancelled:  #ef4444;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,'Inter',sans-serif;background:var(--bg);color:var(--text);font-size:13px;line-height:1.45;overflow:hidden}
+
+#loading{display:flex;align-items:center;justify-content:center;height:100vh;gap:12px;color:var(--text2)}
+.spinner{width:24px;height:24px;border:3px solid var(--border);border-top-color:var(--primary);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+#app{display:none;height:100vh;flex-direction:column}
+
+/* ─────────────────────────── TOP BAR ─────────────────────────── */
+.topbar{
+  display:flex;align-items:center;gap:12px;
+  padding:12px 20px;background:var(--card);border-bottom:1px solid var(--border);
+  flex-shrink:0;height:60px
+}
+.btn{
+  display:inline-flex;align-items:center;gap:6px;
+  border-radius:var(--radius-sm);padding:7px 14px;
+  font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;
+  transition:all .15s;border:1px solid var(--border);background:var(--card);color:var(--text)
+}
+.btn:hover{background:#f9fafb;border-color:var(--border-strong)}
+.btn.primary{background:var(--primary);color:#fff;border-color:var(--primary)}
+.btn.primary:hover{background:var(--primary-dark);border-color:var(--primary-dark)}
+.btn.icon-only{padding:7px 9px}
+.btn.danger-outline{color:#dc2626;border-color:#fecaca}
+.btn.danger-outline:hover{background:#fef2f2}
+
+.btn-group{display:inline-flex;background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden}
+.btn-group .btn{border:none;border-radius:0;padding:7px 14px;background:transparent}
+.btn-group .btn + .btn{border-left:1px solid var(--border)}
+.btn-group .btn.active{background:#eef2ff;color:var(--primary-dark)}
+
+.range-label{font-size:15px;font-weight:600;color:var(--text);min-width:200px;text-align:center}
+
+.spacer{flex:1}
+
+.search{
+  display:flex;align-items:center;gap:8px;
+  background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);
+  padding:6px 12px;width:240px;transition:border-color .15s, box-shadow .15s
+}
+.search:focus-within{border-color:var(--primary);box-shadow:0 0 0 3px rgba(59,130,246,.1);background:var(--card)}
+.search svg{color:var(--text3);flex-shrink:0}
+.search input{border:none;outline:none;background:transparent;font:inherit;font-size:13px;width:100%}
+
+/* ─────────────────────────── LAYOUT ─────────────────────────── */
+.main{display:flex;flex:1;min-height:0}
+
+/* sidebar */
+.sidebar{
+  width:260px;flex-shrink:0;background:var(--card);
+  border-right:1px solid var(--border);
+  padding:16px;overflow-y:auto;
+  display:flex;flex-direction:column;gap:18px
+}
+.sidebar h3{
+  font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;
+  color:var(--text2);margin-bottom:8px
+}
+
+/* mini calendar */
+.minical table{width:100%;border-collapse:collapse;font-size:11px}
+.minical th{font-weight:600;color:var(--text3);padding:4px 0;text-align:center}
+.minical td{padding:0;text-align:center}
+.minical td button{
+  width:100%;aspect-ratio:1;border:none;background:transparent;
+  border-radius:6px;font:inherit;font-size:11px;color:var(--text);
+  cursor:pointer;transition:background .12s
+}
+.minical td button:hover{background:#f1f5f9}
+.minical td button.muted{color:var(--text3)}
+.minical td button.today{background:var(--primary);color:#fff;font-weight:700}
+.minical td button.selected{background:#dbeafe;color:var(--primary-dark);font-weight:700}
+.minical-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.minical-head .month-label{font-weight:600;font-size:12px}
+.minical-head button{
+  background:transparent;border:none;cursor:pointer;color:var(--text2);
+  width:24px;height:24px;border-radius:6px;display:flex;align-items:center;justify-content:center
+}
+.minical-head button:hover{background:#f1f5f9;color:var(--text)}
+
+/* stats */
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stat-tile{
+  background:var(--bg);border-radius:var(--radius-sm);padding:10px 12px;
+  border:1px solid var(--border)
+}
+.stat-tile .lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text2)}
+.stat-tile .val{font-size:20px;font-weight:800;line-height:1.2;margin-top:2px}
+.stat-tile.confirmed .val{color:var(--st-confirmed)}
+.stat-tile.completed .val{color:var(--st-completed)}
+.stat-tile.cancelled .val{color:var(--st-cancelled)}
+
+/* filter list */
+.filter-list{display:flex;flex-direction:column;gap:4px}
+.filter-row{
+  display:flex;align-items:center;gap:8px;
+  padding:6px 8px;border-radius:var(--radius-sm);cursor:pointer;
+  transition:background .12s;user-select:none
+}
+.filter-row:hover{background:var(--bg)}
+.filter-row input{accent-color:var(--primary);cursor:pointer}
+.filter-row .dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.filter-row .name{flex:1;font-size:13px}
+.filter-row .ct{font-size:11px;color:var(--text3);font-weight:600}
+
+/* upcoming list */
+.upcoming{display:flex;flex-direction:column;gap:6px}
+.up-item{
+  padding:8px 10px;border-radius:var(--radius-sm);background:var(--bg);
+  border-left:3px solid var(--st-scheduled);cursor:pointer;
+  transition:background .12s
+}
+.up-item:hover{background:#eef2ff}
+.up-item .name{font-weight:600;font-size:12px}
+.up-item .meta{font-size:11px;color:var(--text2);margin-top:2px}
+
+/* ─────────────────────────── CALENDAR AREA ─────────────────────────── */
+.cal-area{flex:1;background:var(--bg);overflow:hidden;display:flex;flex-direction:column;min-width:0}
+.cal-grid{flex:1;overflow:auto;background:var(--card);margin:12px;border-radius:var(--radius);box-shadow:var(--shadow);position:relative}
+
+/* Week / Day view: time grid */
+.timegrid{display:grid;grid-template-columns:60px 1fr;min-height:100%}
+.tg-times{border-right:1px solid var(--border)}
+.tg-time{height:60px;font-size:10px;color:var(--text3);text-align:right;padding-right:6px;padding-top:1px;border-top:1px solid transparent;font-weight:500}
+.tg-time:first-child{height:30px}
+.tg-cols{display:grid;position:relative}
+.tg-col{border-left:1px solid var(--border);position:relative;min-height:100%}
+.tg-col:first-child{border-left:none}
+.tg-col-header{
+  position:sticky;top:0;background:var(--card);z-index:5;
+  text-align:center;padding:8px 0 6px;
+  border-bottom:1px solid var(--border);font-size:11px;color:var(--text2);
+  text-transform:uppercase;letter-spacing:.5px;font-weight:600;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px
+}
+.tg-col-header .day-num{
+  display:flex;align-items:center;justify-content:center;
+  font-size:20px;font-weight:700;color:var(--text);
+  text-transform:none;letter-spacing:0;line-height:1;
+  width:32px;height:32px;border-radius:50%
+}
+.tg-col-header.today{color:var(--primary)}
+.tg-col-header.today .day-num{background:var(--primary);color:#fff}
+.tg-hour{
+  height:60px;border-top:1px solid var(--border);position:relative
+}
+.tg-hour.half::before{
+  content:'';position:absolute;top:30px;left:0;right:0;height:1px;background:#f1f5f9
+}
+
+/* now line */
+.now-line{position:absolute;left:0;right:0;height:2px;background:#ef4444;z-index:4;pointer-events:none}
+.now-line::before{
+  content:'';position:absolute;left:-5px;top:-4px;width:10px;height:10px;
+  background:#ef4444;border-radius:50%
+}
+
+/* Event card */
+.event{
+  position:absolute;left:3px;right:3px;
+  border-radius:6px;padding:4px 7px;font-size:11px;
+  cursor:pointer;overflow:hidden;
+  border-left:4px solid var(--st-scheduled);
+  transition:transform .12s, box-shadow .12s, opacity .12s;
+  z-index:2;line-height:1.25;
+  display:flex;flex-direction:column;justify-content:flex-start;gap:1px
+}
+.event:hover{transform:translateY(-1px);box-shadow:var(--shadow-md);z-index:3;overflow:visible}
+.event.cancelled{opacity:.6}
+.event.cancelled .ev-title,.event.cancelled .ev-time{text-decoration:line-through}
+.event .ev-title{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.event .ev-time{font-size:10px;opacity:.85;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* Compact event (≤ 30 min) — single line: title · time */
+.event.compact{flex-direction:row;align-items:center;gap:6px;padding:3px 7px;line-height:1.1}
+.event.compact .ev-title{flex:1;min-width:0;font-size:11px}
+.event.compact .ev-time{flex-shrink:0;font-size:10px}
+
+/* Short event (31–44 min) — keep two lines but tighter */
+.event.short{padding:3px 7px}
+.event.short .ev-title{font-size:11px}
+.event.short .ev-time{font-size:9.5px}
+
+/* On hover, allow short/compact events to expand & show full info */
+.event.compact:hover,.event.short:hover{
+  min-height:42px;flex-direction:column;align-items:stretch;gap:1px;
+  background-clip:padding-box
+}
+
+/* service type backgrounds */
+.event.svc-realid    {background:var(--svc-realid-bg);   color:var(--svc-realid-fg)}
+.event.svc-license   {background:var(--svc-license-bg);  color:var(--svc-license-fg)}
+.event.svc-inspection{background:var(--svc-inspection-bg);color:var(--svc-inspection-fg)}
+.event.svc-road      {background:var(--svc-road-bg);     color:var(--svc-road-fg)}
+.event.svc-title     {background:var(--svc-title-bg);    color:var(--svc-title-fg)}
+.event.svc-general   {background:var(--svc-general-bg);  color:var(--svc-general-fg)}
+
+/* status border-left */
+.event.st-scheduled {border-left-color:var(--st-scheduled)}
+.event.st-confirmed {border-left-color:var(--st-confirmed)}
+.event.st-checkedin {border-left-color:var(--st-checkedin)}
+.event.st-completed {border-left-color:var(--st-completed)}
+.event.st-noshow    {border-left-color:var(--st-noshow)}
+.event.st-cancelled {border-left-color:var(--st-cancelled)}
+
+/* Month view */
+.monthgrid{display:grid;grid-template-columns:repeat(7,1fr);grid-auto-rows:1fr;height:100%}
+.mg-head{
+  background:var(--card);padding:10px 12px;text-align:center;
+  font-size:11px;text-transform:uppercase;letter-spacing:.5px;
+  color:var(--text2);font-weight:600;border-bottom:1px solid var(--border);border-right:1px solid var(--border)
+}
+.mg-head:last-child{border-right:none}
+.mg-cell{
+  background:var(--card);border-right:1px solid var(--border);border-bottom:1px solid var(--border);
+  padding:6px;display:flex;flex-direction:column;gap:2px;overflow:hidden;cursor:pointer;min-height:0
+}
+.mg-cell:nth-child(7n+1){}
+.mg-cell.muted{background:#fafbfc;color:var(--text3)}
+.mg-cell.today .day-num{background:var(--primary);color:#fff}
+.mg-day-num{
+  font-size:12px;font-weight:600;width:22px;height:22px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;align-self:flex-start
+}
+.mg-cell .ev-pill{
+  font-size:10px;padding:2px 6px;border-radius:4px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  border-left:3px solid var(--st-scheduled);font-weight:500;
+  display:flex;align-items:center;gap:4px
+}
+.mg-cell .ev-pill.cancelled{opacity:.55;text-decoration:line-through}
+.mg-cell .ev-more{font-size:10px;color:var(--text2);font-weight:600;padding:1px 4px}
+
+/* List view */
+.listview{padding:0;overflow:auto;height:100%}
+.list-day-head{
+  position:sticky;top:0;background:var(--card);z-index:2;
+  padding:10px 20px;font-weight:700;font-size:13px;
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:baseline;gap:10px
+}
+.list-day-head .ddow{color:var(--text2);font-weight:500;font-size:12px}
+.list-day-head .ct{margin-left:auto;font-size:11px;color:var(--text3);font-weight:600}
+.list-row{
+  display:grid;grid-template-columns:80px 130px 180px 1fr 130px 100px;
+  gap:14px;padding:11px 20px;border-bottom:1px solid var(--border);
+  align-items:center;cursor:pointer;font-size:13px;transition:background .1s
+}
+.list-row:hover{background:#f9fafb}
+.list-row .lr-time{font-weight:600;font-feature-settings:'tnum'}
+.list-row .lr-svc{display:inline-flex;align-items:center;gap:6px;font-weight:500}
+.list-row .lr-svc .dot{width:8px;height:8px;border-radius:50%}
+.list-row .lr-customer{font-weight:600}
+.list-row .lr-office{color:var(--text2)}
+.list-row .lr-status{
+  display:inline-flex;align-items:center;gap:4px;padding:3px 9px;
+  border-radius:999px;font-size:11px;font-weight:600
+}
+
+.status-pill{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:600}
+.status-pill.scheduled  {background:#f1f5f9;color:#475569}
+.status-pill.confirmed  {background:#dbeafe;color:#1e40af}
+.status-pill.checkedin  {background:#fef3c7;color:#92400e}
+.status-pill.completed  {background:#d1fae5;color:#065f46}
+.status-pill.noshow     {background:#e5e7eb;color:#4b5563}
+.status-pill.cancelled  {background:#fee2e2;color:#991b1b}
+
+/* ─────────────────────────── MODAL ─────────────────────────── */
+.modal-backdrop{
+  position:fixed;inset:0;background:rgba(15,23,42,.45);
+  display:none;align-items:center;justify-content:center;z-index:50;
+  backdrop-filter:blur(2px)
+}
+.modal-backdrop.show{display:flex}
+.modal{
+  background:var(--card);border-radius:14px;box-shadow:var(--shadow-lg);
+  width:520px;max-width:92vw;max-height:88vh;overflow:auto;
+  animation:pop .15s ease-out
+}
+@keyframes pop{from{transform:scale(.96);opacity:0}to{transform:scale(1);opacity:1}}
+.modal-head{
+  padding:18px 22px 14px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between
+}
+.modal-head h2{font-size:17px;font-weight:700}
+.modal-head .close{
+  background:transparent;border:none;cursor:pointer;color:var(--text2);
+  width:30px;height:30px;border-radius:6px;display:flex;align-items:center;justify-content:center
+}
+.modal-head .close:hover{background:#f1f5f9;color:var(--text)}
+
+.modal-body{padding:18px 22px}
+.fld{margin-bottom:14px}
+.fld label{display:block;font-size:12px;font-weight:600;color:var(--text2);margin-bottom:5px}
+.fld input,.fld select,.fld textarea{
+  width:100%;padding:8px 10px;font:inherit;font-size:13px;
+  border:1px solid var(--border);border-radius:var(--radius-sm);
+  background:var(--card);color:var(--text);transition:border-color .12s, box-shadow .12s
+}
+.fld input:focus,.fld select:focus,.fld textarea:focus{
+  outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(59,130,246,.1)
+}
+.fld-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.fld textarea{min-height:64px;resize:vertical}
+
+.detail-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f1f5f9;font-size:13px}
+.detail-row:last-child{border-bottom:none}
+.detail-row .k{color:var(--text2);font-weight:500}
+.detail-row .v{font-weight:600;text-align:right}
+
+.modal-foot{
+  padding:14px 22px;border-top:1px solid var(--border);
+  display:flex;align-items:center;justify-content:flex-end;gap:8px;
+  background:#fafbfc;border-radius:0 0 14px 14px
+}
+.modal-foot .left{margin-right:auto;display:flex;gap:8px}
+
+/* form mode toggle inside modal */
+.modal[data-mode="view"] .when-edit{display:none}
+.modal[data-mode="edit"] .when-view{display:none}
+.modal[data-mode="create"] .when-view{display:none}
+
+.toast{
+  position:fixed;bottom:24px;right:24px;background:var(--text);color:#fff;
+  padding:11px 16px;border-radius:var(--radius-sm);font-size:13px;
+  box-shadow:var(--shadow-lg);z-index:60;display:none
+}
+.toast.show{display:block;animation:slideUp .2s ease-out}
+.toast.error{background:#dc2626}
+@keyframes slideUp{from{transform:translateY(8px);opacity:0}to{transform:translateY(0);opacity:1}}
+</style>
+</head>
+<body>
+
+<div id="loading"><div class="spinner"></div><span>Loading appointments&hellip;</span></div>
+
+<div id="app">
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <button class="btn primary" id="btn-new"><span style="font-size:14px;line-height:1">+</span> New</button>
+    <button class="btn" id="btn-today">Today</button>
+    <div class="btn-group" style="margin-left:4px">
+      <button class="btn icon-only" id="btn-prev" aria-label="previous">&#8249;</button>
+      <button class="btn icon-only" id="btn-next" aria-label="next">&#8250;</button>
+    </div>
+    <div class="range-label" id="range-label"></div>
+    <div class="spacer"></div>
+    <div class="search">
+      <svg width="14" height="14" viewBox="0 0 20 20" fill="none"><circle cx="9" cy="9" r="6" stroke="currentColor" stroke-width="1.5"/><path d="m14 14 3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      <input id="search" placeholder="Search customers&hellip;" />
+    </div>
+    <div class="btn-group">
+      <button class="btn" data-view="day">Day</button>
+      <button class="btn active" data-view="week">Week</button>
+      <button class="btn" data-view="month">Month</button>
+      <button class="btn" data-view="list">List</button>
+    </div>
+  </div>
+
+  <div class="main">
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+      <div class="minical">
+        <div class="minical-head">
+          <button id="mini-prev">&#8249;</button>
+          <span class="month-label" id="mini-label"></span>
+          <button id="mini-next">&#8250;</button>
+        </div>
+        <table id="mini-grid"></table>
+      </div>
+
+      <div>
+        <h3>Today</h3>
+        <div class="stat-grid" id="stat-grid">
+          <div class="stat-tile"><div class="lbl">Total</div><div class="val" id="stat-total">0</div></div>
+          <div class="stat-tile confirmed"><div class="lbl">Confirmed</div><div class="val" id="stat-confirmed">0</div></div>
+          <div class="stat-tile"><div class="lbl">Pending</div><div class="val" id="stat-pending">0</div></div>
+          <div class="stat-tile completed"><div class="lbl">Done</div><div class="val" id="stat-done">0</div></div>
+        </div>
+      </div>
+
+      <div>
+        <h3>Service Types</h3>
+        <div class="filter-list" id="svc-filter"></div>
+      </div>
+
+      <div>
+        <h3>Status</h3>
+        <div class="filter-list" id="status-filter"></div>
+      </div>
+
+      <div>
+        <h3>Upcoming</h3>
+        <div class="upcoming" id="upcoming"></div>
+      </div>
+    </div>
+
+    <!-- CALENDAR AREA -->
+    <div class="cal-area">
+      <div class="cal-grid" id="cal-grid"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-backdrop" id="modal-backdrop">
+  <div class="modal" id="modal" data-mode="view">
+    <div class="modal-head">
+      <h2 id="modal-title">Appointment</h2>
+      <button class="close" id="modal-close">&times;</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-foot">
+      <div class="left">
+        <button class="btn danger-outline when-view" id="btn-cancel-appt">Cancel appointment</button>
+      </div>
+      <button class="btn when-view" id="btn-edit">Reschedule / Edit</button>
+      <button class="btn when-edit" id="btn-cancel-edit">Cancel</button>
+      <button class="btn primary when-edit" id="btn-save">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   DMV Appointment Calendar
+   ═══════════════════════════════════════════════════════════════ */
+
+var SVC = {
+  100000000: { key:'realid',     label:'REAL ID',            dot:'#ec4899' },
+  100000001: { key:'license',    label:'License Renewal',    dot:'#3b82f6' },
+  100000002: { key:'inspection', label:'Vehicle Inspection', dot:'#f59e0b' },
+  100000003: { key:'road',       label:'Road Test',          dot:'#10b981' },
+  100000004: { key:'title',      label:'Title Transfer',     dot:'#8b5cf6' },
+  100000005: { key:'general',    label:'General',            dot:'#6366f1' }
+};
+var STATUS = {
+  100000000: { key:'scheduled', label:'Scheduled' },
+  100000001: { key:'confirmed', label:'Confirmed' },
+  100000002: { key:'checkedin', label:'Checked In' },
+  100000003: { key:'completed', label:'Completed' },
+  100000004: { key:'noshow',    label:'No-Show' },
+  100000005: { key:'cancelled', label:'Cancelled' }
+};
+
+// duration defaults per service type (minutes)
+var SVC_DURATION = { 100000000:30, 100000001:30, 100000002:45, 100000003:60, 100000004:30, 100000005:30 };
+
+// Time slots offered when booking (8 AM - 4:30 PM, 30-min)
+var TIME_SLOTS = (function(){
+  var out=[]; for(var h=8;h<=16;h++){ ['00','30'].forEach(function(m){
+    var hr=h%12||12, ap=h<12?'AM':'PM';
+    out.push(hr+':'+m+' '+ap);
+  });} return out;
+})();
+
+var state = {
+  view: 'week',                      // day | week | month | list
+  cursor: new Date(),                // anchor date
+  miniCursor: new Date(),
+  appointments: [],                  // raw rows from Web API
+  offices: [],
+  contacts: [],
+  filters: {
+    svc: { 100000000:true, 100000001:true, 100000002:true, 100000003:true, 100000004:true, 100000005:true },
+    status: { 100000000:true, 100000001:true, 100000002:true, 100000003:true, 100000004:true, 100000005:true }
+  },
+  search: '',
+  Xrm: null
+};
+
+state.cursor.setHours(0,0,0,0);
+state.miniCursor.setHours(0,0,0,0);
+
+/* ──────────────────────────────────────────────────────────────
+   Utilities
+   ────────────────────────────────────────────────────────────── */
+function esc(s){ if(s==null) return ''; var d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+function pad(n){ return n<10?'0'+n:''+n; }
+function startOfWeek(d){ var x=new Date(d); x.setHours(0,0,0,0); var dow=x.getDay(); var diff=(dow===0?-6:1-dow); x.setDate(x.getDate()+diff); return x; }
+function addDays(d,n){ var x=new Date(d); x.setDate(x.getDate()+n); return x; }
+function sameDay(a,b){ return a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth()&&a.getDate()===b.getDate(); }
+function isoDate(d){ return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
+function fmtMonthYear(d){ return d.toLocaleDateString('en-US',{month:'long',year:'numeric'}); }
+function fmtDayLong(d){ return d.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'}); }
+function fmtDayShort(d){ return d.toLocaleDateString('en-US',{month:'short',day:'numeric'}); }
+
+// parse "9:30 AM" -> {h:9, m:30}
+function parseTime(s){
+  if(!s) return null;
+  var m=/^\s*(\d{1,2}):(\d{2})\s*(AM|PM)\s*$/i.exec(s);
+  if(!m) return null;
+  var h=+m[1]%12; if(/PM/i.test(m[3])) h+=12;
+  return { h:h, m:+m[2] };
+}
+function timeToMinutes(s){ var t=parseTime(s); return t? t.h*60+t.m : 0; }
+function appointmentEndMinutes(a){ return timeToMinutes(a.dmv_appointmenttime) + (a.dmv_duration||30); }
+
+// convert appointment row to a typed event
+function eventOf(a){
+  var svc=SVC[a.dmv_servicetype]||SVC[100000005];
+  var st =STATUS[a.dmv_status]||STATUS[100000000];
+  var date=a.dmv_appointmentdate ? new Date(a.dmv_appointmentdate) : null;
+  // Date-only field — strip TZ
+  if(date){ date = new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()); }
+  return {
+    id:a.dmv_appointmentid, raw:a,
+    date:date, time:a.dmv_appointmenttime,
+    duration:a.dmv_duration||SVC_DURATION[a.dmv_servicetype]||30,
+    svc:svc, st:st,
+    customer:a['_dmv_contactid_value@OData.Community.Display.V1.FormattedValue']||'(no customer)',
+    office:a['_dmv_officeid_value@OData.Community.Display.V1.FormattedValue']||'',
+    notes:a.dmv_notes||''
+  };
+}
+
+/* ──────────────────────────────────────────────────────────────
+   Xrm + data load
+   ────────────────────────────────────────────────────────────── */
+function getXrm(){
+  return new Promise(function(resolve,reject){
+    var n=0;
+    (function tick(){
+      var xrm=(window.parent&&window.parent.Xrm)||window.Xrm;
+      if(xrm&&xrm.WebApi) return resolve(xrm);
+      if(++n>50) return reject(new Error('Xrm not available'));
+      setTimeout(tick,200);
+    })();
+  });
+}
+
+function loadData(){
+  var Xrm=state.Xrm;
+  return Promise.all([
+    Xrm.WebApi.retrieveMultipleRecords('dmv_appointment',
+      "?$select=dmv_appointmentid,dmv_appointmentnumber,dmv_appointmentdate,dmv_appointmenttime,dmv_duration,dmv_servicetype,dmv_status,dmv_notes,dmv_cancelreason,dmv_confirmationsent,dmv_remindersent,_dmv_contactid_value,_dmv_officeid_value&$top=2000"),
+    Xrm.WebApi.retrieveMultipleRecords('dmv_dmvoffice',
+      "?$select=dmv_dmvofficeid,dmv_officename&$filter=dmv_active eq true&$orderby=dmv_officename"),
+    Xrm.WebApi.retrieveMultipleRecords('contact',
+      "?$select=contactid,fullname,emailaddress1&$filter=fullname ne null&$orderby=fullname&$top=200")
+  ]).then(function(r){
+    state.appointments = r[0].entities;
+    state.offices = r[1].entities;
+    state.contacts = r[2].entities;
+  });
+}
+
+/* ──────────────────────────────────────────────────────────────
+   Filter pipeline
+   ────────────────────────────────────────────────────────────── */
+function visibleEvents(){
+  var q=state.search.trim().toLowerCase();
+  return state.appointments
+    .filter(function(a){
+      if(!state.filters.svc[a.dmv_servicetype]) return false;
+      if(!state.filters.status[a.dmv_status]) return false;
+      if(q){
+        var hay=((a['_dmv_contactid_value@OData.Community.Display.V1.FormattedValue']||'')+' '+
+                 (a.dmv_appointmentnumber||'')+' '+
+                 (a['_dmv_officeid_value@OData.Community.Display.V1.FormattedValue']||'')).toLowerCase();
+        if(hay.indexOf(q)===-1) return false;
+      }
+      return true;
+    })
+    .map(eventOf)
+    .filter(function(e){ return e.date; });
+}
+
+/* ──────────────────────────────────────────────────────────────
+   Render — top bar + sidebar
+   ────────────────────────────────────────────────────────────── */
+function renderTopBar(){
+  var d=state.cursor, lbl='';
+  if(state.view==='day'){ lbl=fmtDayLong(d); }
+  else if(state.view==='week' || state.view==='list'){
+    var s=startOfWeek(d), e=addDays(s,6);
+    lbl=s.toLocaleDateString('en-US',{month:'short',day:'numeric'})+' \u2013 '+
+        e.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+  }
+  else { lbl=fmtMonthYear(d); }
+  document.getElementById('range-label').textContent=lbl;
+  document.querySelectorAll('[data-view]').forEach(function(b){
+    b.classList.toggle('active', b.getAttribute('data-view')===state.view);
+  });
+}
+
+function renderMiniCal(){
+  var c=state.miniCursor;
+  document.getElementById('mini-label').textContent=fmtMonthYear(c);
+  var first=new Date(c.getFullYear(),c.getMonth(),1);
+  var startCol=(first.getDay()+6)%7;          // Mon=0
+  var daysInMonth=new Date(c.getFullYear(),c.getMonth()+1,0).getDate();
+
+  var html='<thead><tr>';
+  ['Mo','Tu','We','Th','Fr','Sa','Su'].forEach(function(d){html+='<th>'+d+'</th>';});
+  html+='</tr></thead><tbody>';
+
+  var today=new Date(); today.setHours(0,0,0,0);
+  var sel=state.cursor;
+
+  var dayNum=1-startCol;
+  for(var w=0;w<6;w++){
+    html+='<tr>';
+    for(var col=0;col<7;col++){
+      var dt=new Date(c.getFullYear(),c.getMonth(),dayNum);
+      var muted=(dt.getMonth()!==c.getMonth());
+      var classes=[];
+      if(muted) classes.push('muted');
+      if(sameDay(dt,today)) classes.push('today');
+      else if(sameDay(dt,sel)) classes.push('selected');
+      html+='<td><button class="'+classes.join(' ')+'" data-d="'+isoDate(dt)+'">'+dt.getDate()+'</button></td>';
+      dayNum++;
+    }
+    html+='</tr>';
+    if(dayNum>daysInMonth) break;
+  }
+  html+='</tbody>';
+  var grid=document.getElementById('mini-grid');
+  grid.innerHTML=html;
+  grid.querySelectorAll('button').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      var iso=btn.getAttribute('data-d').split('-');
+      state.cursor=new Date(+iso[0],+iso[1]-1,+iso[2]);
+      state.miniCursor=new Date(state.cursor.getFullYear(),state.cursor.getMonth(),1);
+      render();
+    });
+  });
+}
+
+function renderStats(){
+  var today=new Date(); today.setHours(0,0,0,0);
+  var todays=state.appointments.filter(function(a){
+    if(!a.dmv_appointmentdate) return false;
+    var d=new Date(a.dmv_appointmentdate);
+    return d.getUTCFullYear()===today.getFullYear()&&d.getUTCMonth()===today.getMonth()&&d.getUTCDate()===today.getDate();
+  });
+  document.getElementById('stat-total').textContent=todays.length;
+  document.getElementById('stat-confirmed').textContent=todays.filter(function(a){return a.dmv_status===100000001||a.dmv_status===100000002;}).length;
+  document.getElementById('stat-pending').textContent=todays.filter(function(a){return a.dmv_status===100000000;}).length;
+  document.getElementById('stat-done').textContent=todays.filter(function(a){return a.dmv_status===100000003;}).length;
+}
+
+function renderFilters(){
+  // Service type filter
+  var counts={};
+  state.appointments.forEach(function(a){ counts[a.dmv_servicetype]=(counts[a.dmv_servicetype]||0)+1; });
+  var svcHtml='';
+  Object.keys(SVC).forEach(function(k){
+    var s=SVC[k];
+    var checked=state.filters.svc[k]?'checked':'';
+    svcHtml+='<label class="filter-row" data-svc="'+k+'">'+
+      '<input type="checkbox" '+checked+'>'+
+      '<span class="dot" style="background:'+s.dot+'"></span>'+
+      '<span class="name">'+esc(s.label)+'</span>'+
+      '<span class="ct">'+(counts[k]||0)+'</span>'+
+    '</label>';
+  });
+  var svcEl=document.getElementById('svc-filter');
+  svcEl.innerHTML=svcHtml;
+  svcEl.querySelectorAll('.filter-row').forEach(function(r){
+    r.addEventListener('click',function(e){
+      if(e.target.tagName!=='INPUT'){
+        var cb=r.querySelector('input'); cb.checked=!cb.checked;
+      }
+      var k=r.getAttribute('data-svc');
+      state.filters.svc[k]=r.querySelector('input').checked;
+      renderCalendar();
+    });
+  });
+
+  // Status filter
+  var stCounts={};
+  state.appointments.forEach(function(a){ stCounts[a.dmv_status]=(stCounts[a.dmv_status]||0)+1; });
+  var stHtml='';
+  Object.keys(STATUS).forEach(function(k){
+    var s=STATUS[k];
+    var checked=state.filters.status[k]?'checked':'';
+    stHtml+='<label class="filter-row" data-st="'+k+'">'+
+      '<input type="checkbox" '+checked+'>'+
+      '<span class="status-pill '+s.key+'">'+esc(s.label)+'</span>'+
+      '<span class="ct" style="margin-left:auto">'+(stCounts[k]||0)+'</span>'+
+    '</label>';
+  });
+  var stEl=document.getElementById('status-filter');
+  stEl.innerHTML=stHtml;
+  stEl.querySelectorAll('.filter-row').forEach(function(r){
+    r.addEventListener('click',function(e){
+      if(e.target.tagName!=='INPUT'){
+        var cb=r.querySelector('input'); cb.checked=!cb.checked;
+      }
+      var k=r.getAttribute('data-st');
+      state.filters.status[k]=r.querySelector('input').checked;
+      renderCalendar();
+    });
+  });
+}
+
+function renderUpcoming(){
+  var today=new Date(); today.setHours(0,0,0,0);
+  var upcoming=visibleEvents()
+    .filter(function(e){ return e.date>=today && e.st.key!=='cancelled' && e.st.key!=='completed'; })
+    .sort(function(a,b){
+      if(a.date.getTime()!==b.date.getTime()) return a.date-b.date;
+      return timeToMinutes(a.time)-timeToMinutes(b.time);
+    })
+    .slice(0,5);
+  var html='';
+  upcoming.forEach(function(e){
+    var when = sameDay(e.date,today) ? 'Today' :
+               sameDay(e.date,addDays(today,1)) ? 'Tomorrow' :
+               fmtDayShort(e.date);
+    html+='<div class="up-item" data-id="'+e.id+'" style="border-left-color:'+e.svc.dot+'">'+
+      '<div class="name">'+esc(e.customer)+'</div>'+
+      '<div class="meta">'+when+' &middot; '+esc(e.time)+' &middot; '+esc(e.svc.label)+'</div>'+
+    '</div>';
+  });
+  if(!html) html='<div style="color:var(--text3);font-size:12px;padding:8px 4px">No upcoming</div>';
+  var el=document.getElementById('upcoming');
+  el.innerHTML=html;
+  el.querySelectorAll('.up-item').forEach(function(it){
+    it.addEventListener('click',function(){ openModal('view',it.getAttribute('data-id')); });
+  });
+}
+
+/* ──────────────────────────────────────────────────────────────
+   Render — calendar (week / day)
+   ────────────────────────────────────────────────────────────── */
+function renderTimeGrid(days){
+  var startHour=7, endHour=18;
+  var hours=endHour-startHour;
+  var pxPerMin=1;             // 60px = 1h
+  var headerH=52;
+  var contentH=hours*60;
+
+  var html='<div class="timegrid" style="grid-template-rows:'+headerH+'px '+contentH+'px">';
+
+  // empty corner
+  html+='<div></div>';
+
+  // day headers
+  var headerCols='<div class="tg-cols" style="grid-template-columns:repeat('+days.length+',1fr)">';
+  var today=new Date(); today.setHours(0,0,0,0);
+  days.forEach(function(d){
+    var isToday=sameDay(d,today);
+    headerCols+='<div class="tg-col-header'+(isToday?' today':'')+'">'+
+      d.toLocaleDateString('en-US',{weekday:'short'})+
+      '<span class="day-num">'+d.getDate()+'</span></div>';
+  });
+  headerCols+='</div>';
+  html+=headerCols;
+
+  // time labels column
+  var times='<div class="tg-times">';
+  for(var h=startHour;h<=endHour;h++){
+    var hr=h%12||12, ap=h<12?'AM':'PM';
+    times+='<div class="tg-time">'+hr+' '+ap+'</div>';
+  }
+  times+='</div>';
+  html+=times;
+
+  // body cols with hour rows
+  var body='<div class="tg-cols" style="grid-template-columns:repeat('+days.length+',1fr);position:relative">';
+  days.forEach(function(d,colIdx){
+    body+='<div class="tg-col" data-col="'+colIdx+'" data-d="'+isoDate(d)+'">';
+    for(var h=startHour;h<endHour;h++){
+      body+='<div class="tg-hour half"></div>';
+    }
+    body+='</div>';
+  });
+  // now line if today is in range
+  var now=new Date();
+  for(var i=0;i<days.length;i++){
+    if(sameDay(days[i],now)){
+      var minutes=(now.getHours()-startHour)*60+now.getMinutes();
+      if(minutes>=0 && minutes<=contentH){
+        var leftPct=(i/days.length)*100;
+        var widthPct=(1/days.length)*100;
+        body+='<div class="now-line" style="top:'+(minutes*pxPerMin)+'px;left:'+leftPct+'%;width:'+widthPct+'%"></div>';
+      }
+    }
+  }
+  body+='</div>';
+  html+=body;
+
+  html+='</div>';
+  document.getElementById('cal-grid').innerHTML=html;
+
+  // Place events
+  var events=visibleEvents();
+  days.forEach(function(d,colIdx){
+    var dayEvts=events.filter(function(e){ return sameDay(e.date,d); })
+                      .sort(function(a,b){ return timeToMinutes(a.time)-timeToMinutes(b.time); });
+    // Handle overlaps via columns
+    var slots=[];
+    dayEvts.forEach(function(e){
+      var s=timeToMinutes(e.time);
+      var en=s+e.duration;
+      var placed=false;
+      for(var k=0;k<slots.length;k++){
+        if(slots[k].end<=s){ slots[k]={evt:e,end:en,col:k}; e._col=k; placed=true; break; }
+      }
+      if(!placed){ slots.push({evt:e,end:en,col:slots.length}); e._col=slots.length-1; }
+      e._cols=slots.length;
+    });
+    // re-pass to set _cols accurately for each event's overlap window
+    dayEvts.forEach(function(e){
+      var overlap=dayEvts.filter(function(o){
+        var os=timeToMinutes(o.time), oe=os+o.duration;
+        var es=timeToMinutes(e.time), ee=es+e.duration;
+        return os<ee && oe>es;
+      });
+      e._cols=Math.max.apply(null, overlap.map(function(o){return (o._col||0)+1;}));
+    });
+
+    var col=document.querySelector('.tg-col[data-col="'+colIdx+'"]');
+    if(!col) return;
+    dayEvts.forEach(function(e){
+      var s=timeToMinutes(e.time);
+      var top=(s-startHour*60)*pxPerMin;
+      var height=Math.max(20, e.duration*pxPerMin -2);
+      if(top<0||top>contentH) return;
+      var widthPct=100/(e._cols||1);
+      var leftPct=widthPct*(e._col||0);
+      var sizeCls = e.duration<=30 ? ' compact' : (e.duration<45 ? ' short' : '');
+      var div=document.createElement('div');
+      div.className='event svc-'+e.svc.key+' st-'+e.st.key+(e.st.key==='cancelled'?' cancelled':'')+sizeCls;
+      div.style.top=top+'px';
+      div.style.height=height+'px';
+      div.style.left='calc('+leftPct+'% + 2px)';
+      div.style.width='calc('+widthPct+'% - 4px)';
+      div.setAttribute('data-id',e.id);
+      div.title = e.customer + ' \u2022 ' + e.time + ' (' + e.duration + ' min) \u2022 ' + e.svc.label + ' \u2022 ' + e.st.label;
+      div.innerHTML='<div class="ev-title">'+esc(e.customer)+'</div>'+
+                    '<div class="ev-time">'+esc(e.time)+' &middot; '+esc(e.svc.label)+'</div>';
+      div.addEventListener('click',function(ev){ ev.stopPropagation(); openModal('view',e.id); });
+      col.appendChild(div);
+    });
+
+    // Click empty slot to create
+    col.addEventListener('click',function(ev){
+      if(ev.target!==col) return;
+      var rect=col.getBoundingClientRect();
+      var y=ev.clientY-rect.top;
+      var minutes=Math.round(y/pxPerMin/15)*15;
+      var totalMin=startHour*60+minutes;
+      var hh=Math.floor(totalMin/60), mm=totalMin%60;
+      var hr=hh%12||12, ap=hh<12?'AM':'PM';
+      var slot=hr+':'+pad(mm)+' '+ap;
+      openModal('create',null,{ date:d, time:slot });
+    });
+  });
+
+  // Auto-scroll to 8 AM
+  var grid=document.getElementById('cal-grid');
+  grid.scrollTop = (8-startHour)*60 - 10;
+}
+
+/* ──────────────────────────────────────────────────────────────
+   Render — month
+   ────────────────────────────────────────────────────────────── */
+function renderMonth(){
+  var c=state.cursor;
+  var first=new Date(c.getFullYear(),c.getMonth(),1);
+  var startCol=(first.getDay()+6)%7;
+  var rows=Math.ceil((startCol + new Date(c.getFullYear(),c.getMonth()+1,0).getDate()) / 7);
+
+  var html='<div class="monthgrid" style="grid-template-rows:36px repeat('+rows+',1fr)">';
+  ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].forEach(function(d){
+    html+='<div class="mg-head">'+d+'</div>';
+  });
+
+  var today=new Date(); today.setHours(0,0,0,0);
+  var events=visibleEvents();
+  var dayNum=1-startCol;
+  for(var r=0;r<rows;r++){
+    for(var col=0;col<7;col++){
+      var dt=new Date(c.getFullYear(),c.getMonth(),dayNum);
+      var muted=(dt.getMonth()!==c.getMonth());
+      var todayCls=sameDay(dt,today)?' today':'';
+      var dayEvts=events.filter(function(e){ return sameDay(e.date,dt); })
+        .sort(function(a,b){ return timeToMinutes(a.time)-timeToMinutes(b.time); });
+
+      var pillsHtml='';
+      var maxShow=3;
+      dayEvts.slice(0,maxShow).forEach(function(e){
+        pillsHtml+='<div class="ev-pill svc-'+e.svc.key+' st-'+e.st.key+(e.st.key==='cancelled'?' cancelled':'')+
+          '" style="background:var(--svc-'+e.svc.key+'-bg);color:var(--svc-'+e.svc.key+'-fg);border-left-color:var(--st-'+e.st.key+')" data-id="'+e.id+'">'+
+          esc(e.time.replace(/:00 /,' '))+' '+esc(e.customer)+
+          '</div>';
+      });
+      if(dayEvts.length>maxShow){
+        pillsHtml+='<div class="ev-more">+'+(dayEvts.length-maxShow)+' more</div>';
+      }
+
+      html+='<div class="mg-cell'+(muted?' muted':'')+todayCls+'" data-d="'+isoDate(dt)+'">'+
+        '<div class="mg-day-num">'+dt.getDate()+'</div>'+
+        pillsHtml+
+      '</div>';
+      dayNum++;
+    }
+  }
+  html+='</div>';
+
+  var grid=document.getElementById('cal-grid');
+  grid.innerHTML=html;
+  grid.querySelectorAll('.ev-pill').forEach(function(p){
+    p.addEventListener('click',function(e){ e.stopPropagation(); openModal('view',p.getAttribute('data-id')); });
+  });
+  grid.querySelectorAll('.mg-cell').forEach(function(cell){
+    cell.addEventListener('click',function(){
+      var iso=cell.getAttribute('data-d').split('-');
+      state.cursor=new Date(+iso[0],+iso[1]-1,+iso[2]);
+      state.view='day';
+      render();
+    });
+  });
+}
+
+/* ──────────────────────────────────────────────────────────────
+   Render — list / agenda
+   ────────────────────────────────────────────────────────────── */
+function renderList(){
+  var s=startOfWeek(state.cursor);
+  var days=[]; for(var i=0;i<7;i++) days.push(addDays(s,i));
+  var events=visibleEvents().filter(function(e){
+    return e.date>=days[0] && e.date<=addDays(days[6],1);
+  }).sort(function(a,b){
+    if(a.date.getTime()!==b.date.getTime()) return a.date-b.date;
+    return timeToMinutes(a.time)-timeToMinutes(b.time);
+  });
+  var byDay={};
+  events.forEach(function(e){
+    var k=isoDate(e.date);
+    if(!byDay[k]) byDay[k]=[];
+    byDay[k].push(e);
+  });
+  var html='<div class="listview">';
+  if(events.length===0){
+    html+='<div style="padding:60px 20px;text-align:center;color:var(--text3)">No appointments in this range</div>';
+  } else {
+    days.forEach(function(d){
+      var k=isoDate(d), arr=byDay[k]||[];
+      if(arr.length===0) return;
+      html+='<div class="list-day-head">'+
+        '<span>'+d.toLocaleDateString('en-US',{weekday:'long'})+'</span>'+
+        '<span class="ddow">'+d.toLocaleDateString('en-US',{month:'long',day:'numeric'})+'</span>'+
+        '<span class="ct">'+arr.length+' appt'+(arr.length!==1?'s':'')+'</span>'+
+      '</div>';
+      arr.forEach(function(e){
+        html+='<div class="list-row" data-id="'+e.id+'">'+
+          '<div class="lr-time">'+esc(e.time)+'</div>'+
+          '<div class="lr-svc"><span class="dot" style="background:'+e.svc.dot+'"></span>'+esc(e.svc.label)+'</div>'+
+          '<div class="lr-customer">'+esc(e.customer)+'</div>'+
+          '<div class="lr-office">'+esc(e.office||'\u2014')+'</div>'+
+          '<div><span class="status-pill '+e.st.key+'">'+esc(e.st.label)+'</span></div>'+
+          '<div style="text-align:right;font-size:11px;color:var(--text3)">'+esc(e.duration||30)+' min</div>'+
+        '</div>';
+      });
+    });
+  }
+  html+='</div>';
+  document.getElementById('cal-grid').innerHTML=html;
+  document.querySelectorAll('.list-row').forEach(function(r){
+    r.addEventListener('click',function(){ openModal('view',r.getAttribute('data-id')); });
+  });
+}
+
+/* ──────────────────────────────────────────────────────────────
+   Calendar dispatcher
+   ────────────────────────────────────────────────────────────── */
+function renderCalendar(){
+  if(state.view==='day'){ renderTimeGrid([state.cursor]); }
+  else if(state.view==='week'){
+    var s=startOfWeek(state.cursor);
+    var days=[]; for(var i=0;i<7;i++) days.push(addDays(s,i));
+    renderTimeGrid(days);
+  }
+  else if(state.view==='month'){ renderMonth(); }
+  else if(state.view==='list'){ renderList(); }
+}
+
+function render(){
+  renderTopBar();
+  renderMiniCal();
+  renderStats();
+  renderFilters();
+  renderUpcoming();
+  renderCalendar();
+}
+
+/* ──────────────────────────────────────────────────────────────
+   Modal: view / edit / create
+   ────────────────────────────────────────────────────────────── */
+var _modalAppt=null, _modalSeed=null;
+
+function openModal(mode,id,seed){
+  var modal=document.getElementById('modal');
+  var body=document.getElementById('modal-body');
+  var title=document.getElementById('modal-title');
+  modal.setAttribute('data-mode',mode);
+
+  if(mode==='view' || mode==='edit'){
+    _modalAppt=state.appointments.filter(function(a){return a.dmv_appointmentid===id;})[0];
+    if(!_modalAppt){ toast('Appointment not found','error'); return; }
+    var e=eventOf(_modalAppt);
+    title.textContent= mode==='edit' ? 'Edit appointment' : (e.customer||'Appointment');
+
+    if(mode==='view'){
+      body.innerHTML=
+        '<div style="margin-bottom:14px"><span class="status-pill '+e.st.key+'">'+esc(e.st.label)+'</span> '+
+        '<span style="margin-left:8px;font-size:11px;color:var(--text3)">'+esc(_modalAppt.dmv_appointmentnumber||'')+'</span></div>'+
+        '<div class="detail-row"><span class="k">Customer</span><span class="v">'+esc(e.customer)+'</span></div>'+
+        '<div class="detail-row"><span class="k">Service</span><span class="v"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+e.svc.dot+';margin-right:6px;vertical-align:middle"></span>'+esc(e.svc.label)+'</span></div>'+
+        '<div class="detail-row"><span class="k">Date</span><span class="v">'+fmtDayLong(e.date)+'</span></div>'+
+        '<div class="detail-row"><span class="k">Time</span><span class="v">'+esc(e.time)+' &middot; '+esc(e.duration)+' min</span></div>'+
+        '<div class="detail-row"><span class="k">Office</span><span class="v">'+esc(e.office||'\u2014')+'</span></div>'+
+        (_modalAppt.dmv_notes?'<div class="detail-row"><span class="k">Notes</span><span class="v" style="max-width:60%">'+esc(_modalAppt.dmv_notes)+'</span></div>':'')+
+        (_modalAppt.dmv_cancelreason?'<div class="detail-row"><span class="k">Cancel reason</span><span class="v">'+esc(_modalAppt.dmv_cancelreason)+'</span></div>':'');
+      // Disable cancel button if already cancelled / completed
+      var cBtn=document.getElementById('btn-cancel-appt');
+      if(e.st.key==='cancelled'||e.st.key==='completed'){
+        cBtn.style.display='none';
+      } else {
+        cBtn.style.display='';
+      }
+    } else {
+      body.innerHTML=buildEditForm(_modalAppt);
+    }
+  }
+  else if(mode==='create'){
+    _modalAppt=null;
+    _modalSeed=seed||{};
+    title.textContent='New appointment';
+    body.innerHTML=buildEditForm(null);
+  }
+
+  document.getElementById('modal-backdrop').classList.add('show');
+}
+
+function buildEditForm(a){
+  var seed=_modalSeed||{};
+  var dateVal = a && a.dmv_appointmentdate ? isoDate(new Date(new Date(a.dmv_appointmentdate).getUTCFullYear(),new Date(a.dmv_appointmentdate).getUTCMonth(),new Date(a.dmv_appointmentdate).getUTCDate()))
+              : (seed.date ? isoDate(seed.date) : isoDate(state.cursor));
+  var timeVal = a ? a.dmv_appointmenttime : (seed.time||'9:00 AM');
+  var svcVal  = a ? a.dmv_servicetype : 100000001;
+  var stVal   = a ? a.dmv_status : 100000000;
+  var dur     = a ? (a.dmv_duration||SVC_DURATION[a.dmv_servicetype]||30) : 30;
+  var contactVal = a ? a._dmv_contactid_value : '';
+  var officeVal  = a ? a._dmv_officeid_value : '';
+  var notes      = a ? (a.dmv_notes||'') : '';
+
+  var contactOpts='<option value="">— select customer —</option>';
+  state.contacts.forEach(function(c){
+    contactOpts+='<option value="'+c.contactid+'"'+(c.contactid===contactVal?' selected':'')+'>'+esc(c.fullname)+'</option>';
+  });
+  var officeOpts='<option value="">— select office —</option>';
+  state.offices.forEach(function(o){
+    officeOpts+='<option value="'+o.dmv_dmvofficeid+'"'+(o.dmv_dmvofficeid===officeVal?' selected':'')+'>'+esc(o.dmv_officename)+'</option>';
+  });
+  var svcOpts=''; Object.keys(SVC).forEach(function(k){
+    svcOpts+='<option value="'+k+'"'+(+k===+svcVal?' selected':'')+'>'+esc(SVC[k].label)+'</option>';
+  });
+  var stOpts=''; Object.keys(STATUS).forEach(function(k){
+    stOpts+='<option value="'+k+'"'+(+k===+stVal?' selected':'')+'>'+esc(STATUS[k].label)+'</option>';
+  });
+  var slotOpts=''; TIME_SLOTS.forEach(function(t){
+    slotOpts+='<option value="'+t+'"'+(t===timeVal?' selected':'')+'>'+t+'</option>';
+  });
+
+  return ''+
+    '<div class="fld"><label>Customer</label><select id="f-contact">'+contactOpts+'</select></div>'+
+    '<div class="fld"><label>Service Type</label><select id="f-svc">'+svcOpts+'</select></div>'+
+    '<div class="fld-row">'+
+      '<div class="fld"><label>Date</label><input type="date" id="f-date" value="'+dateVal+'"></div>'+
+      '<div class="fld"><label>Time</label><select id="f-time">'+slotOpts+'</select></div>'+
+    '</div>'+
+    '<div class="fld-row">'+
+      '<div class="fld"><label>Duration (min)</label><input type="number" id="f-dur" value="'+dur+'" min="15" step="15"></div>'+
+      '<div class="fld"><label>Status</label><select id="f-status">'+stOpts+'</select></div>'+
+    '</div>'+
+    '<div class="fld"><label>Office</label><select id="f-office">'+officeOpts+'</select></div>'+
+    '<div class="fld"><label>Notes / Special needs</label><textarea id="f-notes">'+esc(notes)+'</textarea></div>';
+}
+
+function closeModal(){
+  document.getElementById('modal-backdrop').classList.remove('show');
+  _modalAppt=null; _modalSeed=null;
+}
+
+function toast(msg,kind){
+  var t=document.getElementById('toast');
+  t.textContent=msg;
+  t.classList.toggle('error',kind==='error');
+  t.classList.add('show');
+  setTimeout(function(){ t.classList.remove('show'); },2400);
+}
+
+/* ──────────────────────────────────────────────────────────────
+   Save / cancel actions
+   ────────────────────────────────────────────────────────────── */
+function readForm(){
+  return {
+    contact: document.getElementById('f-contact').value,
+    office:  document.getElementById('f-office').value,
+    svc:     +document.getElementById('f-svc').value,
+    status:  +document.getElementById('f-status').value,
+    date:    document.getElementById('f-date').value,
+    time:    document.getElementById('f-time').value,
+    dur:     +document.getElementById('f-dur').value || 30,
+    notes:   document.getElementById('f-notes').value
+  };
+}
+
+function saveAppointment(){
+  var f=readForm();
+  if(!f.contact){ toast('Customer is required','error'); return; }
+  if(!f.office){ toast('Office is required','error'); return; }
+  if(!f.date || !f.time){ toast('Date & time are required','error'); return; }
+
+  var rec={
+    'dmv_contactid@odata.bind': '/contacts('+f.contact+')',
+    'dmv_officeid@odata.bind':  '/dmv_dmvoffices('+f.office+')',
+    dmv_servicetype: f.svc,
+    dmv_status: f.status,
+    dmv_appointmentdate: f.date,
+    dmv_appointmenttime: f.time,
+    dmv_duration: f.dur,
+    dmv_notes: f.notes
+  };
+
+  var Xrm=state.Xrm;
+  var promise;
+  if(_modalAppt){
+    promise = Xrm.WebApi.updateRecord('dmv_appointment', _modalAppt.dmv_appointmentid, rec);
+  } else {
+    promise = Xrm.WebApi.createRecord('dmv_appointment', rec);
+  }
+  promise.then(function(){
+    toast(_modalAppt?'Appointment updated':'Appointment created');
+    closeModal();
+    return loadData().then(render);
+  }).catch(function(err){
+    console.error(err);
+    toast('Save failed: '+(err.message||err),'error');
+  });
+}
+
+function cancelAppointment(){
+  if(!_modalAppt) return;
+  var reason=prompt('Reason for cancellation?','Cancelled by employee');
+  if(reason===null) return;
+  state.Xrm.WebApi.updateRecord('dmv_appointment', _modalAppt.dmv_appointmentid, {
+    dmv_status: 100000005,
+    dmv_cancelreason: reason||'Cancelled by employee'
+  }).then(function(){
+    toast('Appointment cancelled');
+    closeModal();
+    return loadData().then(render);
+  }).catch(function(err){
+    console.error(err);
+    toast('Cancel failed: '+(err.message||err),'error');
+  });
+}
+
+/* ──────────────────────────────────────────────────────────────
+   Wiring
+   ────────────────────────────────────────────────────────────── */
+function navStep(direction){
+  if(state.view==='day'){ state.cursor=addDays(state.cursor,direction); }
+  else if(state.view==='week' || state.view==='list'){ state.cursor=addDays(state.cursor,direction*7); }
+  else if(state.view==='month'){
+    state.cursor=new Date(state.cursor.getFullYear(),state.cursor.getMonth()+direction,1);
+  }
+  state.miniCursor=new Date(state.cursor.getFullYear(),state.cursor.getMonth(),1);
+  render();
+}
+
+function wire(){
+  document.getElementById('btn-prev').addEventListener('click',function(){ navStep(-1); });
+  document.getElementById('btn-next').addEventListener('click',function(){ navStep(1); });
+  document.getElementById('btn-today').addEventListener('click',function(){
+    state.cursor=new Date(); state.cursor.setHours(0,0,0,0);
+    state.miniCursor=new Date(state.cursor.getFullYear(),state.cursor.getMonth(),1);
+    render();
+  });
+  document.querySelectorAll('[data-view]').forEach(function(b){
+    b.addEventListener('click',function(){ state.view=b.getAttribute('data-view'); render(); });
+  });
+  document.getElementById('btn-new').addEventListener('click',function(){
+    openModal('create',null,{ date:state.cursor, time:'9:00 AM' });
+  });
+  document.getElementById('mini-prev').addEventListener('click',function(){
+    state.miniCursor=new Date(state.miniCursor.getFullYear(),state.miniCursor.getMonth()-1,1); renderMiniCal();
+  });
+  document.getElementById('mini-next').addEventListener('click',function(){
+    state.miniCursor=new Date(state.miniCursor.getFullYear(),state.miniCursor.getMonth()+1,1); renderMiniCal();
+  });
+
+  document.getElementById('search').addEventListener('input',function(e){
+    state.search=e.target.value;
+    renderCalendar(); renderUpcoming();
+  });
+
+  document.getElementById('modal-close').addEventListener('click',closeModal);
+  document.getElementById('modal-backdrop').addEventListener('click',function(e){
+    if(e.target.id==='modal-backdrop') closeModal();
+  });
+  document.getElementById('btn-edit').addEventListener('click',function(){
+    if(!_modalAppt) return;
+    openModal('edit',_modalAppt.dmv_appointmentid);
+  });
+  document.getElementById('btn-cancel-edit').addEventListener('click',function(){
+    if(_modalAppt) openModal('view',_modalAppt.dmv_appointmentid);
+    else closeModal();
+  });
+  document.getElementById('btn-save').addEventListener('click',saveAppointment);
+  document.getElementById('btn-cancel-appt').addEventListener('click',cancelAppointment);
+
+  document.addEventListener('keydown',function(e){
+    if(e.key==='Escape' && document.getElementById('modal-backdrop').classList.contains('show')){
+      closeModal();
+    }
+  });
+}
+
+/* ──────────────────────────────────────────────────────────────
+   Boot
+   ────────────────────────────────────────────────────────────── */
+getXrm().then(function(xrm){
+  state.Xrm=xrm;
+  return loadData();
+}).then(function(){
+  document.getElementById('loading').style.display='none';
+  document.getElementById('app').style.display='flex';
+  wire();
+  render();
+}).catch(function(err){
+  console.error(err);
+  document.getElementById('loading').innerHTML='<div style="color:#dc2626">Failed to load: '+esc(err.message||err)+'</div>';
+});
+</script>
+
+</body>
+</html>

@@ -93,9 +93,9 @@ beginDialog:
       id: question_confirmRenewal
       variable: init:Topic.ConfirmRenewal
       prompt: |-
-        I can submit a registration renewal request for your portal account.
+        I can start a vehicle registration renewal for you on the Contoso DMV portal.
 
-        Would you like me to submit it now?
+        Would you like me to send you to the renewal page?
       entity: BooleanPrebuiltEntity
 
     - kind: ConditionGroup
@@ -106,86 +106,16 @@ beginDialog:
           actions:
             - kind: SendActivity
               id: sendActivity_cancelRenewal
-              activity: No problem. I have not submitted a renewal request.
+              activity: No problem. Let me know if you change your mind or have other DMV questions.
             - kind: EndDialog
               id: endDialog_cancelRenewal
 
-    - kind: InvokeConnectorAction
-      id: invokeConnectorAction_createRenewal
-      input:
-        binding:
-          entityName: dmv_registrationrenewals
-          organization: current
-          item/dmv_channel: =100000003
-          item/dmv_contactid@odata.bind: ="contacts(" & Global.PortalContactId & ")"
-          item/dmv_renewalstatus: =100000000
-          item/dmv_submitteddate: =Now()
-          item/dmv_renewalfee: =50
-          item/dmv_email: =Global.Email
-      output:
-        kind: SingleVariableOutputBinding
-        variable: Topic.CreatedRenewal
-      connectionReference: dmv_sharedcommondataserviceforapps_2ca64
-      connectionProperties:
-        name: dmv_sharedcommondataserviceforapps_2ca64
-        mode: Maker
-      dynamicInputSchema:
-        properties:
-          entityName:
-            displayName: Table name
-            isRequired: true
-            order: 0
-            type: String
-          organization:
-            displayName: Environment
-            isRequired: true
-            order: 1
-            type: String
-          item:
-            displayName: Row
-            order: 2
-            type:
-              kind: Record
-              properties:
-                dmv_channel:
-                  displayName: Channel
-                  order: 0
-                  type: Number
-                dmv_contactid@odata.bind:
-                  displayName: Contact
-                  order: 1
-                  type: String
-                dmv_renewalstatus:
-                  displayName: Renewal Status
-                  order: 2
-                  type: Number
-                dmv_submitteddate:
-                  displayName: Submitted Date
-                  order: 3
-                  type: DateTime
-                dmv_renewalfee:
-                  displayName: Renewal Fee
-                  order: 4
-                  type: Number
-                dmv_email:
-                  displayName: Email
-                  order: 5
-                  type: String
-      dynamicOutputSchema:
-        kind: Record
-        properties:
-          dmv_registrationrenewalid:
-            displayName: Registration Renewal
-            order: 0
-            type: String
-      operationId: CreateRecord
-
     - kind: SendActivity
-      id: sendActivity_renewalCreated
+      id: sendActivity_renewalRedirect
       activity: |-
-        Done. I submitted your registration renewal request.
+        Great. Open the renewal page here: https://site-y5jzr.powerappsportals.us/vehicle-registration
 
-        The request is now in Submitted status with a $50 renewal fee. DMV staff can review it in Registration Renewals, and you can ask me to check your renewal status later.
+        Your portal account is already signed in, so the form will pre-fill your contact details. Submit it from there and the request will appear in Registration Renewals for DMV staff to review.
 
 inputType: {}
 outputType: {}
