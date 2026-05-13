@@ -1,0 +1,83 @@
+kind: DialogComponent
+managedProperties:
+  isCustomizable: false
+
+displayName: Renew Vehicle Registration
+parentBotId: 16efd3d3-2543-f111-88b4-001dd801f94a
+shareContext: {}
+state: Active
+status: Active
+publisherUniqueName: DefaultPublisherorga381269e
+schemaName: crd60_agent.topic.RenewVehicleRegistration
+dialog:
+  modelDescription: |-
+    Use this topic when the user wants to renew their vehicle registration, pay registration fees, complete a vehicle registration renewal, or submit a renewal request.
+    Examples: "renew my registration", "renew my vehicle", "renew my Tesla", "pay my registration fee", "complete my renewal", "start my renewal".
+  beginDialog:
+    kind: OnRecognizedIntent
+    id: main
+    intent: {}
+    actions:
+      - kind: ConditionGroup
+        id: cg_haveEmail
+        conditions:
+          - id: cond_emailBlank
+            condition: =IsBlank(Global.Email)
+            actions:
+              - kind: Question
+                id: q_email
+                interruptionPolicy:
+                  allowInterruption: true
+                variable: Global.Email
+                prompt: To start your renewal, what's the email address on your Contoso DMV account?
+                entity: EmailPrebuiltEntity
+                alwaysPrompt: false
+
+      - kind: SendActivity
+        id: sa_intro
+        activity: |-
+          I can help start your registration renewal for **{Global.Email}**.
+
+          The standard renewal fee is **$50.00**. Before submitting, please confirm your vehicle, insurance, and mailing address in the Contoso DMV portal if anything has changed.
+
+      - kind: Question
+        id: q_paymentMethod
+        interruptionPolicy:
+          allowInterruption: true
+        variable: Topic.paymentMethod
+        prompt: How would you like to pay the $50 renewal fee - Credit Card, Debit Card, or Cash?
+        entity: StringPrebuiltEntity
+        alwaysPrompt: true
+
+      - kind: Question
+        id: q_finalConfirm
+        interruptionPolicy:
+          allowInterruption: true
+        variable: Topic.finalConfirm
+        prompt: |-
+          Just to confirm: should I prepare your registration renewal using **{Topic.paymentMethod}** as the payment method?
+        entity: BooleanPrebuiltEntity
+        alwaysPrompt: true
+
+      - kind: ConditionGroup
+        id: cg_finalConfirmed
+        conditions:
+          - id: cond_cancelled
+            condition: =Topic.finalConfirm <> true
+            actions:
+              - kind: SendActivity
+                id: sa_cancelled
+                activity: |-
+                  No problem. I have not submitted anything. You can complete the renewal anytime at the [Contoso DMV portal](https://site-y5jzr.powerappsportals.us/vehicle-registration).
+              - kind: EndDialog
+                id: ed_cancelled
+
+      - kind: SendActivity
+        id: sa_success
+        activity: |-
+          Thanks. Your renewal request is ready to complete in the Contoso DMV portal.
+
+          Open [Vehicle Registration](https://site-y5jzr.powerappsportals.us/vehicle-registration) to review your details and finish payment. If anything looks out of date, update it there before submitting.
+
+  inputType: {}
+  outputType: {}
