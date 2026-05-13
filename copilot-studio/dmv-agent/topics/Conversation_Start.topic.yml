@@ -1,0 +1,80 @@
+kind: DialogComponent
+managedProperties:
+  isCustomizable: false
+
+displayName: Conversation Start
+parentBotId: 16efd3d3-2543-f111-88b4-001dd801f94a
+description: This system topic triggers when the agent receives an Activity indicating the beginning of a new conversation. If you do not want the agent to initiate the conversation, disable this topic.
+shareContext: {}
+state: Active
+status: Active
+publisherUniqueName: DefaultPublisherorga381269e
+schemaName: template-content.topic.ConversationStart
+dialog:
+  beginDialog:
+    kind: OnConversationStart
+    id: main
+    actions:
+      - kind: SetVariable
+        id: setVariable_Z7X8p3
+        variable: Global.Email
+        value: kellycason+maria@microsoft.com
+
+      - kind: SetVariable
+        id: setVariable_sNaSG8
+        variable: Global.PortalContactId
+        value: d2c23913-f238-f111-88b3-001dd801f94a
+
+      - kind: SetVariable
+        id: setVariable_startOptions
+        variable: init:Topic.StartOptions
+        value: |-
+          =Table(
+            { DisplayName: "Renew Registration", TopicId: "RenewVehicleRegistration", TriggerId: "StartMenu", Score: 1.0 },
+            { DisplayName: "Check Registration Status", TopicId: "CheckRenewalStatus", TriggerId: "StartMenu", Score: 1.0 },
+            { DisplayName: "Get REAL ID", TopicId: "RealID", TriggerId: "StartMenu", Score: 1.0 },
+            { DisplayName: "Book Appointment", TopicId: "BookAppointment", TriggerId: "StartMenu", Score: 1.0 }
+          )
+
+      - kind: Question
+        id: question_startChoice
+        interruptionPolicy:
+          allowInterruption: true
+        alwaysPrompt: true
+        variable: init:Topic.StartChoice
+        prompt: How can I help you today?
+        entity:
+          kind: DynamicClosedListEntity
+          items: =Topic.StartOptions
+
+      - kind: ConditionGroup
+        id: conditionGroup_startChoice
+        conditions:
+          - id: conditionItem_checkStatus
+            condition: =Topic.StartChoice.TopicId = "CheckRenewalStatus"
+            actions:
+              - kind: BeginDialog
+                id: beginDialog_checkStatus
+                dialog: crd60_agent.topic.CheckRenewalStatus
+
+          - id: conditionItem_renewRegistration
+            condition: =Topic.StartChoice.TopicId = "RenewVehicleRegistration"
+            actions:
+              - kind: BeginDialog
+                id: beginDialog_renewRegistration
+                dialog: crd60_agent.topic.RenewVehicleRegistration
+
+          - id: conditionItem_realId
+            condition: =Topic.StartChoice.TopicId = "RealID"
+            actions:
+              - kind: SendActivity
+                id: sendActivity_realId
+                activity: You can review REAL ID requirements and start here: https://site-y5jzr.powerappsportals.us/real-id
+
+          - id: conditionItem_bookAppointment
+            condition: =Topic.StartChoice.TopicId = "BookAppointment"
+            actions:
+              - kind: SendActivity
+                id: sendActivity_bookAppointment
+                activity: You can book a DMV appointment here: https://site-y5jzr.powerappsportals.us/appointments
+

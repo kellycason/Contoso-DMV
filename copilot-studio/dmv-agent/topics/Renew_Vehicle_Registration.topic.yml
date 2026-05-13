@@ -33,20 +33,68 @@ dialog:
                 entity: EmailPrebuiltEntity
                 alwaysPrompt: false
 
+      - kind: ConditionGroup
+        id: cg_haveRenewalVehicle
+        conditions:
+          - id: cond_renewalVehicleBlank
+            condition: =IsBlank(Global.SelectedRenewalVehicle)
+            actions:
+              - kind: SetVariable
+                id: setVariable_renewalVehicleOptions
+                variable: init:Topic.RenewalVehicleOptions
+                value: |-
+                  =Table(
+                    { DisplayName: "2024 Tesla Model S - REG-000002", VehicleName: "2024 Tesla Model S", RegistrationId: "REG-000002", VehicleId: "26def455-1d39-f111-88b4-001dd80340cd", Score: 1.0 },
+                    { DisplayName: "2023 Honda Accord - REG-000001", VehicleName: "2023 Honda Accord", RegistrationId: "REG-000001", VehicleId: "03def455-1d39-f111-88b4-001dd80340cd", Score: 1.0 }
+                  )
+
+              - kind: Question
+                id: question_selectRenewalVehicle
+                interruptionPolicy:
+                  allowInterruption: true
+                variable: init:Topic.SelectedRenewalVehicle
+                prompt: Which vehicle would you like to renew?
+                entity:
+                  kind: DynamicClosedListEntity
+                  items: =Topic.RenewalVehicleOptions
+                alwaysPrompt: true
+
+              - kind: SetVariable
+                id: setVariable_selectedRenewalVehicle
+                variable: Global.SelectedRenewalVehicle
+                value: =Topic.SelectedRenewalVehicle.VehicleName
+
+              - kind: SetVariable
+                id: setVariable_selectedRenewalVehicleId
+                variable: Global.SelectedRenewalVehicleId
+                value: =Topic.SelectedRenewalVehicle.VehicleId
+
       - kind: SendActivity
         id: sa_intro
         activity: |-
-          I can help start your registration renewal for **{Global.Email}**.
+          I can help start the registration renewal for **{Global.SelectedRenewalVehicle}** for **{If(!IsBlank(Global.CustomerName), Global.CustomerName, If(Global.Email = "kellycason+maria@microsoft.com", "Maria Jennings", Global.Email))}**.
 
           The standard renewal fee is **$50.00**. Before submitting, please confirm your vehicle, insurance, and mailing address in the Contoso DMV portal if anything has changed.
+
+      - kind: SetVariable
+        id: setVariable_paymentMethodOptions
+        variable: init:Topic.PaymentMethodOptions
+        value: |-
+          =Table(
+            { DisplayName: "Credit Card", Value: "Credit Card", PayCode: "credit", Score: 1.0 },
+            { DisplayName: "Debit Card", Value: "Debit Card", PayCode: "debit", Score: 1.0 },
+            { DisplayName: "Cash", Value: "Cash", PayCode: "cash", Score: 1.0 }
+          )
 
       - kind: Question
         id: q_paymentMethod
         interruptionPolicy:
           allowInterruption: true
-        variable: Topic.paymentMethod
-        prompt: How would you like to pay the $50 renewal fee - Credit Card, Debit Card, or Cash?
-        entity: StringPrebuiltEntity
+        variable: init:Topic.paymentMethod
+        prompt: How would you like to pay the $50 renewal fee?
+        entity:
+          kind: DynamicClosedListEntity
+          items: =Topic.PaymentMethodOptions
         alwaysPrompt: true
 
       - kind: Question
@@ -55,7 +103,7 @@ dialog:
           allowInterruption: true
         variable: Topic.finalConfirm
         prompt: |-
-          Just to confirm: should I prepare your registration renewal using **{Topic.paymentMethod}** as the payment method?
+          Just to confirm: should I prepare the renewal for **{Global.SelectedRenewalVehicle}** using **{Topic.paymentMethod.DisplayName}** as the payment method?
         entity: BooleanPrebuiltEntity
         alwaysPrompt: true
 
@@ -75,9 +123,9 @@ dialog:
       - kind: SendActivity
         id: sa_success
         activity: |-
-          Thanks. Your renewal request is ready to complete in the Contoso DMV portal.
+          You're ready to finish the renewal for **{Global.SelectedRenewalVehicle}**.
 
-          Open [Vehicle Registration](https://site-y5jzr.powerappsportals.us/vehicle-registration) to review your details and finish payment. If anything looks out of date, update it there before submitting.
+          Open the secure portal checkout to review the pre-filled renewal and submit payment: [Continue renewal](https://site-y5jzr.powerappsportals.us/vehicle-registration?renew={Global.SelectedRenewalVehicleId}&step=payment&pay={Topic.paymentMethod.PayCode})
 
   inputType: {}
   outputType: {}

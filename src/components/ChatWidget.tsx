@@ -1,9 +1,9 @@
-import { useEffect, useRef, useState, useCallback } from 'react'
-// @ts-expect-error - no types shipped
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { OmnichannelChatSDK } from '@microsoft/omnichannel-chat-sdk'
-// @ts-expect-error - botframework-webchat ships its own types but as a single bundle
-import ReactWebChat from 'botframework-webchat'
+import ReactWebChat, { createStore } from 'botframework-webchat'
 import './ChatWidget.css'
+
+const DMVReactWebChat = ReactWebChat as any
 
 // Omnichannel widget config — Contact Center DMV Agent
 const omnichannelConfig = {
@@ -12,14 +12,109 @@ const omnichannelConfig = {
   widgetId: '92729e5b-00a0-45bc-937d-ffec28f28748',
 }
 
-declare global {
-  interface Window {
-    __PORTAL_USER__?: { name?: string; id?: string } | null
-    __DMV_DATA__?: any
+type Phase = 'closed' | 'connecting' | 'chatting' | 'error'
+
+type RegistrationSummaryItem = {
+  vehicle: string
+  registration: string
+  expires: string
+  daysLeft?: number
+}
+
+function cleanChoiceTitle(title: string) {
+  return title.replace(/^[^A-Za-z0-9]+/, '').trim()
+}
+
+function normalizeAdaptiveStarter(activity: any) {
+  const attachment = activity?.attachments?.find((item: any) =>
+    typeof item?.contentType === 'string' && item.contentType.toLowerCase().includes('adaptivecard'),
+  )
+  const card = attachment?.content
+  if (!card || !Array.isArray(card.actions) || card.actions.length === 0) return null
+
+  const prompt = card.body
+    ?.filter((block: any) => block?.type === 'TextBlock' && typeof block.text === 'string')
+    ?.map((block: any) => block.text.trim())
+    ?.find((text: string) => /how can i help/i.test(text))
+
+  if (!prompt) return null
+
+  const actions = card.actions
+    .map((action: any) => {
+      const title = cleanChoiceTitle(String(action?.title || ''))
+      if (!title) return null
+
+      if (action?.type === 'Action.OpenUrl' && action.url) {
+        return { type: 'openUrl', title, value: action.url }
+      }
+
+      const submitValue = action?.data?.text || action?.data?.value || action?.data?.msteams?.value || title
+      return { type: 'imBack', title, value: typeof submitValue === 'string' ? submitValue : title }
+    })
+    .filter(Boolean)
+
+  if (actions.length === 0) return null
+
+  return {
+    ...activity,
+    text: prompt,
+    attachments: [],
+    suggestedActions: { actions },
   }
 }
 
-type Phase = 'closed' | 'connecting' | 'chatting' | 'error'
+function parseRegistrationSummary(text: string) {
+  if (!/Here's what I found for/i.test(text) || !/\bReg\b/i.test(text) || !/\bexpires\b/i.test(text)) return null
+
+  const name = text.match(/Here's what I found for\s+\*\*([^*]+)\*\*:/i)?.[1]?.trim()
+  const itemPattern = /(?:^|\n|\s-\s*)\*\*([^*]+)\*\*\s+(?:—|-)\s+Reg\s+([A-Z0-9-]+)\s+(?:—|-)\s+expires\s+([^\n]+?)(?=\n|\s+Want\b|$)/gi
+  const items: RegistrationSummaryItem[] = []
+  let match: RegExpExecArray | null
+
+  while ((match = itemPattern.exec(text)) !== null) {
+    const expires = match[3].replace(/⚠️/g, '').replace(/\s+/g, ' ').trim()
+    const daysLeftText = expires.match(/\((\d+)\s+days?\s+left\)/i)?.[1]
+
+    items.push({
+      vehicle: match[1].trim(),
+      registration: match[2].trim(),
+      expires,
+      daysLeft: daysLeftText ? Number(daysLeftText) : undefined,
+    })
+  }
+
+  if (!name || items.length === 0) return null
+  return { name, items }
+}
+
+function polishRegistrationSummaryText(text: string) {
+  const summary = parseRegistrationSummary(text)
+  if (!summary) return text
+
+  const renewSoon = summary.items.filter((item) => typeof item.daysLeft === 'number' && item.daysLeft <= 60)
+  const otherVehicles = summary.items.filter((item) => !renewSoon.includes(item))
+
+  const vehicleLines = (items: RegistrationSummaryItem[]) => items.flatMap((item) => [
+    `- **${item.vehicle}**`,
+    `  - Registration: ${item.registration}`,
+    `  - Expires: ${item.expires}`,
+  ])
+
+  const sections: string[] = []
+  if (renewSoon.length > 0) {
+    sections.push('**Renew soon**', ...vehicleLines(renewSoon), '')
+  }
+  if (otherVehicles.length > 0) {
+    sections.push('**Other vehicles on file**', ...vehicleLines(otherVehicles), '')
+  }
+
+  return [
+    `Here's what I found for **${summary.name}**:`,
+    '',
+    ...sections,
+    '**Next step:** Type "renew my registration" or open the [Contoso DMV renewal page](https://site-y5jzr.powerappsportals.us/vehicle-registration).',
+  ].join('\n')
+}
 
 export default function ChatWidget() {
   const [phase, setPhase] = useState<Phase>('closed')
@@ -34,6 +129,27 @@ export default function ChatWidget() {
   useEffect(() => { phaseRef.current = phase }, [phase])
 
   const open = phase !== 'closed'
+
+  const webChatStore = useMemo(() => createStore({}, () => (next: any) => (action: any) => {
+    if (action?.type !== 'DIRECT_LINE/INCOMING_ACTIVITY') return next(action)
+
+    let activity = action.payload?.activity
+    if (activity?.from?.role !== 'bot') return next(action)
+
+    activity = normalizeAdaptiveStarter(activity) || activity
+
+    if (typeof activity.text === 'string') {
+      activity = { ...activity, text: polishRegistrationSummaryText(activity.text) }
+    }
+
+    return next({
+      ...action,
+      payload: {
+        ...action.payload,
+        activity,
+      },
+    })
+  }), [])
 
   const ensureSdk = useCallback(async () => {
     if (sdkRef.current) return sdkRef.current
@@ -163,7 +279,7 @@ export default function ChatWidget() {
     bubbleFromUserBorderColor: '#1e3a5f',
     bubbleFromUserBorderRadius: 16,
     bubbleFromUserTextColor: '#ffffff',
-    bubbleMaxWidth: 280,
+    bubbleMaxWidth: 336,
     bubbleMinHeight: 36,
     bubbleMinWidth: 60,
 
@@ -185,11 +301,11 @@ export default function ChatWidget() {
 
     suggestedActionBackground: '#ffffff',
     suggestedActionBorderColor: '#e2e8f0',
-    suggestedActionBorderRadius: 999,
+    suggestedActionBorderRadius: 10,
     suggestedActionBorderStyle: 'solid',
     suggestedActionBorderWidth: 1,
     suggestedActionTextColor: '#334155',
-    suggestedActionLayout: 'flow',
+    suggestedActionLayout: 'stacked',
     suggestedActionDisabledBackground: '#f1f5f9',
 
     timestampColor: '#94a3b8',
@@ -282,8 +398,9 @@ export default function ChatWidget() {
 
           {phase === 'chatting' && directLine && (
             <div className="dmv-chat-webchat">
-              <ReactWebChat
+              <DMVReactWebChat
                 directLine={directLine}
+                store={webChatStore}
                 styleOptions={styleOptions}
                 userID={window.__PORTAL_USER__?.id || 'guest'}
                 username={window.__PORTAL_USER__?.name || 'Guest'}

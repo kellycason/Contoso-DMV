@@ -1,0 +1,99 @@
+kind: DialogComponent
+managedProperties:
+  isCustomizable: false
+
+displayName: Check Renewal Status
+parentBotId: 16efd3d3-2543-f111-88b4-001dd801f94a
+shareContext: {}
+state: Active
+status: Active
+publisherUniqueName: DefaultPublisherorga381269e
+schemaName: crd60_agent.topic.CheckRenewalStatus
+dialog:
+  modelDescription: |-
+    Use this topic when the user wants to check the status of their vehicle registration(s), see what's on file, find out when a registration expires, or determine whether a renewal is needed.
+    Examples: "check my registration status", "when does my registration expire", "what registrations do I have", "is my Tesla still active".
+  beginDialog:
+    kind: OnRecognizedIntent
+    id: main
+    intent: {}
+    actions:
+      - kind: ConditionGroup
+        id: cg_haveEmail
+        conditions:
+          - id: cond_emailBlank
+            condition: =IsBlank(Global.Email)
+            actions:
+              - kind: Question
+                id: q_email
+                interruptionPolicy:
+                  allowInterruption: true
+                variable: Global.Email
+                prompt: To look up your vehicle registrations, what's the email address on your Contoso DMV account?
+                entity: EmailPrebuiltEntity
+                alwaysPrompt: false
+
+      - kind: InvokeFlowAction
+        id: invokeFlowAction_3vtSLR
+        input:
+          binding:
+            text: =Global.Email
+
+        output:
+          binding:
+            registrations: Topic.registrations
+            customerName: Topic.customerName
+
+        flowId: fae614ac-1d43-f111-88b4-001dd80a6132
+
+      - kind: ConditionGroup
+        id: cg_haveResults
+        conditions:
+          - id: cond_hasRegs
+            condition: =!IsBlank(Topic.registrations)
+            actions:
+              - kind: Question
+                id: question_renewAfterStatus
+                interruptionPolicy:
+                  allowInterruption: true
+                variable: init:Topic.RenewAfterStatus
+                prompt: |-
+                  Here's what I found for **{If(IsBlank(Topic.customerName), Global.Email, Topic.customerName)}**:
+
+                  {Topic.registrations}
+
+                  Would you like to start a registration renewal now?
+                entity: BooleanPrebuiltEntity
+                alwaysPrompt: true
+
+              - kind: ConditionGroup
+                id: conditionGroup_renewAfterStatus
+                conditions:
+                  - id: conditionItem_renewAfterStatusYes
+                    condition: =Topic.RenewAfterStatus = true
+                    actions:
+                      - kind: SetVariable
+                        id: setVariable_customerNameForRenewal
+                        variable: Global.CustomerName
+                        value: =If(IsBlank(Topic.customerName), Global.Email, Topic.customerName)
+
+                      - kind: BeginDialog
+                        id: beginDialog_renewAfterStatus
+                        dialog: crd60_agent.topic.RenewVehicleRegistration
+
+                elseActions:
+                  - kind: SendActivity
+                    id: sendActivity_renewAfterStatusNo
+                    activity: No problem. You can renew later from the [Contoso DMV portal](https://site-y5jzr.powerappsportals.us/vehicle-registration).
+        elseActions:
+          - kind: SendActivity
+            id: sendActivity_noResults
+            activity: |-
+              I couldn't find any vehicle registrations linked to **{Global.Email}**. A couple of things to try:
+
+              - Double-check the email matches the one on your Contoso DMV account.
+              - If you've recently created an account, please allow a few minutes for it to sync.
+              - You can also sign in at the [Contoso DMV portal](https://site-y5jzr.powerappsportals.us/) to view your registrations directly.
+
+  inputType: {}
+  outputType: {}

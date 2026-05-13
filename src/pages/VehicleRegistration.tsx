@@ -153,9 +153,16 @@ export default function VehicleRegistration() {
     const params = new URLSearchParams(window.location.search)
     const renewId = params.get('renew')
     if (!renewId) return
+    const requestedStep = params.get('step')
+    const requestedPayMethod = params.get('pay')
     const target = vehicles.find(v => v.dmv_vehicleid === renewId)
     if (target) {
-      setRnForm(RENEW_INIT); setRnStep(0); setRnAutofilled(false)
+      const payMethod = ['credit', 'debit', 'cash', 'echeck'].includes(requestedPayMethod || '')
+        ? requestedPayMethod!
+        : RENEW_INIT.payMethod
+      setRnForm({ ...RENEW_INIT, payMethod })
+      setRnStep(requestedStep === 'payment' ? 3 : 0)
+      setRnAutofilled(false)
       setRenewTarget(target); setSubmitError(''); setView('renew')
       // Clear param so refresh/back doesn't re-trigger
       window.history.replaceState({}, '', '/vehicle-registration')
@@ -611,6 +618,7 @@ export default function VehicleRegistration() {
                     <select name="payMethod" value={rnForm.payMethod} onChange={rnHandle}>
                       <option value="credit">Credit Card</option>
                       <option value="debit">Debit Card</option>
+                      <option value="cash">Cash</option>
                       <option value="echeck">eCheck / ACH</option>
                     </select>
                   </div>
